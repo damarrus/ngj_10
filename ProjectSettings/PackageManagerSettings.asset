@@ -35,6 +35,7 @@ MonoBehaviour:
     m_Url: https://package.openupm.com
     m_Scopes:
     - com.ivanmurzak
+    - com.sabresaurus.playerprefseditor
     - extensions.unity
     m_IsDefault: 0
     m_Capabilities: 0

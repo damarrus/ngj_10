@@ -11,6 +11,13 @@
       },
       "url": "https://package.openupm.com"
     },
+    "com.sabresaurus.playerprefseditor": {
+      "version": "1.4.1",
+      "depth": 0,
+      "source": "registry",
+      "dependencies": {},
+      "url": "https://package.openupm.com"
+    },
     "com.unity.2d.animation": {
       "version": "14.0.4",
       "depth": 0,
