@@ -1,0 +1,42 @@
+# Auto detect text files and perform LF normalization
+* text=auto
+
+# Unity text-based asset files — keep as text, force LF
+*.cs text eol=lf diff=csharp
+*.cginc text
+*.shader text
+*.uss text
+*.uxml text
+*.json text eol=lf
+*.md text
+*.txt text
+
+# Unity YAML asset files (merge with UnityYAMLMerge if configured)
+*.meta merge=unityyamlmerge eol=lf
+*.unity merge=unityyamlmerge eol=lf
+*.asset merge=unityyamlmerge eol=lf
+*.prefab merge=unityyamlmerge eol=lf
+*.mat merge=unityyamlmerge eol=lf
+*.anim merge=unityyamlmerge eol=lf
+*.controller merge=unityyamlmerge eol=lf
+*.physicMaterial merge=unityyamlmerge eol=lf
+*.physicsMaterial2D merge=unityyamlmerge eol=lf
+*.asmdef text eol=lf
+
+# Force binary (no LFS — keep simple for a jam). Mark common binaries.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.psd binary
+*.aseprite binary
+*.wav binary
+*.mp3 binary
+*.ogg binary
+*.fbx binary
+*.ttf binary
+*.otf binary
+*.dll binary
+*.so binary
+*.dylib binary
+*.unitypackage binary
