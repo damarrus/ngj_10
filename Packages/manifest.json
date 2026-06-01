@@ -5,12 +5,14 @@
       "url": "https://package.openupm.com",
       "scopes": [
         "com.ivanmurzak",
+        "com.sabresaurus.playerprefseditor",
         "extensions.unity"
       ]
     }
   ],
   "dependencies": {
     "com.ivanmurzak.unity.mcp": "0.77.0",
+    "com.sabresaurus.playerprefseditor": "1.4.1",
     "com.unity.2d.animation": "14.0.4",
     "com.unity.2d.aseprite": "4.0.2",
     "com.unity.2d.psdimporter": "13.0.3",
