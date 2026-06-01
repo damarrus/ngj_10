@@ -62,6 +62,12 @@ Assets/_Project/
 - Комментарии — только где «почему», не «что». Очевидное не комментировать.
 - Magic numbers геймплея → `[SerializeField]` поля, чтобы тюнить в инспекторе без рекомпиляции.
 
+## UI-текст — только TextMeshPro
+
+- **Весь UI-текст — `TextMeshProUGUI` (TMP). Legacy `UnityEngine.UI.Text` не использовать.** TMP резче на любом масштабе (SDF), стабильнее авто-сайз, богаче (rich text). В Unity 6 TMP уже внутри `com.unity.ugui` — отдельный пакет не нужен.
+- Шрифт-ассет: дефолтный `LiberationSans SDF` (TMP Essential Resources, лежит в `Assets/TextMesh Pro/`). При билде UI кодом TMP сам подхватит дефолтный font asset из `TMP_Settings` — явно ссылку можно не вешать.
+- Если код строит UI динамически: `go.AddComponent<TextMeshProUGUI>()`, `using TMPro;`. Размеры/выравнивание — `fontSize`, `alignment = TextAlignmentOptions.*`.
+
 ## Unity MCP — как я работаю с Editor
 
 Подключён mcp-unity (инструменты `mcp__mcp-unity__*`): сцены, GameObject, компоненты, консоль.

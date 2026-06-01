@@ -1,5 +1,5 @@
+using TMPro;
 using UnityEngine;
-using UnityEngine.UI;
 
 namespace Ngj10.Gameplay
 {
@@ -18,9 +18,9 @@ namespace Ngj10.Gameplay
         private const string PanelPath = "GameOverPanel";
         private const string ResultPath = "GameOverPanel/ResultText";
 
-        private Text _scoreText;
-        private Text _timeText;
-        private Text _resultText;
+        private TextMeshProUGUI _scoreText;
+        private TextMeshProUGUI _timeText;
+        private TextMeshProUGUI _resultText;
         private GameObject _gameOverPanel;
 
         private void Awake()
@@ -71,7 +71,7 @@ namespace Ngj10.Gameplay
             }
         }
 
-        private Text FindChildText(string path)
+        private TextMeshProUGUI FindChildText(string path)
         {
             var child = transform.Find(path);
             if (child == null)
@@ -79,7 +79,7 @@ namespace Ngj10.Gameplay
                 Debug.LogError($"[GameHud] Child '{path}' not found under {name}.", this);
                 return null;
             }
-            return child.GetComponent<Text>();
+            return child.GetComponent<TextMeshProUGUI>();
         }
     }
 }

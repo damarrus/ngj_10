@@ -1,3 +1,4 @@
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -20,11 +21,9 @@ namespace Ngj10.Core.Achievements
 
         private GameObject _panel;
         private RectTransform _content;
-        private Font _font;
 
         private void Awake()
         {
-            _font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
             BuildUi();
         }
 
@@ -72,12 +71,12 @@ namespace Ngj10.Core.Achievements
                 ? $"   ({Mathf.Min(progress, def.Target)}/{def.Target})"
                 : string.Empty;
 
-            var title = MakeText(row.transform, "Title", 16, FontStyle.Bold,
+            var title = MakeText(row.transform, "Title", 16, FontStyles.Bold,
                 unlocked ? Gold : new Color(0.7f, 0.7f, 0.7f));
             title.text = status + def.Title + progressTail;
             StretchTop(title.rectTransform, 8f, 28f);
 
-            var desc = MakeText(row.transform, "Desc", 13, FontStyle.Normal,
+            var desc = MakeText(row.transform, "Desc", 13, FontStyles.Normal,
                 unlocked ? Color.white : new Color(0.55f, 0.55f, 0.55f));
             desc.text = def.Description;
             StretchTop(desc.rectTransform, 32f, 24f);
@@ -113,9 +112,9 @@ namespace Ngj10.Core.Achievements
             btnGo.GetComponent<Image>().color = new Color(0.15f, 0.17f, 0.22f, 0.95f);
             btnGo.GetComponent<Button>().onClick.AddListener(TogglePanel);
 
-            var label = MakeText(btnGo.transform, "Label", 16, FontStyle.Bold, Gold);
+            var label = MakeText(btnGo.transform, "Label", 16, FontStyles.Bold, Gold);
             label.text = "🏆 Achievements";
-            label.alignment = TextAnchor.MiddleCenter;
+            label.alignment = TextAlignmentOptions.Center;
             var lrt = label.rectTransform;
             lrt.anchorMin = Vector2.zero;
             lrt.anchorMax = Vector2.one;
@@ -136,9 +135,9 @@ namespace Ngj10.Core.Achievements
             _panel.GetComponent<Image>().color = PanelBg;
 
             // Header.
-            var header = MakeText(_panel.transform, "Header", 24, FontStyle.Bold, Gold);
+            var header = MakeText(_panel.transform, "Header", 24, FontStyles.Bold, Gold);
             header.text = "Achievements";
-            header.alignment = TextAnchor.MiddleCenter;
+            header.alignment = TextAlignmentOptions.Center;
             var hrt = header.rectTransform;
             hrt.anchorMin = new Vector2(0f, 1f);
             hrt.anchorMax = new Vector2(1f, 1f);
@@ -157,9 +156,9 @@ namespace Ngj10.Core.Achievements
             crt.anchoredPosition = new Vector2(-8f, -8f);
             closeGo.GetComponent<Image>().color = new Color(0.5f, 0.18f, 0.18f, 1f);
             closeGo.GetComponent<Button>().onClick.AddListener(() => _panel.SetActive(false));
-            var x = MakeText(closeGo.transform, "X", 22, FontStyle.Bold, Color.white);
+            var x = MakeText(closeGo.transform, "X", 22, FontStyles.Bold, Color.white);
             x.text = "×";
-            x.alignment = TextAnchor.MiddleCenter;
+            x.alignment = TextAlignmentOptions.Center;
             var xrt = x.rectTransform;
             xrt.anchorMin = Vector2.zero;
             xrt.anchorMax = Vector2.one;
@@ -214,18 +213,17 @@ namespace Ngj10.Core.Achievements
 
         // --- Text helpers ----------------------------------------------------
 
-        private Text MakeText(Transform parent, string name, int size, FontStyle style, Color color)
+        private TextMeshProUGUI MakeText(Transform parent, string name, int size, FontStyles style, Color color)
         {
-            var go = new GameObject(name, typeof(RectTransform), typeof(Text));
+            var go = new GameObject(name, typeof(RectTransform), typeof(TextMeshProUGUI));
             go.transform.SetParent(parent, false);
-            var text = go.GetComponent<Text>();
-            text.font = _font;
+            var text = go.GetComponent<TextMeshProUGUI>();
             text.fontSize = size;
             text.fontStyle = style;
             text.color = color;
-            text.alignment = TextAnchor.UpperLeft;
-            text.horizontalOverflow = HorizontalWrapMode.Wrap;
-            text.verticalOverflow = VerticalWrapMode.Truncate;
+            text.alignment = TextAlignmentOptions.TopLeft;
+            text.textWrappingMode = TextWrappingModes.Normal;
+            text.overflowMode = TextOverflowModes.Truncate;
             return text;
         }
 

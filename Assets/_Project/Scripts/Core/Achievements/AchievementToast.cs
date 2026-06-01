@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -23,8 +24,8 @@ namespace Ngj10.Core.Achievements
         [SerializeField] private float _margin = 16f;
 
         private RectTransform _card;
-        private Text _titleText;
-        private Text _descText;
+        private TextMeshProUGUI _titleText;
+        private TextMeshProUGUI _descText;
         private CanvasGroup _group;
 
         private readonly Queue<AchievementDefinition> _pending = new Queue<AchievementDefinition>();
@@ -148,20 +149,20 @@ namespace Ngj10.Core.Achievements
             strip.GetComponent<Image>().color = new Color(1f, 0.78f, 0.25f, 1f);
 
             _titleText = MakeText(cardGo.transform, "Title", new Vector2(20f, -10f),
-                new Vector2(-16f, -8f), TextAnchor.UpperLeft, 18, FontStyle.Bold,
+                new Vector2(-16f, -8f), TextAlignmentOptions.TopLeft, 18, FontStyles.Bold,
                 new Color(1f, 0.78f, 0.25f));
 
             _descText = MakeText(cardGo.transform, "Desc", new Vector2(20f, 10f),
-                new Vector2(-16f, 44f), TextAnchor.LowerLeft, 15, FontStyle.Normal,
+                new Vector2(-16f, 44f), TextAlignmentOptions.BottomLeft, 15, FontStyles.Normal,
                 Color.white);
         }
 
         // Stretched text inset by the given left/bottom and right/top offsets.
-        private static Text MakeText(
+        private static TextMeshProUGUI MakeText(
             Transform parent, string name, Vector2 offsetMin, Vector2 offsetMax,
-            TextAnchor anchor, int size, FontStyle style, Color color)
+            TextAlignmentOptions anchor, int size, FontStyles style, Color color)
         {
-            var go = new GameObject(name, typeof(RectTransform), typeof(Text));
+            var go = new GameObject(name, typeof(RectTransform), typeof(TextMeshProUGUI));
             go.transform.SetParent(parent, false);
             var rt = go.GetComponent<RectTransform>();
             rt.anchorMin = Vector2.zero;
@@ -169,14 +170,13 @@ namespace Ngj10.Core.Achievements
             rt.offsetMin = offsetMin;
             rt.offsetMax = offsetMax;
 
-            var text = go.GetComponent<Text>();
-            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            var text = go.GetComponent<TextMeshProUGUI>();
             text.fontSize = size;
             text.fontStyle = style;
             text.alignment = anchor;
             text.color = color;
-            text.horizontalOverflow = HorizontalWrapMode.Wrap;
-            text.verticalOverflow = VerticalWrapMode.Truncate;
+            text.textWrappingMode = TextWrappingModes.Normal;
+            text.overflowMode = TextOverflowModes.Truncate;
             return text;
         }
     }
