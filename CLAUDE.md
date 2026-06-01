@@ -71,6 +71,10 @@ Assets/_Project/
 - **`.unity`/`.prefab`/`.asset` не редактировать руками** — сложный YAML + GUID-связи. Только через MCP.
 - **Скрипты, ProjectSettings, JSON, .md** — можно править файлами напрямую.
 - После правок проверять консоль (`get_console_logs` errors) на ошибки компиляции.
+- **Ссылки в инспекторе через MCP ненадёжны — не связывать через MCP.** На компоненты (`Text`, MonoBehaviour) остаются `null`; на GameObject резолвятся на НЕ ТОТ объект (в ответе видно имя `"New Game Object"` вместо реального) → NRE в рантайме. Обход: находить всё кодом — дети по `transform.Find("Child")` в `Awake`, зависимости через `GetComponent<T>()` / `FindAnyObjectByType<T>()`. Не вешать `[SerializeField]`-ссылки в расчёте связать их через MCP.
+- **`execute_menu_item` ненадёжен** — UI собирать вручную (`update_gameobject` + `update_component`), не через `GameObject/UI/*`. Play через MCP не запускается — тест в Play Mode руками оператором.
+- **Unity 6 Find API:** `FindAnyObjectByType<T>()` (и `FindObjectOfType`, и `FindFirstObjectByType` — deprecated).
+- Полные грабли и приёмы по MCP → `docs/unity-mcp-notes.md`. Дополнять при новых открытиях.
 
 ## Git
 

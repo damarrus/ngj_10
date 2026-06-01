@@ -8,6 +8,5 @@ namespace Ngj10.Core
     {
         public const string Boot = "Boot";
         public const string Game = "Game";
-        public const string End = "End";
     }
 }

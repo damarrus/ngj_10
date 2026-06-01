@@ -1,7 +1,9 @@
 {
     "name": "Ngj10",
     "rootNamespace": "Ngj10",
-    "references": [],
+    "references": [
+        "Unity.ugui"
+    ],
     "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,

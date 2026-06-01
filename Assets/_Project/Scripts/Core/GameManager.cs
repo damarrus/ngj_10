@@ -37,11 +37,5 @@ namespace Ngj10.Core
             SetState(GameState.Playing);
             SceneLoader.LoadGame();
         }
-
-        public void EndGame()
-        {
-            SetState(GameState.GameOver);
-            SceneLoader.LoadEnd();
-        }
     }
 }

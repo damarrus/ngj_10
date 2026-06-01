@@ -1,3 +1,4 @@
+using Ngj10.Core.Achievements;
 using UnityEngine;
 
 namespace Ngj10.Core
@@ -22,6 +23,8 @@ namespace Ngj10.Core
                 go.AddComponent<GameManager>();
             }
 
+            EnsureAchievements();
+
             if (_autoStart)
             {
                 Invoke(nameof(GoToGame), _bootDelay);
@@ -31,6 +34,23 @@ namespace Ngj10.Core
         private void GoToGame()
         {
             GameManager.Instance.StartGame();
+        }
+
+        // Spawn the persistent achievement stack in code (engine + toast + list
+        // UI), same pattern as GameManager. Avoids fragile scene wiring; the
+        // components build their own UI and DontDestroyOnLoad keeps them alive.
+        private static void EnsureAchievements()
+        {
+            if (AchievementManager.Instance != null)
+            {
+                return;
+            }
+
+            var go = new GameObject("Achievements");
+            DontDestroyOnLoad(go);
+            go.AddComponent<AchievementManager>();
+            go.AddComponent<AchievementToast>();
+            go.AddComponent<AchievementListUI>();
         }
     }
 }

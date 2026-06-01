@@ -78,3 +78,6 @@ Thumbs.db
 
 # Node (MCP server deps if installed in-repo)
 node_modules/
+
+# MCP config: local-specific (abs paths / auth token) — do not commit
+.mcp.json
