@@ -70,16 +70,15 @@ Assets/_Project/
 
 ## Unity MCP — как я работаю с Editor
 
-Подключён mcp-unity (инструменты `mcp__mcp-unity__*`): сцены, GameObject, компоненты, консоль.
+Подключён мост **IvanMurzak/Unity-MCP** (skill-based tools: `scene-*`, `gameobject-*`, `assets-*`, `console-*`). Работает **без кликов** — фокус-throttle нет, MCP-запросы не требуют переключения фокуса на Unity.
 
-- **Фокус-throttle:** Unity тормозит мост когда окно не в фокусе → MCP-запросы таймаутят. Перед серией MCP-команд проси у оператора **один клик в Unity**. Это известное ограничение, конфигом не лечится.
-- **Рекомпиляция:** новый/изменённый `.cs` компилится только когда Editor в фокусе (или через `recompile_scripts`, который рвёт WS — норма). После правки скрипта — фокус на Unity.
 - **`.unity`/`.prefab`/`.asset` не редактировать руками** — сложный YAML + GUID-связи. Только через MCP.
 - **Скрипты, ProjectSettings, JSON, .md** — можно править файлами напрямую.
-- После правок проверять консоль (`get_console_logs` errors) на ошибки компиляции.
-- **Ссылки в инспекторе через MCP ненадёжны — не связывать через MCP.** На компоненты (`Text`, MonoBehaviour) остаются `null`; на GameObject резолвятся на НЕ ТОТ объект (в ответе видно имя `"New Game Object"` вместо реального) → NRE в рантайме. Обход: находить всё кодом — дети по `transform.Find("Child")` в `Awake`, зависимости через `GetComponent<T>()` / `FindAnyObjectByType<T>()`. Не вешать `[SerializeField]`-ссылки в расчёте связать их через MCP.
-- **`execute_menu_item` ненадёжен** — UI собирать вручную (`update_gameobject` + `update_component`), не через `GameObject/UI/*`. Play через MCP не запускается — тест в Play Mode руками оператором.
+- **Ссылки (refs) РАБОТАЮТ** — wiring через `gameobject-component-modify`, value `{"instanceID":N}`. Это была причина переезда со старого моста (там wiring был сломан). Code-driven (`GetComponent`/`transform.Find`/`FindAnyObjectByType`) теперь не обязателен, но валиден.
+- **Рекомпиляция:** `assets-refresh` форсит компиляцию (ждёт результата через requestId). После правки `.cs` файлами напрямую — вызвать `assets-refresh`.
+- После правок проверять консоль (`console-get-logs`, errors) на ошибки компиляции.
 - **Unity 6 Find API:** `FindAnyObjectByType<T>()` (и `FindObjectOfType`, и `FindFirstObjectByType` — deprecated).
+- Play Mode — через `editor-application-set-state` (или руками оператором).
 - Полные грабли и приёмы по MCP → `docs/unity-mcp-notes.md`. Дополнять при новых открытиях.
 
 ## Git

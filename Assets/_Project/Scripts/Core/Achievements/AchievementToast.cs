@@ -114,8 +114,9 @@ namespace Ngj10.Core.Achievements
             var canvasGo = new GameObject("AchievementToastCanvas");
             canvasGo.transform.SetParent(transform, false);
             var canvas = canvasGo.AddComponent<Canvas>();
-            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
             canvas.sortingOrder = 9000; // above gameplay HUD
+            // Привязка к letterbox-камере (ScreenSpaceCamera) — UI не лезет на бары.
+            canvasGo.AddComponent<LetterboxCanvasBinder>();
             var scaler = canvasGo.AddComponent<CanvasScaler>();
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
             scaler.referenceResolution = new Vector2(1280f, 720f);
