@@ -429,6 +429,8 @@ MonoBehaviour:
   _roundSeconds: 10
   _goodPoints: 1
   _badPenalty: 2
+  _popGoodClip: {fileID: 8300000, guid: 65ca9287411bb364fb96358ecc667990, type: 3}
+  _popBadClip: {fileID: 8300000, guid: 1c8e5b16d6cfac343b7c60488a6356d2, type: 3}
 --- !u!114 &797859808
 MonoBehaviour:
   m_ObjectHideFlags: 0

@@ -16,7 +16,29 @@ namespace Ngj10.Core.Achievements
     /// </summary>
     public class AchievementManager : MonoBehaviour
     {
-        public static AchievementManager Instance { get; private set; }
+        private static AchievementManager _instance;
+
+        /// <summary>
+        /// Persistent instance. Boot creates the full stack explicitly; this lazy
+        /// fallback also spawns it (engine + toast + list UI on one GameObject)
+        /// the first time it's needed when Game is started directly (no Boot) —
+        /// common in the Editor. Always non-null.
+        /// </summary>
+        public static AchievementManager Instance
+        {
+            get
+            {
+                if (_instance == null)
+                {
+                    var go = new GameObject("Achievements");
+                    go.AddComponent<AchievementManager>(); // Awake sets _instance
+                    go.AddComponent<AchievementToast>();
+                    go.AddComponent<AchievementListUI>();
+                }
+
+                return _instance;
+            }
+        }
 
         private const string ProgressPrefix = "ach.progress.";
         private const string UnlockedPrefix = "ach.unlocked.";
@@ -31,13 +53,13 @@ namespace Ngj10.Core.Achievements
 
         private void Awake()
         {
-            if (Instance != null && Instance != this)
+            if (_instance != null && _instance != this)
             {
                 Destroy(gameObject);
                 return;
             }
 
-            Instance = this;
+            _instance = this;
             DontDestroyOnLoad(gameObject);
             LoadDefinitions();
         }

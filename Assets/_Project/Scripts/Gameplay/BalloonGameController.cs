@@ -1,3 +1,4 @@
+using Ngj10.Core;
 using Ngj10.Core.Achievements;
 using UnityEngine;
 
@@ -18,6 +19,10 @@ namespace Ngj10.Gameplay
         [Header("Scoring")]
         [SerializeField] private int _goodPoints = 1;
         [SerializeField] private int _badPenalty = 2;
+
+        [Header("Audio")]
+        [SerializeField] private AudioClip _popGoodClip;
+        [SerializeField] private AudioClip _popBadClip;
 
         private BalloonSpawner _spawner;
         private GameHud _hud;
@@ -100,7 +105,20 @@ namespace Ngj10.Gameplay
                 _hud.SetScore(_score);
             }
 
+            PlayPopSound(isBad);
             ReportAchievements(isBad);
+        }
+
+        // Pop SFX goes through the persistent AudioManager so the sound isn't cut
+        // off when the clicked balloon is destroyed. Null-safe: silent if the
+        // manager wasn't booted or no clip is assigned yet.
+        private void PlayPopSound(bool isBad)
+        {
+            var audio = AudioManager.Instance;
+            if (audio != null)
+            {
+                audio.PlaySfx(isBad ? _popBadClip : _popGoodClip);
+            }
         }
 
         // Feed gameplay events into the reusable achievement engine. Null-safe so

@@ -23,7 +23,10 @@ namespace Ngj10.Core
                 go.AddComponent<GameManager>();
             }
 
-            EnsureAchievements();
+            // AudioManager and the achievement stack both self-create lazily on
+            // first Instance access (works even when Game is started directly).
+            // Touch Achievements here so its UI exists from the very first scene.
+            _ = AchievementManager.Instance;
 
             if (_autoStart)
             {
@@ -34,23 +37,6 @@ namespace Ngj10.Core
         private void GoToGame()
         {
             GameManager.Instance.StartGame();
-        }
-
-        // Spawn the persistent achievement stack in code (engine + toast + list
-        // UI), same pattern as GameManager. Avoids fragile scene wiring; the
-        // components build their own UI and DontDestroyOnLoad keeps them alive.
-        private static void EnsureAchievements()
-        {
-            if (AchievementManager.Instance != null)
-            {
-                return;
-            }
-
-            var go = new GameObject("Achievements");
-            DontDestroyOnLoad(go);
-            go.AddComponent<AchievementManager>();
-            go.AddComponent<AchievementToast>();
-            go.AddComponent<AchievementListUI>();
         }
     }
 }
