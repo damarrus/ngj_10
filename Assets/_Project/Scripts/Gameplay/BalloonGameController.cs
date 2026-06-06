@@ -29,6 +29,7 @@ namespace Ngj10.Gameplay
         private int _score;
         private float _timeLeft;
         private bool _playing;
+        private bool _paused;
 
         private void Awake()
         {
@@ -41,8 +42,39 @@ namespace Ngj10.Gameplay
             StartRound();
         }
 
+        private void OnEnable()
+        {
+            if (_hud != null)
+            {
+                _hud.PauseRequested += TogglePause;
+                _hud.ResumeRequested += Resume;
+            }
+        }
+
+        private void OnDisable()
+        {
+            if (_hud != null)
+            {
+                _hud.PauseRequested -= TogglePause;
+                _hud.ResumeRequested -= Resume;
+            }
+        }
+
         private void Update()
         {
+            // Esc mirrors the on-screen buttons. Pointer-driven pause/resume goes
+            // entirely through the UI buttons (GameHud) so a single click is
+            // handled by exactly one path — no manual mouse polling here.
+            if (Input.GetKeyDown(KeyCode.Escape))
+            {
+                TogglePause();
+            }
+
+            if (_paused)
+            {
+                return;
+            }
+
             if (_playing)
             {
                 TickRound();
@@ -53,11 +85,57 @@ namespace Ngj10.Gameplay
             }
         }
 
+        /// <summary>Toggled by the Pause button and the Esc key.</summary>
+        public void TogglePause()
+        {
+            if (_paused)
+            {
+                Resume();
+            }
+            else if (_playing)
+            {
+                Pause();
+            }
+        }
+
+        private void Pause()
+        {
+            if (!_playing || _paused)
+            {
+                return;
+            }
+
+            _paused = true;
+            Time.timeScale = 0f;
+            if (_hud != null)
+            {
+                _hud.ShowPause();
+            }
+        }
+
+        /// <summary>Resumes play; invoked by the "Click to continue" panel and Esc.</summary>
+        public void Resume()
+        {
+            if (!_paused)
+            {
+                return;
+            }
+
+            _paused = false;
+            Time.timeScale = 1f;
+            if (_hud != null)
+            {
+                _hud.HidePause();
+            }
+        }
+
         private void StartRound()
         {
             _score = 0;
             _timeLeft = _roundSeconds;
             _playing = true;
+            _paused = false;
+            Time.timeScale = 1f;
 
             if (_hud != null)
             {

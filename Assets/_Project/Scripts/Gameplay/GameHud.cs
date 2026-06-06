@@ -1,15 +1,23 @@
+using System;
 using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace Ngj10.Gameplay
 {
     /// <summary>
     /// In-game HUD for the single Game scene: live score + time, plus a game-over
-    /// overlay with the final score and a restart hint. Finds its children by
-    /// name in Awake rather than via inspector references — the MCP bridge can't
-    /// wire references reliably, and finding by name keeps the scene robust
-    /// across reloads. Expects under it: "ScoreText", "TimeText",
-    /// "GameOverPanel", "GameOverPanel/ResultText".
+    /// overlay with the final score and a restart hint, and a pause overlay.
+    /// Finds its children by name in Awake rather than via inspector references —
+    /// the MCP bridge can't wire references reliably, and finding by name keeps
+    /// the scene robust across reloads. Expects under it: "ScoreText", "TimeText",
+    /// "GameOverPanel", "GameOverPanel/ResultText", "PauseButton", "PausePanel"
+    /// (a full-screen Button labelled "Click to continue").
+    ///
+    /// Owns the pause UI widgets and raises <see cref="PauseRequested"/> /
+    /// <see cref="ResumeRequested"/> so the game controller never touches the
+    /// buttons directly. Each click is routed by the EventSystem to a single
+    /// widget, so there is no double-handling.
     /// </summary>
     public class GameHud : MonoBehaviour
     {
@@ -17,11 +25,22 @@ namespace Ngj10.Gameplay
         private const string TimePath = "TimeText";
         private const string PanelPath = "GameOverPanel";
         private const string ResultPath = "GameOverPanel/ResultText";
+        private const string PauseButtonPath = "PauseButton";
+        private const string PausePath = "PausePanel";
+
+        /// <summary>Raised when the player taps the on-screen Pause button.</summary>
+        public event Action PauseRequested;
+
+        /// <summary>Raised when the player taps the "Click to continue" overlay.</summary>
+        public event Action ResumeRequested;
 
         private TextMeshProUGUI _scoreText;
         private TextMeshProUGUI _timeText;
         private TextMeshProUGUI _resultText;
         private GameObject _gameOverPanel;
+        private GameObject _pausePanel;
+        private Button _pauseButton;
+        private Button _pausePanelButton;
 
         private void Awake()
         {
@@ -32,7 +51,24 @@ namespace Ngj10.Gameplay
             var panel = transform.Find(PanelPath);
             _gameOverPanel = panel != null ? panel.gameObject : null;
 
+            var pause = transform.Find(PausePath);
+            _pausePanel = pause != null ? pause.gameObject : null;
+            _pausePanelButton = _pausePanel != null ? _pausePanel.GetComponent<Button>() : null;
+
+            var pauseButton = transform.Find(PauseButtonPath);
+            _pauseButton = pauseButton != null ? pauseButton.GetComponent<Button>() : null;
+
+            if (_pauseButton != null)
+            {
+                _pauseButton.onClick.AddListener(() => PauseRequested?.Invoke());
+            }
+            if (_pausePanelButton != null)
+            {
+                _pausePanelButton.onClick.AddListener(() => ResumeRequested?.Invoke());
+            }
+
             HideGameOver();
+            HidePause();
         }
 
         public void SetScore(int score)
@@ -68,6 +104,22 @@ namespace Ngj10.Gameplay
             if (_gameOverPanel != null)
             {
                 _gameOverPanel.SetActive(false);
+            }
+        }
+
+        public void ShowPause()
+        {
+            if (_pausePanel != null)
+            {
+                _pausePanel.SetActive(true);
+            }
+        }
+
+        public void HidePause()
+        {
+            if (_pausePanel != null)
+            {
+                _pausePanel.SetActive(false);
             }
         }
 
