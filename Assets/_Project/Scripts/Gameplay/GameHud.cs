@@ -12,12 +12,15 @@ namespace Ngj10.Gameplay
     /// the MCP bridge can't wire references reliably, and finding by name keeps
     /// the scene robust across reloads. Expects under it: "ScoreText", "TimeText",
     /// "GameOverPanel", "GameOverPanel/ResultText", "PauseButton", "PausePanel"
-    /// (a full-screen Button labelled "Click to continue").
+    /// (a full-screen Button labelled "Click to continue"), and "StartPanel"
+    /// (a full-screen Button labelled "Click to start game").
     ///
-    /// Owns the pause UI widgets and raises <see cref="PauseRequested"/> /
-    /// <see cref="ResumeRequested"/> so the game controller never touches the
-    /// buttons directly. Each click is routed by the EventSystem to a single
-    /// widget, so there is no double-handling.
+    /// Owns the start / pause / game-over UI widgets and raises events
+    /// (<see cref="StartRequested"/>, <see cref="PauseRequested"/>,
+    /// <see cref="ResumeRequested"/>, <see cref="PlayAgainRequested"/>) so the
+    /// game controller never touches the buttons directly. Each click is routed
+    /// by the EventSystem to a single widget, so there is no double-handling —
+    /// no manual mouse polling anywhere.
     /// </summary>
     public class GameHud : MonoBehaviour
     {
@@ -27,6 +30,10 @@ namespace Ngj10.Gameplay
         private const string ResultPath = "GameOverPanel/ResultText";
         private const string PauseButtonPath = "PauseButton";
         private const string PausePath = "PausePanel";
+        private const string StartPath = "StartPanel";
+
+        /// <summary>Raised when the player taps the "Click to start game" overlay.</summary>
+        public event Action StartRequested;
 
         /// <summary>Raised when the player taps the on-screen Pause button.</summary>
         public event Action PauseRequested;
@@ -34,13 +41,19 @@ namespace Ngj10.Gameplay
         /// <summary>Raised when the player taps the "Click to continue" overlay.</summary>
         public event Action ResumeRequested;
 
+        /// <summary>Raised when the player taps the game-over "Click to play again" overlay.</summary>
+        public event Action PlayAgainRequested;
+
         private TextMeshProUGUI _scoreText;
         private TextMeshProUGUI _timeText;
         private TextMeshProUGUI _resultText;
         private GameObject _gameOverPanel;
         private GameObject _pausePanel;
+        private GameObject _startPanel;
         private Button _pauseButton;
         private Button _pausePanelButton;
+        private Button _gameOverButton;
+        private Button _startButton;
 
         private void Awake()
         {
@@ -50,10 +63,15 @@ namespace Ngj10.Gameplay
 
             var panel = transform.Find(PanelPath);
             _gameOverPanel = panel != null ? panel.gameObject : null;
+            _gameOverButton = _gameOverPanel != null ? _gameOverPanel.GetComponent<Button>() : null;
 
             var pause = transform.Find(PausePath);
             _pausePanel = pause != null ? pause.gameObject : null;
             _pausePanelButton = _pausePanel != null ? _pausePanel.GetComponent<Button>() : null;
+
+            var start = transform.Find(StartPath);
+            _startPanel = start != null ? start.gameObject : null;
+            _startButton = _startPanel != null ? _startPanel.GetComponent<Button>() : null;
 
             var pauseButton = transform.Find(PauseButtonPath);
             _pauseButton = pauseButton != null ? pauseButton.GetComponent<Button>() : null;
@@ -66,9 +84,18 @@ namespace Ngj10.Gameplay
             {
                 _pausePanelButton.onClick.AddListener(() => ResumeRequested?.Invoke());
             }
+            if (_startButton != null)
+            {
+                _startButton.onClick.AddListener(() => StartRequested?.Invoke());
+            }
+            if (_gameOverButton != null)
+            {
+                _gameOverButton.onClick.AddListener(() => PlayAgainRequested?.Invoke());
+            }
 
             HideGameOver();
             HidePause();
+            ShowStart();
         }
 
         public void SetScore(int score)
@@ -120,6 +147,22 @@ namespace Ngj10.Gameplay
             if (_pausePanel != null)
             {
                 _pausePanel.SetActive(false);
+            }
+        }
+
+        public void ShowStart()
+        {
+            if (_startPanel != null)
+            {
+                _startPanel.SetActive(true);
+            }
+        }
+
+        public void HideStart()
+        {
+            if (_startPanel != null)
+            {
+                _startPanel.SetActive(false);
             }
         }
 

@@ -20,9 +20,19 @@ namespace Ngj10.Gameplay
         [SerializeField] private int _goodPoints = 1;
         [SerializeField] private int _badPenalty = 2;
 
-        [Header("Audio")]
+        [Header("Audio - SFX")]
         [SerializeField] private AudioClip _popGoodClip;
         [SerializeField] private AudioClip _popBadClip;
+
+        [Header("Audio - Music")]
+        [Tooltip("Calm track playing on the start screen and after game over.")]
+        [SerializeField] private AudioClip _menuMusic;
+
+        [Tooltip("Energetic track playing during a round.")]
+        [SerializeField] private AudioClip _gameMusic;
+
+        [Tooltip("Short victory fanfare played over the music when a round ends.")]
+        [SerializeField] private AudioClip _victoryStinger;
 
         private BalloonSpawner _spawner;
         private GameHud _hud;
@@ -39,13 +49,18 @@ namespace Ngj10.Gameplay
 
         private void Start()
         {
-            StartRound();
+            // Sit on the "Click to start game" screen with the calm menu track
+            // playing. The round only begins once the player clicks — that click
+            // is also the WebGL user gesture that unblocks audio.
+            AudioManager.Instance.CrossfadeTo(_menuMusic);
         }
 
         private void OnEnable()
         {
             if (_hud != null)
             {
+                _hud.StartRequested += BeginPlay;
+                _hud.PlayAgainRequested += BeginPlay;
                 _hud.PauseRequested += TogglePause;
                 _hud.ResumeRequested += Resume;
             }
@@ -55,6 +70,8 @@ namespace Ngj10.Gameplay
         {
             if (_hud != null)
             {
+                _hud.StartRequested -= BeginPlay;
+                _hud.PlayAgainRequested -= BeginPlay;
                 _hud.PauseRequested -= TogglePause;
                 _hud.ResumeRequested -= Resume;
             }
@@ -62,9 +79,10 @@ namespace Ngj10.Gameplay
 
         private void Update()
         {
-            // Esc mirrors the on-screen buttons. Pointer-driven pause/resume goes
-            // entirely through the UI buttons (GameHud) so a single click is
-            // handled by exactly one path — no manual mouse polling here.
+            // Esc mirrors the on-screen buttons. All pointer-driven actions
+            // (start / pause / resume / play-again) go entirely through the UI
+            // buttons (GameHud) so a single click is handled by exactly one path
+            // — no manual mouse polling here.
             if (Input.GetKeyDown(KeyCode.Escape))
             {
                 TogglePause();
@@ -79,10 +97,22 @@ namespace Ngj10.Gameplay
             {
                 TickRound();
             }
-            else if (Input.GetMouseButtonDown(0))
+        }
+
+        /// <summary>
+        /// Begins a round from the start screen or the game-over screen: swaps the
+        /// calm menu track for the energetic game track and kicks off play. Wired
+        /// to the HUD's StartRequested / PlayAgainRequested events.
+        /// </summary>
+        private void BeginPlay()
+        {
+            if (_hud != null)
             {
-                StartRound();
+                _hud.HideStart();
             }
+
+            AudioManager.Instance.CrossfadeTo(_gameMusic);
+            StartRound();
         }
 
         /// <summary>Toggled by the Pause button and the Esc key.</summary>
@@ -107,6 +137,7 @@ namespace Ngj10.Gameplay
 
             _paused = true;
             Time.timeScale = 0f;
+            AudioManager.Instance.MuffleMusic();
             if (_hud != null)
             {
                 _hud.ShowPause();
@@ -123,6 +154,7 @@ namespace Ngj10.Gameplay
 
             _paused = false;
             Time.timeScale = 1f;
+            AudioManager.Instance.UnmuffleMusic();
             if (_hud != null)
             {
                 _hud.HidePause();
@@ -166,6 +198,12 @@ namespace Ngj10.Gameplay
             _playing = false;
             _spawner.Stop();
             DestroyRemainingBalloons();
+
+            // Victory fanfare over the still-playing game track, then ease the
+            // music back to the calm menu bed so the game-over screen sits under it.
+            var audio = AudioManager.Instance;
+            audio.PlayStinger(_victoryStinger);
+            audio.CrossfadeTo(_menuMusic);
 
             if (_hud != null)
             {
@@ -221,7 +259,7 @@ namespace Ngj10.Gameplay
         /// <summary>Clear balloons still on screen so the next round starts clean.</summary>
         private static void DestroyRemainingBalloons()
         {
-            foreach (var balloon in FindObjectsByType<Balloon>(FindObjectsSortMode.None))
+            foreach (var balloon in FindObjectsByType<Balloon>(FindObjectsInactive.Exclude))
             {
                 Destroy(balloon.gameObject);
             }
