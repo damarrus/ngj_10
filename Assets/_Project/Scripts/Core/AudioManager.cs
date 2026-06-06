@@ -26,10 +26,14 @@ namespace Ngj10.Core
     {
         [Header("Music")]
         [Tooltip("Target volume of the music bed at full (un-muffled) playback.")]
-        [SerializeField, Range(0f, 1f)] private float _musicVolume = 0.6f;
+        [SerializeField, Range(0f, 1f)] private float _musicVolume = 0.3f;
 
         [Tooltip("Default seconds for a track-to-track crossfade.")]
         [SerializeField] private float _crossfadeSeconds = 1.5f;
+
+        [Header("SFX")]
+        [Tooltip("Master volume for one-shot SFX and the victory stinger.")]
+        [SerializeField, Range(0f, 1f)] private float _sfxVolume = 0.5f;
 
         [Header("Muffle (\"behind a door\")")]
         [Tooltip("Low-pass cutoff while muffled. Lower = more muffled. ~700 Hz reads as 'through a door'.")]
@@ -40,6 +44,13 @@ namespace Ngj10.Core
 
         [Tooltip("Seconds for the muffle / un-muffle transition.")]
         [SerializeField] private float _muffleSeconds = 0.4f;
+
+        [Header("Victory sequence")]
+        [Tooltip("Seconds to fade the game music out before the stinger plays.")]
+        [SerializeField] private float _stingerDuckSeconds = 0.25f;
+
+        [Tooltip("Hard cap on how long to wait for the stinger before the menu music returns. Keep the stinger clip itself short (<1s).")]
+        [SerializeField] private float _stingerMaxSeconds = 1f;
 
         // Cutoff that counts as "fully open" — above the audible range, so no filtering.
         private const float OpenCutoffHz = 22000f;
@@ -77,6 +88,7 @@ namespace Ngj10.Core
 
         private Coroutine _crossfadeRoutine;
         private Coroutine _muffleRoutine;
+        private Coroutine _stingerRoutine;
         private bool _muffled;
 
         private void Awake()
@@ -97,6 +109,7 @@ namespace Ngj10.Core
 
             _sfxSource = gameObject.AddComponent<AudioSource>();
             _sfxSource.playOnAwake = false;
+            _sfxSource.volume = _sfxVolume;
         }
 
         // Each music source lives on its own child GameObject together with its
@@ -129,16 +142,43 @@ namespace Ngj10.Core
         }
 
         /// <summary>
-        /// A musical stinger (e.g. a victory fanfare) played over the current
-        /// music as a one-shot. Use this for the win sound before crossfading
-        /// back to the menu track. Null clip is ignored.
+        /// Victory sequence for game-over: fade the current (game) music out fast,
+        /// let the short <paramref name="stinger"/> ring out alone, then ease the
+        /// <paramref name="nextTrack"/> (menu) in. Sequencing the three so they
+        /// don't pile up is what keeps it from turning to mush — the stinger plays
+        /// against near-silence, not on top of two crossfading beds.
         /// </summary>
-        public void PlayStinger(AudioClip clip, float volume = 1f)
+        public void PlayVictoryThenMusic(AudioClip stinger, AudioClip nextTrack)
         {
-            if (clip != null)
+            if (_stingerRoutine != null)
             {
-                _sfxSource.PlayOneShot(clip, volume);
+                StopCoroutine(_stingerRoutine);
             }
+
+            _stingerRoutine = StartCoroutine(VictoryRoutine(stinger, nextTrack));
+        }
+
+        private IEnumerator VictoryRoutine(AudioClip stinger, AudioClip nextTrack)
+        {
+            // 1. Pull the game track down quickly so the stinger isn't fighting it.
+            CrossfadeTo(null, _stingerDuckSeconds);
+            yield return new WaitForSecondsRealtime(_stingerDuckSeconds);
+
+            // 2. Stinger alone.
+            float stingerLength = 0f;
+            if (stinger != null)
+            {
+                _sfxSource.PlayOneShot(stinger);
+                stingerLength = stinger.length;
+            }
+
+            // 3. Wait out the stinger (capped) before bringing the menu bed back,
+            //    so the fanfare and the menu music never overlap into a wash.
+            float wait = Mathf.Min(stingerLength, _stingerMaxSeconds);
+            yield return new WaitForSecondsRealtime(wait);
+
+            CrossfadeTo(nextTrack);
+            _stingerRoutine = null;
         }
 
         /// <summary>

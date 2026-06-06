@@ -199,11 +199,9 @@ namespace Ngj10.Gameplay
             _spawner.Stop();
             DestroyRemainingBalloons();
 
-            // Victory fanfare over the still-playing game track, then ease the
-            // music back to the calm menu bed so the game-over screen sits under it.
-            var audio = AudioManager.Instance;
-            audio.PlayStinger(_victoryStinger);
-            audio.CrossfadeTo(_menuMusic);
+            // Duck the game track, ring out the short victory stinger alone, then
+            // ease the calm menu bed back in — sequenced so they don't overlap.
+            AudioManager.Instance.PlayVictoryThenMusic(_victoryStinger, _menuMusic);
 
             if (_hud != null)
             {

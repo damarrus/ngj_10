@@ -621,7 +621,7 @@ MonoBehaviour:
   _popBadClip: {fileID: 8300000, guid: 1c8e5b16d6cfac343b7c60488a6356d2, type: 3}
   _menuMusic: {fileID: 8300000, guid: b00ad574f387c21428e31d287332ef6d, type: 3}
   _gameMusic: {fileID: 8300000, guid: 003da7909a64d044d9e475665e96d156, type: 3}
-  _victoryStinger: {fileID: 8300000, guid: cfe24d4c0dafdd04da8844e65179d591, type: 3}
+  _victoryStinger: {fileID: 8300000, guid: 445d312ea556b7d46bf7d8334b9cdf7a, type: 3}
 --- !u!114 &797859808
 MonoBehaviour:
   m_ObjectHideFlags: 0
