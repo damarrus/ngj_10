@@ -93,6 +93,24 @@ Assets/_Project/
 - `.meta` файлы коммитить всегда вместе с ассетом.
 - `.mcp.json` содержит абсолютный путь с хэшем PackageCache — локально-специфичен, у тиммейтов путь другой.
 
+## Скиллы и доки эффективности (читать по задаче)
+
+Проектные скиллы (`.claude/skills/`, авто-триггер по описанию):
+- **`unity-ui`** — постройка/итерация UI (RectTransform, anchoring, layout, TMP,
+  prefab-template, screenshot-loop). Триггер: правка UI/RectTransform/LayoutGroup.
+- **`unity-verify`** — проверка после правок (L1 compile → L2 play → L3 screenshot,
+  read-back после wiring: success ≠ applied). Триггер: после `.cs`/scene/wiring правок.
+
+Доки (справочники, читать когда задача в теме):
+- `docs/ui-conventions.md` — **source of truth по UI** (выстрадано на лидерборде):
+  UI вёрстают на сцене руками, код = логика; ScrollRect/маска грабли; скрин только
+  Play/оператор. `unity-ui` скилл ссылается сюда.
+- `docs/unity-efficiency.md` — lifecycle-ловушки, domain-reload static-state, WebGL
+  gotchas, perf-гигиена, script-execute vs file, архитектура под jam.
+- `docs/unity-mcp-notes.md` — механика моста, грабли формата запросов, allowlist,
+  Play-фокус, мёртвый Edit-mode скрин.
+- `docs/leaderboard.md` — устройство лидерборда (Supabase REST, uid, RLS, REST-детали).
+
 ## Не делать
 
 - Не читать файл повторно после Edit/Write для проверки.
