@@ -44,6 +44,10 @@ namespace Ngj10.Gameplay
         /// <summary>Raised when the player taps the game-over "Click to play again" overlay.</summary>
         public event Action PlayAgainRequested;
 
+        /// <summary>Raised when the game-over overlay becomes visible, carrying the
+        /// final score. The leaderboard view subscribes to submit + fetch.</summary>
+        public event Action<int> GameOverShown;
+
         private TextMeshProUGUI _scoreText;
         private TextMeshProUGUI _timeText;
         private TextMeshProUGUI _resultText;
@@ -124,6 +128,7 @@ namespace Ngj10.Gameplay
             {
                 _gameOverPanel.SetActive(true);
             }
+            GameOverShown?.Invoke(finalScore);
         }
 
         public void HideGameOver()

@@ -1,0 +1,17 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ffda8727396c43e4db0ff13bcea9b1fd, type: 3}
+  m_Name: LeaderboardConfig
+  m_EditorClassIdentifier: Ngj10::Ngj10.Core.Leaderboard.LeaderboardConfig
+  ProjectUrl: https://ozvjjibfxlmmfnvxtgbf.supabase.co
+  AnonKey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im96dmpqaWJmeGxtbWZudnh0Z2JmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA3OTc0NDEsImV4cCI6MjA5NjM3MzQ0MX0.q1f37NKCZNLBmSQbQ1VQznaDKSl1j7UUY_lUko-qSzk
+  Table: scores
