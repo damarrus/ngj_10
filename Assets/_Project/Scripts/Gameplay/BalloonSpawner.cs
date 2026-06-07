@@ -35,7 +35,7 @@ namespace Ngj10.Gameplay
         {
             _game = game;
             _camera = Camera.main;
-            _circleSprite = BuildCircleSprite();
+            _circleSprite = CircleSprite.Build();
             _timer = 0f;
             _spawning = true;
         }
@@ -90,30 +90,6 @@ namespace Ngj10.Gameplay
 
             var balloon = go.AddComponent<Balloon>();
             balloon.Init(_game, isBad, riseSpeed, swayAmplitude, swayFrequency, topY);
-        }
-
-        /// <summary>Generate a soft white circle sprite at runtime (no art needed).</summary>
-        private static Sprite BuildCircleSprite()
-        {
-            const int size = 64;
-            var tex = new Texture2D(size, size, TextureFormat.RGBA32, false);
-            float r = size * 0.5f;
-            for (int y = 0; y < size; y++)
-            {
-                for (int x = 0; x < size; x++)
-                {
-                    float dx = x + 0.5f - r;
-                    float dy = y + 0.5f - r;
-                    bool inside = dx * dx + dy * dy <= r * r;
-                    tex.SetPixel(x, y, inside ? Color.white : Color.clear);
-                }
-            }
-            tex.Apply();
-            return Sprite.Create(
-                tex,
-                new Rect(0, 0, size, size),
-                new Vector2(0.5f, 0.5f),
-                size); // pixelsPerUnit = size -> sprite is 1 world unit wide
         }
     }
 }

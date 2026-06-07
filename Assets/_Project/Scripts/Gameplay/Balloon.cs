@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 
 namespace Ngj10.Gameplay
@@ -21,6 +22,12 @@ namespace Ngj10.Gameplay
         private float _topY;
         private bool _isBad;
         private bool _popped;
+        private Color _color;
+        private Sprite _sprite;
+
+        [Header("Pop")]
+        [SerializeField] private float _popDuration = 0.09f;
+        [SerializeField] private float _popBulge = 1.25f; // peak scale before collapse
 
         /// <summary>Called once right after instantiation, before the balloon lives.</summary>
         public void Init(
@@ -43,11 +50,19 @@ namespace Ngj10.Gameplay
             _phase = Mathf.Repeat(_baseX * 7.13f, Mathf.PI * 2f);
 
             var sr = GetComponent<SpriteRenderer>();
-            sr.color = isBad ? new Color(0.85f, 0.2f, 0.2f) : new Color(0.3f, 0.7f, 1f);
+            _color = isBad ? new Color(0.85f, 0.2f, 0.2f) : new Color(0.3f, 0.7f, 1f);
+            _sprite = sr.sprite;
+            sr.color = _color;
         }
 
         private void Update()
         {
+            // Frozen while the pop animation plays out (the coroutine drives it).
+            if (_popped)
+            {
+                return;
+            }
+
             var pos = transform.position;
             pos.y += _riseSpeed * Time.deltaTime;
             _phase += _swayFrequency * Time.deltaTime;
@@ -69,7 +84,39 @@ namespace Ngj10.Gameplay
             }
 
             _popped = true;
+
+            // Gameplay reacts instantly (score + sound) — the squash/burst is
+            // pure feedback and must not delay or gate the click.
             _game.OnBalloonClicked(_isBad);
+
+            // Stop further clicks on this dying balloon.
+            var col = GetComponent<CircleCollider2D>();
+            if (col != null)
+            {
+                col.enabled = false;
+            }
+
+            PopBurst.Spawn(transform.position, _color, _sprite);
+            StartCoroutine(PopAnimation());
+        }
+
+        /// <summary>Quick bulge-then-collapse squash, then despawn.</summary>
+        private IEnumerator PopAnimation()
+        {
+            Vector3 baseScale = transform.localScale;
+            float t = 0f;
+            while (t < _popDuration)
+            {
+                t += Time.deltaTime;
+                float p = Mathf.Clamp01(t / _popDuration);
+                // Bulge up in the first third, then collapse to zero.
+                float scale = p < 0.33f
+                    ? Mathf.Lerp(1f, _popBulge, p / 0.33f)
+                    : Mathf.Lerp(_popBulge, 0f, (p - 0.33f) / 0.67f);
+                transform.localScale = baseScale * scale;
+                yield return null;
+            }
+
             Destroy(gameObject);
         }
     }

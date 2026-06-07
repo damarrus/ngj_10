@@ -119,6 +119,62 @@ NavMeshSettings:
     debug:
       m_Flags: 0
   m_NavMeshData: {fileID: 0}
+--- !u!1 &22892514
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 22892516}
+  - component: {fileID: 22892515}
+  m_Layer: 0
+  m_Name: Background
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &22892515
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 22892514}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e9f3d69d0dbba4e47a9c70832c55ff00, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Ngj10::Ngj10.Gameplay.BokehBackground
+  _count: 14
+  _sortingOrder: -10
+  _minSize: 1.5
+  _maxSize: 4.5
+  _minRiseSpeed: 0.15
+  _maxRiseSpeed: 0.6
+  _maxSwayAmplitude: 0.6
+  _minSwayFrequency: 0.1
+  _maxSwayFrequency: 0.4
+  _minAlpha: 0.04
+  _maxAlpha: 0.16
+  _tint: {r: 0.6, g: 0.8, b: 1, a: 1}
+--- !u!4 &22892516
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 22892514}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &79506881
 GameObject:
   m_ObjectHideFlags: 0
@@ -1115,7 +1171,7 @@ Camera:
   m_Enabled: 1
   serializedVersion: 2
   m_ClearFlags: 2
-  m_BackGroundColor: {r: 0.15, g: 0.18, b: 0.22, a: 1}
+  m_BackGroundColor: {r: 0.05, g: 0.07, b: 0.15, a: 1}
   m_projectionMatrixMode: 1
   m_GateFitMode: 2
   m_FOVAxisMode: 0
@@ -2024,3 +2080,4 @@ SceneRoots:
   - {fileID: 797859809}
   - {fileID: 1518252252}
   - {fileID: 898207194}
+  - {fileID: 22892516}
