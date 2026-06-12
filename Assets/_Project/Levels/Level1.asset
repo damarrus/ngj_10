@@ -14,13 +14,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: Ngj10::Ngj10.Gameplay.LevelData
   Mode: 1
   CameraSize: 15
-  Start: {x: 0, y: 0}
-  Goal: {x: 78.5, y: 8}
+  Start: {x: 0.09020615, y: 0.05779358}
+  Goal: {x: 11.945637, y: 32.60303}
   GoalRadius: 1.5
   KillY: -3.5
   TimeScale: 1.4
   Streams:
-  - Position: {x: 0, y: 0}
+  - Position: {x: 0.022509387, y: -0.00000018253922}
     Rotation: 0
     CustomPoints:
     - {x: -0.000000109278474, y: 5.5}
@@ -36,6 +36,8 @@ MonoBehaviour:
     - {x: -2.1650634, y: 4.25}
     - {x: -1.2499998, y: 5.165064}
     CustomLoop: 1
+    IsCircle: 0
+    CircleRadius: 4
     Shape: 0
     Size: 8
     Size2: 3
@@ -49,281 +51,17 @@ MonoBehaviour:
     InactiveDuration: 0
     ReverseInterval: 0
     Turbulence: 0
-    VisualColor: {r: 0.75, g: 0.55, b: 1, a: 1}
-  - Position: {x: 0, y: 0}
-    Rotation: 0
-    CustomPoints:
-    - {x: 4.0950956, y: 4.455526}
-    - {x: 7.397757, y: 6.489371}
-    - {x: 10.174552, y: 5.5712433}
-    - {x: 11.435352, y: 8.16315}
-    - {x: 12.273891, y: 10.916075}
-    - {x: 7.7903337, y: 13.680131}
-    - {x: 0.5778446, y: 11.6801195}
-    CustomLoop: 0
-    Shape: 0
-    Size: 8
-    Size2: 3
-    Count: 3
-    Turns: 2
-    Seed: 0
-    Reverse: 0
-    Speed: 5
-    Width: 3
-    ActiveDuration: 0
-    InactiveDuration: 0
-    ReverseInterval: 0
-    Turbulence: 0
-    VisualColor: {r: 0.4, g: 0.9, b: 1, a: 1}
-  - Position: {x: 0, y: 0}
-    Rotation: 0
-    CustomPoints:
-    - {x: 47, y: 2.5}
-    - {x: 50, y: 1.8}
-    - {x: 53, y: 3.2}
-    - {x: 56, y: 2}
-    - {x: 59, y: 3.5}
-    - {x: 62, y: 5}
-    CustomLoop: 0
-    Shape: 0
-    Size: 8
-    Size2: 3
-    Count: 3
-    Turns: 2
-    Seed: 0
-    Reverse: 0
-    Speed: 5
-    Width: 3
-    ActiveDuration: 0
-    InactiveDuration: 0
-    ReverseInterval: 0
-    Turbulence: 0
-    VisualColor: {r: 0.5, g: 1, b: 0.6, a: 1}
-  - Position: {x: 0, y: 0}
-    Rotation: 0
-    CustomPoints:
-    - {x: 46, y: 6}
-    - {x: 45.69042, y: 7.0002418}
-    - {x: 44.49264, y: 7.3377924}
-    - {x: 43.40168, y: 6.3939505}
-    - {x: 43.606617, y: 4.7655716}
-    - {x: 45.250347, y: 3.93822}
-    - {x: 47.02974, y: 4.9347115}
-    - {x: 47.22045, y: 7.1653833}
-    - {x: 45.328228, y: 8.703222}
-    - {x: 42.80053, y: 7.948559}
-    - {x: 41.937798, y: 5.245235}
-    - {x: 43.805256, y: 2.8497138}
-    - {x: 47.036293, y: 3.0499194}
-    - {x: 48.8, y: 6.0000014}
-    CustomLoop: 0
-    Shape: 0
-    Size: 8
-    Size2: 3
-    Count: 3
-    Turns: 2
-    Seed: 0
-    Reverse: 0
-    Speed: 6
-    Width: 2.4
-    ActiveDuration: 0
-    InactiveDuration: 0
-    ReverseInterval: 0
-    Turbulence: 0
-    VisualColor: {r: 1, g: 0.9, b: 0.4, a: 1}
-  - Position: {x: 0, y: 0}
-    Rotation: 0
-    CustomPoints:
-    - {x: 41.5, y: 5.5}
-    - {x: 43.5, y: 5.8}
-    CustomLoop: 0
-    Shape: 0
-    Size: 8
-    Size2: 3
-    Count: 3
-    Turns: 2
-    Seed: 0
-    Reverse: 0
-    Speed: 5
-    Width: 3
-    ActiveDuration: 0
-    InactiveDuration: 0
-    ReverseInterval: 0
-    Turbulence: 2.5
-    VisualColor: {r: 0.65, g: 0.75, b: 0.8, a: 1}
-  - Position: {x: 0, y: 0}
-    Rotation: 0
-    CustomPoints:
-    - {x: 62, y: 7}
-    - {x: 66, y: 8.2}
-    - {x: 70, y: 8.8}
-    - {x: 73.5, y: 8.3}
-    CustomLoop: 0
-    Shape: 0
-    Size: 8
-    Size2: 3
-    Count: 3
-    Turns: 2
-    Seed: 0
-    Reverse: 0
-    Speed: 10
-    Width: 1.6
-    ActiveDuration: 0
-    InactiveDuration: 0
-    ReverseInterval: 0
-    Turbulence: 0
-    VisualColor: {r: 1, g: 0.55, b: 0.25, a: 1}
-  - Position: {x: 0, y: 0}
-    Rotation: 0
-    CustomPoints:
-    - {x: 41.5, y: 5}
-    - {x: 40.43225, y: 7.0353785}
-    - {x: 38.592724, y: 7.2}
-    - {x: 37.135525, y: 6.2589073}
-    - {x: 36, y: 5}
-    - {x: 34.86447, y: 3.7410922}
-    - {x: 33.407276, y: 2.8000002}
-    - {x: 31.567749, y: 2.9646223}
-    - {x: 30.5, y: 5.0000005}
-    - {x: 31.56775, y: 7.035378}
-    - {x: 33.407276, y: 7.2}
-    - {x: 34.864475, y: 6.2589064}
-    - {x: 36, y: 5}
-    - {x: 37.13553, y: 3.741092}
-    - {x: 38.592728, y: 2.7999995}
-    - {x: 40.43225, y: 2.9646218}
-    CustomLoop: 1
-    Shape: 0
-    Size: 8
-    Size2: 3
-    Count: 3
-    Turns: 2
-    Seed: 0
-    Reverse: 0
-    Speed: 6
-    Width: 2.6
-    ActiveDuration: 0
-    InactiveDuration: 0
-    ReverseInterval: 0
-    Turbulence: 0
-    VisualColor: {r: 1, g: 0.6, b: 0.85, a: 1}
-  - Position: {x: 0, y: 0}
-    Rotation: 0
-    CustomPoints:
-    - {x: 23.303873, y: 10.246502}
-    - {x: 25.155163, y: 13.1241455}
-    - {x: 25.06382, y: 16.649328}
-    - {x: 29.597803, y: 15.049206}
-    - {x: 30.755287, y: 10.257619}
-    - {x: 34.59663, y: 13.420395}
-    - {x: 36.272858, y: 17.803322}
-    CustomLoop: 0
-    Shape: 0
-    Size: 8
-    Size2: 3
-    Count: 3
-    Turns: 2
-    Seed: 0
-    Reverse: 0
-    Speed: 5.5
-    Width: 3
-    ActiveDuration: 0
-    InactiveDuration: 0
-    ReverseInterval: 0
-    Turbulence: 0
-    VisualColor: {r: 0.5, g: 1, b: 0.6, a: 1}
-  - Position: {x: 0, y: 0}
-    Rotation: 0
-    CustomPoints:
-    - {x: 76, y: 10}
-    - {x: 76, y: 6.5}
-    CustomLoop: 0
-    Shape: 0
-    Size: 8
-    Size2: 3
-    Count: 3
-    Turns: 2
-    Seed: 0
-    Reverse: 0
-    Speed: 7
-    Width: 2
-    ActiveDuration: 0
-    InactiveDuration: 0
-    ReverseInterval: 0
-    Turbulence: 0
-    VisualColor: {r: 1, g: 0.35, b: 0.35, a: 1}
-  - Position: {x: 0, y: 0}
-    Rotation: 0
-    CustomPoints:
-    - {x: 48.5, y: 8.7}
-    - {x: 52, y: 9.3}
-    - {x: 56, y: 9}
-    - {x: 59, y: 8}
-    CustomLoop: 0
-    Shape: 0
-    Size: 8
-    Size2: 3
-    Count: 3
-    Turns: 2
-    Seed: 0
-    Reverse: 0
-    Speed: 6
-    Width: 3
-    ActiveDuration: 0
-    InactiveDuration: 0
-    ReverseInterval: 3
-    Turbulence: 0
-    VisualColor: {r: 0.3, g: 0.85, b: 0.8, a: 1}
-  - Position: {x: 0, y: 0}
-    Rotation: 0
-    CustomPoints:
-    - {x: 12.488707, y: 3.8191466}
-    - {x: 16.987854, y: 6.48611}
-    - {x: 20.099401, y: 9.800615}
-    CustomLoop: 0
-    Shape: 0
-    Size: 8
-    Size2: 3
-    Count: 3
-    Turns: 2
-    Seed: 0
-    Reverse: 0
-    Speed: 10
-    Width: 3
-    ActiveDuration: 0
-    InactiveDuration: 0
-    ReverseInterval: 0
-    Turbulence: 0
-    VisualColor: {r: 0.7, g: 0.95, b: 1, a: 1}
-  - Position: {x: 0, y: 0}
-    Rotation: 0
-    CustomPoints:
-    - {x: 64, y: 1}
-    - {x: 64, y: 7}
-    CustomLoop: 0
-    Shape: 0
-    Size: 8
-    Size2: 3
-    Count: 3
-    Turns: 2
-    Seed: 0
-    Reverse: 0
-    Speed: 6.5
-    Width: 2.5
-    ActiveDuration: 2
-    InactiveDuration: 1.5
-    ReverseInterval: 0
-    Turbulence: 0
-    VisualColor: {r: 1, g: 0.75, b: 0.5, a: 1}
-  - Position: {x: -1.654295, y: 7.0848}
+  - Position: {x: -1.2588873, y: 7.875614}
     Rotation: 0
     CustomPoints:
     - {x: 0.49920464, y: -1.8969768}
-    - {x: -1.1560267, y: 6.5777636}
+    - {x: -1.3537306, y: 6.775468}
     - {x: 1.4541181, y: 11.157183}
     - {x: 7.1999426, y: 9.596752}
-    - {x: 6.116217, y: 14.557727}
+    - {x: 1.7002847, y: 19.998787}
     CustomLoop: 0
+    IsCircle: 0
+    CircleRadius: 4
     Shape: 0
     Size: 8
     Size2: 3
@@ -337,26 +75,27 @@ MonoBehaviour:
     InactiveDuration: 0
     ReverseInterval: 0
     Turbulence: 0
-    VisualColor: {r: 0.6, g: 0.85, b: 1, a: 1}
-  Hazards:
-  - Position: {x: 33.2, y: 5}
-    PatrolTravel: {x: 0, y: 3}
-    PatrolPeriod: 3
-    Size: 1.2
-  - Position: {x: 57, y: 5.5}
-    PatrolTravel: {x: 0, y: 3}
-    PatrolPeriod: 3
-    Size: 1.6
-  - Position: {x: 31.56, y: 12.19}
-    PatrolTravel: {x: 0, y: 3}
-    PatrolPeriod: 3
-    Size: 1.4
-  - Position: {x: 60.5, y: 6}
-    PatrolTravel: {x: 0, y: 3}
-    PatrolPeriod: 3
-    Size: 1.2
-  - Position: {x: 38.8, y: 5}
-    PatrolTravel: {x: 0, y: 3}
-    PatrolPeriod: 3
-    Size: 1.2
+  - Position: {x: 9.076401, y: 14.05522}
+    Rotation: 0
+    CustomPoints:
+    - {x: -1.0259781, y: -0.53529274}
+    - {x: 9.674286, y: 7.9528627}
+    - {x: 2.837095, y: 18.514927}
+    CustomLoop: 0
+    IsCircle: 0
+    CircleRadius: 4
+    Shape: 0
+    Size: 8
+    Size2: 3
+    Count: 3
+    Turns: 2
+    Seed: 0
+    Reverse: 0
+    Speed: 10
+    Width: 3
+    ActiveDuration: 0
+    InactiveDuration: 0
+    ReverseInterval: 0
+    Turbulence: 0
+  Hazards: []
   StartStreamIndex: 0
