@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 
 namespace Ngj10.Gameplay
@@ -9,6 +10,8 @@ namespace Ngj10.Gameplay
     public class LevelController : MonoBehaviour
     {
         [SerializeField] private IcarusController _player;
+        [SerializeField] private DeathSequence _deathSequence;
+        [SerializeField] private ScreenFader _screenFader;
         [SerializeField] private StreamPath _startStream;
         [SerializeField] private Transform _goal;
         [SerializeField] private float _goalRadius = 1.5f;
@@ -26,9 +29,9 @@ namespace Ngj10.Gameplay
 
         public float TimeScale => _timeScale;
 
-        private void OnEnable() => Hazard.PlayerHit += Respawn;
+        private void OnEnable() => Hazard.PlayerHit += Die;
 
-        private void OnDisable() => Hazard.PlayerHit -= Respawn;
+        private void OnDisable() => Hazard.PlayerHit -= Die;
 
         /// <summary>
         /// Called by LevelBuilder after it spawns the level: overrides the
@@ -72,6 +75,7 @@ namespace Ngj10.Gameplay
         }
 
         private bool _won;
+        private bool _dying;
 
         private void Update()
         {
@@ -82,10 +86,13 @@ namespace Ngj10.Gameplay
                 return;
             }
 
+            if (_dying)
+                return;
+
             Vector2 pos = _player.transform.position;
             if (IsOutOfBounds(pos))
             {
-                Respawn();
+                Die();
                 return;
             }
             if (_goal != null && Vector2.Distance(pos, _goal.position) < _goalRadius)
@@ -132,6 +139,39 @@ namespace Ngj10.Gameplay
                 return true;
 
             return false;
+        }
+
+        /// <summary>Player died: fade the screen to black while the hero shrinks
+        /// away, respawn behind the black screen, then fade back in.</summary>
+        private void Die()
+        {
+            if (_dying)
+                return;
+            _dying = true;
+            StartCoroutine(DieRoutine());
+        }
+
+        private IEnumerator DieRoutine()
+        {
+            // Fade the whole screen to black and shrink the hero at the same time.
+            Coroutine shrink = _deathSequence != null
+                ? StartCoroutine(_deathSequence.Shrink())
+                : null;
+            if (_screenFader != null)
+                yield return _screenFader.FadeOut();
+            if (shrink != null)
+                yield return shrink;
+
+            // On full black: re-enable physics first (so the Rigidbody2D accepts
+            // the new position), then move the hero to the start with wings open.
+            if (_deathSequence != null)
+                _deathSequence.Restore();
+            Respawn();
+
+            if (_screenFader != null)
+                yield return _screenFader.FadeIn();
+
+            _dying = false;
         }
 
         private void Respawn()
