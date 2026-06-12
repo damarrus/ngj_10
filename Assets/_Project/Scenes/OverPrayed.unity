@@ -193,7 +193,15 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4642459519804549716, guid: 84b5d2d5641663c4c9cf6a7040c39807, type: 3}
       propertyPath: _startDelay
-      value: 35
+      value: 40
+      objectReference: {fileID: 0}
+    - target: {fileID: 4642459519804549716, guid: 84b5d2d5641663c4c9cf6a7040c39807, type: 3}
+      propertyPath: _angerPerSec
+      value: 4
+      objectReference: {fileID: 0}
+    - target: {fileID: 4642459519804549716, guid: 84b5d2d5641663c4c9cf6a7040c39807, type: 3}
+      propertyPath: _resourceSteps
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 4642459519804549716, guid: 84b5d2d5641663c4c9cf6a7040c39807, type: 3}
       propertyPath: _punishmentIcon
@@ -304,6 +312,14 @@ PrefabInstance:
       propertyPath: _sheepIcon
       value: 
       objectReference: {fileID: 21300000, guid: 7b0cfe554c782664a90da3b5b3cb9f8b, type: 3}
+    - target: {fileID: 4642459519804549716, guid: 84b5d2d5641663c4c9cf6a7040c39807, type: 3}
+      propertyPath: _angerPerSec
+      value: 4
+      objectReference: {fileID: 0}
+    - target: {fileID: 4642459519804549716, guid: 84b5d2d5641663c4c9cf6a7040c39807, type: 3}
+      propertyPath: _resourceSteps
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 4642459519804549716, guid: 84b5d2d5641663c4c9cf6a7040c39807, type: 3}
       propertyPath: _punishmentIcon
       value: 
@@ -540,6 +556,14 @@ PrefabInstance:
     - target: {fileID: 4642459519804549716, guid: 84b5d2d5641663c4c9cf6a7040c39807, type: 3}
       propertyPath: _startDelay
       value: 10
+      objectReference: {fileID: 0}
+    - target: {fileID: 4642459519804549716, guid: 84b5d2d5641663c4c9cf6a7040c39807, type: 3}
+      propertyPath: _angerPerSec
+      value: 4
+      objectReference: {fileID: 0}
+    - target: {fileID: 4642459519804549716, guid: 84b5d2d5641663c4c9cf6a7040c39807, type: 3}
+      propertyPath: _resourceSteps
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 4642459519804549716, guid: 84b5d2d5641663c4c9cf6a7040c39807, type: 3}
       propertyPath: _punishmentIcon
@@ -796,7 +820,15 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4642459519804549716, guid: 84b5d2d5641663c4c9cf6a7040c39807, type: 3}
       propertyPath: _startDelay
-      value: 15
+      value: 20
+      objectReference: {fileID: 0}
+    - target: {fileID: 4642459519804549716, guid: 84b5d2d5641663c4c9cf6a7040c39807, type: 3}
+      propertyPath: _angerPerSec
+      value: 4
+      objectReference: {fileID: 0}
+    - target: {fileID: 4642459519804549716, guid: 84b5d2d5641663c4c9cf6a7040c39807, type: 3}
+      propertyPath: _resourceSteps
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 4642459519804549716, guid: 84b5d2d5641663c4c9cf6a7040c39807, type: 3}
       propertyPath: _punishmentIcon
@@ -1532,7 +1564,15 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4642459519804549716, guid: 84b5d2d5641663c4c9cf6a7040c39807, type: 3}
       propertyPath: _startDelay
-      value: 25
+      value: 30
+      objectReference: {fileID: 0}
+    - target: {fileID: 4642459519804549716, guid: 84b5d2d5641663c4c9cf6a7040c39807, type: 3}
+      propertyPath: _angerPerSec
+      value: 4
+      objectReference: {fileID: 0}
+    - target: {fileID: 4642459519804549716, guid: 84b5d2d5641663c4c9cf6a7040c39807, type: 3}
+      propertyPath: _resourceSteps
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 4642459519804549716, guid: 84b5d2d5641663c4c9cf6a7040c39807, type: 3}
       propertyPath: _punishmentIcon

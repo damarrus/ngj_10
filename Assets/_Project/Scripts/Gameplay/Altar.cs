@@ -27,13 +27,14 @@ namespace Ngj10.Gameplay
         [SerializeField] private AltarFire _fire;
 
         [Header("Task")]
-        [SerializeField] private int _resourceSteps = 3;
+        [SerializeField] private int _resourceSteps = 1;
         [SerializeField] private int _runZoneCount = 4;
-        [SerializeField] private float _refillPause = 1.5f;
+        [Tooltip("Delay before this altar wakes up and issues its first task. Staggered per altar (0, 10, 20…).")]
+        [SerializeField] private float _startDelay = 0f;
 
         [Header("Anger / punishment")]
         [SerializeField] private float _angerMax = 100f;
-        [SerializeField] private float _angerPerSec = 0.67f;  // passive build-up
+        [SerializeField] private float _angerPerSec = 4f;  // passive build-up
         [SerializeField] private float _angerOnDeliver = 10f; // completed a task
         [SerializeField] private float _rageDuration = 27f;
 
@@ -80,7 +81,7 @@ namespace Ngj10.Gameplay
         /// <summary>Radius of the deliver zone, so spawners can avoid it.</summary>
         public float ZoneRadius => _zoneRadius;
 
-        private enum State { Active, Pause }
+        private enum State { Waiting, Active }
 
         private State _state;
         private TaskType _task;
@@ -104,7 +105,9 @@ namespace Ngj10.Gameplay
             EnsureSprites();
             BuildZone();
             BuildTaskBubble();
-            BeginTask();
+            _state = State.Waiting;
+            _phaseT = _startDelay;
+            if (_phaseT <= 0f) BeginTask();
             UpdateAngerRing();
             UpdateFire();
         }
@@ -134,11 +137,9 @@ namespace Ngj10.Gameplay
         private void CompleteTask()
         {
             ClearRunZones();
-            ShowTask(false);
             AddAnger(-_angerOnDeliver);
             Fulfilled?.Invoke(this);
-            _state = State.Pause;
-            _phaseT = _refillPause;
+            BeginTask(); // instant refill — bubble stays visible, just gets a new task
         }
 
         private void Step()
@@ -151,16 +152,16 @@ namespace Ngj10.Gameplay
         {
             float dt = Time.deltaTime;
             TickRage(dt);
-            if (!IsRaging) AddAnger(_angerPerSec * dt); // passive build-up (paused during rage)
 
             switch (_state)
             {
-                case State.Active:
-                    if (_task.IsResource()) CheckResourceDelivery();
-                    break;
-                case State.Pause:
+                case State.Waiting:
                     _phaseT -= dt;
                     if (_phaseT <= 0f) BeginTask();
+                    break;
+                case State.Active:
+                    if (!IsRaging) AddAnger(_angerPerSec * dt); // passive build-up (paused during rage)
+                    if (_task.IsResource()) CheckResourceDelivery();
                     break;
             }
         }
