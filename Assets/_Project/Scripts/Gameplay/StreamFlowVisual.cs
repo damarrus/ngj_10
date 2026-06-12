@@ -14,6 +14,10 @@ namespace Ngj10.Gameplay
         [SerializeField] private Color _color = Color.white;
         [SerializeField] private float _wispsPerUnit = 0.6f;
         [SerializeField] private float _arrowSpacing = 2.5f;
+        [SerializeField] private float _turbulenceFrequency = 3.7f;
+        [SerializeField] private float _turbulencePhasePerWisp = 1.7f;
+
+        private static Shader _spriteShader;
 
         private StreamPath _path;
         private Transform[] _wisps;
@@ -31,6 +35,9 @@ namespace Ngj10.Gameplay
         {
             _path = GetComponent<StreamPath>();
         }
+
+        /// <summary>Set the accent color before Start() builds the visuals.</summary>
+        public void Configure(Color color) => _color = color;
 
         private void Start()
         {
@@ -71,7 +78,9 @@ namespace Ngj10.Gameplay
             lr.SetPositions(positions);
             lr.startWidth = width;
             lr.endWidth = width;
-            lr.material = new Material(Shader.Find("Sprites/Default"));
+            if (_spriteShader == null)
+                _spriteShader = Shader.Find("Sprites/Default");
+            lr.material = new Material(_spriteShader);
             lr.startColor = color;
             lr.endColor = color;
             lr.numCapVertices = 4;
@@ -114,7 +123,7 @@ namespace Ngj10.Gameplay
                 if (_path.Turbulence > 0f)
                 {
                     var perp = new Vector2(-sample.Tangent.y, sample.Tangent.x);
-                    pos += (Vector3)(perp * (Mathf.Sin(Time.time * 3.7f + i * 1.7f) * _path.Turbulence * 0.2f));
+                    pos += (Vector3)(perp * (Mathf.Sin(Time.time * _turbulenceFrequency + i * _turbulencePhasePerWisp) * _path.Turbulence * 0.2f));
                 }
                 _wisps[i].position = pos;
                 _wisps[i].rotation = TangentRotation(sample.Tangent * _path.DirectionSign);

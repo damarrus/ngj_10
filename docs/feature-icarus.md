@@ -39,21 +39,106 @@ A Short Hike / Zelda BotW (читаемость апдрафтов).
 
 ## Фейл и цель
 
-- Внизу море: упал ниже kill-line → мгновенный респавн в стартовый вихрь.
-- Цель уровня — солнце. Коснулся → победа (пока: лог + рестарт уровня).
+- Внизу море: упал ниже kill-line (`_killY = -2.5`) → мгновенный респавн в стартовый
+  поток (`IcarusController.ResetAt` ставит в точку, гасит инерцию, открывает крылья).
+- Цель — солнце. Дистанция до него < `_goalRadius` (1.5) → победа: `Time.timeScale = 0`
+  + показ win-panel, рестарт по любой клавише (`Input.anyKeyDown`).
+- Hazard'ы: объекты с `Collider2D` + `Hazard` — касание шлёт игрока в респавн
+  (`Hazard.PlayerHit` событие → `LevelController.Respawn`). Патрулируют через
+  `Oscillator` (туда-обратно от стартовой точки, SmoothStep).
 
 ## Принятые дефолты (менять легко, спорить можно)
 
 - Выход из потока: **инерция + гравитация** (дуга), не прямая.
 - Крылья вне потока: **парашют** (слабая гравитация, сильный drag) — даёт дотянуть.
 - Фейл: рестарт уровня целиком (уровень = один экран).
-- Камера: **статичная, весь уровень в кадре** — игрок планирует маршрут как по карте.
+- Камера: **следящая** (`CameraFollow`, жёстко прибита к Икару, offset z=-10, без
+  сглаживания). Изначально планировали статичную «весь уровень в кадре» — заменено
+  на follow.
+- Глобальный темп уровня: `LevelController._timeScale = 1.4` (вся игра чуть быстрее).
 - Энергетическая петля «высота↔скорость» — НЕ делаем (решение оператора).
+
+## Реализовано сверх первого скоупа
+
+- **Hazard + Oscillator** — смертельные патрулирующие препятствия (раньше были в
+  скоуп-катах как «ветер-враг»).
+- **Win-panel** — экран победы с паузой, рестарт по клавише.
+- **Редактор потоков** — `StreamPathEditor` / `StreamShapeGeneratorEditor` (custom
+  inspector'ы для вэйпоинтов и процедурной генерации формы потока).
+
+## Map Editor (data-driven уровни)
+
+Уровень = данные в `.asset`, не геометрия в сцене (мерж-френдли, несколько уровней).
+
+Архитектура:
+- **`LevelData`** (ScriptableObject) — `Streams[]` / `Hazards[]` / start / goal /
+  killY / timeScale. `StreamDef` хранит либо `CustomPoints[]` (ручная геометрия,
+  приоритетна), либо параметры формы (`StreamShape`+size/count/...). `HazardDef` —
+  позиция + патруль (travel/period) + size.
+- **`StreamShapeBuilder`** — чистая форм-математика (18 форм + кастом-точки),
+  шарится `LevelBuilder`-ом и редактором. `StreamShapeGenerator.Generate()` теперь
+  зовёт её (DRY).
+- **`LevelBuilder`** (MonoBehaviour на сцене) — `Awake` спавнит уровень из
+  `LevelData`: инстансит prefab StreamPath/Hazard, `Configure(...)` + `Generate()`/
+  кастом-вэйпоинты, отдаёт start/goal в `LevelController.Configure`.
+- **`MapEditorWindow`** (`NGJ → Map Editor`) — канвас-обзор всего уровня сверху
+  (pan/zoom/Frame All), клик = выделить, правая панель = live-тюнинг (без play),
+  draggable вэйпоинты + Alt-click добавляет точку, «Convert to Editable Points».
+  Build to Scene (превью) / Import from Scene (миграция).
+- **`MapEditorBuild` / `MapEditorImport`** — editor-хелперы build-превью и
+  импорта сцены в `LevelData` (через SerializedObject, читает private-поля).
+
+Уровень 1 импортирован в `Assets/_Project/Levels/Level1.asset` (12 потоков,
+5 хазардов, 79 кастом-точек).
+
+### Осталось сделать (нужны клики в Editor оператором)
+
+1. **Добавить `LevelBuilder` на сцену Icarus** + проставить ссылки в инспекторе:
+   `_data` = Level1.asset, `_streamPrefab` = `Prefabs/StreamPath.prefab`,
+   `_hazardPrefab` = `Prefabs/Hazard.prefab`, `_controller` = LevelController сцены,
+   `_goalMarker` = transform солнца. Без этого «Build to Scene» ругнётся и
+   рантайм-спавн не сработает.
+2. **Проверить визуально окно** — `NGJ → Map Editor`, Level1: видны 12 потоков,
+   хазарды, старт/цель/kill-line; потаскать точки, покрутить тюнинг.
+3. **Удалить старую геометрию со сцены** — после того как LevelBuilder заработает,
+   ручные StreamPath/Hazard-инстансы дублируют `Level1.asset`, их можно снести
+   (геометрия теперь в данных). До этого момента — не трогать.
+4. **Прогнать в play** через LevelBuilder-спавн — убедиться, что спавн-уровень
+   играется идентично ручной сцене (захват потоков, респавн, win).
+
+Не сделано в коде (по желанию позже): рисование с нуля без stream-в-центре
+(сейчас «+ Stream» кладёт поток Line в центр вида, дальше тащишь точки);
+несколько `.asset`-уровней + переключение; удаление вэйпоинта на канвасе
+(сейчас только add+drag, удаление точки — через инспектор-массив нет, только
+весь поток).
+
+## Старт-экран и GameConfig (настройки в одном месте)
+
+Все верхнеуровневые настройки игры — на объекте сцены **`GameConfig`**, редактируются
+в инспекторе. Сейчас два пункта, дальше расширять там же.
+
+- **`GameConfig`** (`[DefaultExecutionOrder(-100)]`, бежит раньше StartScreen/LevelController) —
+  владелец старт-флоу. На `Awake`:
+  - применяет громкость: `AudioListener.volume = PlayerPrefs(MasterVolume, _initialVolume)`
+    — сохранённый выбор игрока перебивает дефолт из конфига;
+  - `_showStartScreen` → `StartScreen.Show()` (фриз + панель), иначе `Hide()` +
+    `LevelController.Begin()` сразу.
+  - Поля: `_initialVolume` (0..1), `_showStartScreen` (bool), refs `_startScreen` / `_controller`.
+- **`StartScreen`** — чистый view, рулится GameConfig'ом. `Show()` фризит игру
+  (`Time.timeScale = 0`) и показывает панель, `Hide()` прячет без старта. Старт-кнопка →
+  фейд панели (через `CanvasGroup.alpha`, `Time.unscaledDeltaTime` т.к. игра заморожена) →
+  `LevelController.Begin()`. Слайдер громкости → `AudioListener.volume` + `PlayerPrefs`.
+- **`LevelController.Begin()`** — старт уровня (timeScale + Respawn), вынесен из `Start()`.
+  `_autoStart` = false на сцене (старт-флоу рулит GameConfig); true — если GameConfig нет.
+- Громкость = глобальный `AudioListener.volume` (мастер). AudioSource на сцене пока нет —
+  слайдер заработает на любой звук, добавленный позже. WebGL-safe.
+- UI старт-экрана (`StartPanel` под `UICanvas`): TMP-заголовок "Icarus", слайдер громкости,
+  кнопка Start. `CanvasGroup` на панели — для фейда.
 
 ## Скоуп-каты (пока не делаем)
 
-- Ветер-враг, тающий воск, счёт, звук, арт кроме процедурных кружков.
-- Редактор потоков — вэйпоинты руками в сцене, этого хватает.
+- Тающий воск, счёт, звук, арт кроме процедурных спрайтов.
+- Энергетическая петля высота↔скорость.
 
 ## Уровень 1 (один экран)
 

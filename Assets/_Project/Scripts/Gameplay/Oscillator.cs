@@ -12,6 +12,14 @@ namespace Ngj10.Gameplay
 
         private void Awake() => _origin = transform.position;
 
+        /// <summary>Set patrol vector and period, anchoring the oscillation at the current position.</summary>
+        public void Configure(Vector2 travel, float period)
+        {
+            _travel = travel;
+            _period = period;
+            _origin = transform.position;
+        }
+
         private void Update()
         {
             float t = Mathf.PingPong(Time.time * 2f / _period, 1f);

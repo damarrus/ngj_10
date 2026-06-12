@@ -26,8 +26,16 @@ namespace Ngj10.Gameplay
 
         private void Awake()
         {
-            Body = GetComponent<Rigidbody2D>();
+            EnsureBody();
             ApplyWingsVisual();
+        }
+
+        // GameConfig (exec order -100) can call ResetAt via Begin() before our own
+        // Awake runs, so resolve the body lazily instead of trusting Awake order.
+        private void EnsureBody()
+        {
+            if (Body == null)
+                Body = GetComponent<Rigidbody2D>();
         }
 
         private void Update()
@@ -65,6 +73,7 @@ namespace Ngj10.Gameplay
         /// <summary>Respawn helper: place at a point, kill momentum, open wings.</summary>
         public void ResetAt(Vector2 position)
         {
+            EnsureBody();
             Body.position = position;
             Body.linearVelocity = Vector2.zero;
             CurrentStream = null;

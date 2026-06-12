@@ -78,6 +78,15 @@ namespace Ngj10.Gameplay
             All.Add(this);
         }
 
+        /// <summary>
+        /// Rebuild the cached polyline from the current waypoint children. The
+        /// LevelBuilder spawns the stream prefab first (OnEnable caches an empty
+        /// path) and adds the waypoints afterwards, so it must call this once the
+        /// children exist — otherwise the path stays empty and a respawn drops
+        /// the player into the void.
+        /// </summary>
+        public void RebuildPath() => BuildCache();
+
         private void OnDisable() => All.Remove(this);
 
         public PathSample SampleNearest(Vector2 position)
@@ -130,8 +139,20 @@ namespace Ngj10.Gameplay
 
         private int SegmentCount() => _loop ? _points.Length : _points.Length - 1;
 
-        /// <summary>Shape generator owns the loop flag when it rebuilds waypoints.</summary>
-        internal void SetLoopFromGenerator(bool loop) => _loop = loop;
+        /// <summary>Whoever rebuilds the waypoints (generator or custom path) sets the loop flag.</summary>
+        internal void SetLoop(bool loop) => _loop = loop;
+
+        /// <summary>Apply runtime parameters from level data (loop is set by the shape generator).</summary>
+        public void Configure(float speed, float width, float activeDuration,
+            float inactiveDuration, float reverseInterval, float turbulence)
+        {
+            _speed = speed;
+            _width = width;
+            _activeDuration = activeDuration;
+            _inactiveDuration = inactiveDuration;
+            _reverseInterval = reverseInterval;
+            _turbulence = turbulence;
+        }
 
         private void BuildCache()
         {
