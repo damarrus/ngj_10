@@ -59,6 +59,54 @@
 - **Размер билда = время загрузки.** Сжимать спрайты, стрипать неиспользуемые пакеты,
   включить code stripping. Долгая загрузка убивает первое впечатление от jam-entry.
 
+## 3b. Trail/Line невидим, хотя «всё правильно» (кейс «шлейф Икара»)
+
+Симптом: `TrailRenderer`/`LineRenderer` ничего не рисует, хотя `positionCount` растёт,
+`isVisible=True`, bounds большие, шейдер `isSupported=True`, материал есть. 0 пикселей.
+
+**Реальный корень в этом кейсе — `widthCurve` схлопнулась в нули → ширина 0 → невидимо.**
+- Итоговая ширина Trail/Line = `widthCurve.Evaluate(t) * widthMultiplier`. Если кривая
+  `(0,0)(0,0)` — рисуется лента нулевой толщины. `widthMultiplier` любой — не спасает.
+- **`AnimationCurve` через MCP `jsonPatch`/`componentDiff` ставится криво** — keyframe'ы
+  с полями `weightedMode`/`tangentModeInternal` схлопывались в `t=0,v=0`. То же
+  подозревать для `colorGradient` и прочих структур-с-массивами.
+- **Фикс: писать кривую рантайм-API, не MCP-диффом.** `tr.widthCurve = new AnimationCurve(new Keyframe(0,1), new Keyframe(1,0))`
+  через `script-execute`. Чисто.
+- Проверка ширины: после правки читать `tr.startWidth`/`endWidth` (это срез кривой) —
+  `0` = кривая нулевая.
+
+Материал тут оказался НЕ при чём (и built-in `Sprites-Default.mat`, и проектный
+`.mat`, и рантайм `new Material(Shader.Find("Sprites/Default"))` рисуют одинаково).
+Раньше ложно списал на материал, потому что debug-скрипт заодно ставил ненулевую ширину.
+
+**Запись в префаб надёжно (а не в play-инстанс):** `editor-application-set-state`-правки
+и MCP-модификации в Play Mode **теряются при выходе из play**. Чтобы записать на диск —
+`PrefabUtility.LoadPrefabContents(path)` → правки рантайм-API → `PrefabUtility.SaveAsPrefabAsset(root, path)`
+→ `UnloadPrefabContents` → `AssetDatabase.SaveAssets()`, всё в одном `script-execute`.
+Затем проверить reload'ом: `AssetDatabase.LoadAssetAtPath<GameObject>(path)` и прочитать
+поля — success ≠ записано (см. §6 «success ≠ applied»).
+
+**Диагностика «рисуется или нет» без screenshot-game-view** (в текущем MCP-билде его нет,
+а `screenshot-isolated` рендерит свою временную камеру → trail без движения = пусто,
+бесполезно). Захват **Main Camera в `RenderTexture` → PNG** через `script-execute`, потом Read PNG:
+```csharp
+var rt = new RenderTexture(640,360,24); cam.targetTexture = rt; cam.Render();
+RenderTexture.active = rt;
+var tex = new Texture2D(640,360,TextureFormat.RGB24,false);
+tex.ReadPixels(new Rect(0,0,640,360),0,0); tex.Apply();
+cam.targetTexture = null; RenderTexture.active = null;
+System.IO.File.WriteAllBytes(Application.dataPath+"/../debug.png", tex.EncodeToPNG());
+```
+В том же скрипте — двигать объект и `tr.AddPosition(...)`, чтобы trail успел построиться
+до Render (статичный объект = нет следа = ложный «невидим»). Удалить PNG после.
+
+**Метод дебага (что сработало быстро):** не крутить параметры вслепую — сначала одним
+`script-execute` вытащить ВСЕ факты (`isVisible`/`positionCount`/`shader.isSupported`/
+`bounds`/`startWidth`/`sortingOrder`/`localScale`/материал/гермейент-альфа), потом
+**увидеть** кадр капчей. Гипотеза «огромный яркий непрозрачный + order 100»: если и так
+невидно — проблема системная (ширина/render-path/перекрытие), не тюнинг цвета. Сверять
+play-инстанс vs префаб-ассет — значения часто расходятся.
+
 ## 4. Performance hygiene (WebGL, jam-объём)
 
 - **GC в WebGL — раз в кадр (стек должен быть пуст).** Аллокации копятся внутри кадра,
