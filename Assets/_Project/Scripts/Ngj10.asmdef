@@ -3,7 +3,8 @@
     "rootNamespace": "Ngj10",
     "references": [
         "Unity.ugui",
-        "Unity.TextMeshPro"
+        "Unity.TextMeshPro",
+        "Unity.InputSystem"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
