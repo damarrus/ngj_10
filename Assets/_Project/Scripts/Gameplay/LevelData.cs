@@ -81,11 +81,20 @@ namespace Ngj10.Gameplay
 
         // StreamPath runtime parameters.
         public float Speed = 5f;
+
+        /// <summary>Speed at the end of the path: the flow ramps linearly from
+        /// Speed (start) to this value (peak). 0 = constant Speed everywhere.</summary>
+        public float SpeedEnd;
         public float Width = 3f;
         public float ActiveDuration;
         public float InactiveDuration;
         public float ReverseInterval;
         public float Turbulence;
+
+        /// <summary>How tightly the stream holds Icarus: pull toward the centerline
+        /// and how fast his velocity converges to the flow. 3 = default feel,
+        /// 6-10 = rails that survive sharp bends at high speed, 1 = loose river.</summary>
+        public float Grip = 3f;
 
         /// <summary>Stream colour is derived from Speed, not authored by hand.</summary>
         public Color VisualColor => SpeedToColor(Speed);

@@ -3,10 +3,12 @@ using UnityEngine;
 namespace Ngj10.Gameplay
 {
     /// <summary>
-    /// Icarus, one-button control: space toggles wings.
+    /// Icarus, one-button control: HOLD space (or mouse) = wings open,
+    /// release = wings folded.
     /// Wings open inside a stream = carried along its trajectory.
     /// Wings open outside = parachute (slow descent).
     /// Wings closed = ballistic flight (inertia + gravity), streams ignore him.
+    /// After a respawn he hovers in place until the first hold.
     /// </summary>
     [RequireComponent(typeof(Rigidbody2D))]
     public class IcarusController : MonoBehaviour
@@ -14,8 +16,6 @@ namespace Ngj10.Gameplay
         [SerializeField] private float _closedGravityScale = 0.8f;
         [SerializeField] private float _parachuteGravityScale = 0.3f;
         [SerializeField] private float _parachuteLinearDamping = 1.5f;
-        [SerializeField] private float _captureBlend = 6f;   // velocity convergence rate inside a stream
-        [SerializeField] private float _centeringGain = 3f;  // pull toward the stream centerline
         [SerializeField] private SpriteRenderer _wingsVisual;
 
         public bool WingsOpen { get; private set; } = true;
@@ -38,24 +38,42 @@ namespace Ngj10.Gameplay
                 Body = GetComponent<Rigidbody2D>();
         }
 
+        private bool _waitingForInput;
+
         private void Update()
         {
-            if (Input.GetKeyDown(KeyCode.Space))
-                SetWings(!WingsOpen);
+            bool held = Input.GetKey(KeyCode.Space) || Input.GetMouseButton(0);
+            if (_waitingForInput)
+            {
+                if (!held) return;
+                _waitingForInput = false;
+            }
+            if (held != WingsOpen)
+                SetWings(held);
         }
 
         private void FixedUpdate()
         {
+            if (_waitingForInput)
+            {
+                // Parked at the spawn point until the player holds the button.
+                Body.linearVelocity = Vector2.zero;
+                Body.gravityScale = 0f;
+                return;
+            }
+
             UpdateStreamCapture();
 
             if (CurrentStream != null)
             {
                 Body.gravityScale = 0f;
                 Body.linearDamping = 0f;
+                // Grip drives both the centering pull and how fast velocity converges
+                // to the flow (grip 3 reproduces the old 3/6 defaults).
                 var sample = CurrentStream.SampleNearest(Body.position);
                 Vector2 desired = CurrentStream.FlowVelocity(sample)
-                                + (sample.Point - Body.position) * _centeringGain;
-                float blend = 1f - Mathf.Exp(-_captureBlend * Time.fixedDeltaTime);
+                                + (sample.Point - Body.position) * CurrentStream.Grip;
+                float blend = 1f - Mathf.Exp(-CurrentStream.Grip * 2f * Time.fixedDeltaTime);
                 Body.linearVelocity = Vector2.Lerp(Body.linearVelocity, desired, blend);
             }
             else if (WingsOpen)
@@ -70,14 +88,15 @@ namespace Ngj10.Gameplay
             }
         }
 
-        /// <summary>Respawn helper: place at a point, kill momentum, open wings.</summary>
+        /// <summary>Respawn helper: place at a point, kill momentum, wait for input.</summary>
         public void ResetAt(Vector2 position)
         {
             EnsureBody();
             Body.position = position;
             Body.linearVelocity = Vector2.zero;
             CurrentStream = null;
-            SetWings(true);
+            _waitingForInput = true;
+            SetWings(false);
         }
 
         private void UpdateStreamCapture()

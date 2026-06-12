@@ -17,11 +17,14 @@ namespace Ngj10.Gameplay
         [SerializeField] private float _inactiveDuration; // pulse: seconds off
         [SerializeField] private float _reverseInterval;  // flips flow direction every N seconds (0 = never)
         [SerializeField] private float _turbulence;       // perpendicular wobble amplitude
+        [SerializeField] private float _grip = 3f;        // hold strength: centering pull + velocity convergence
+        [SerializeField] private float _speedEnd;         // linear ramp target at the path end (0 = constant)
 
         public bool Loop => _loop;
         public float Speed => _speed;
         public float Width => _width;
         public float Turbulence => _turbulence;
+        public float Grip => _grip;
         public float Length { get; private set; }
 
         /// <summary>Pulsing streams turn off periodically and drop the player.</summary>
@@ -34,10 +37,18 @@ namespace Ngj10.Gameplay
 
         public float DirectionSign => Reversed ? -1f : 1f;
 
+        /// <summary>Flow speed at a distance along the path (linear start→end ramp).</summary>
+        public float SpeedAt(float distance)
+        {
+            if (_speedEnd <= 0f || Length <= 0f)
+                return _speed;
+            return Mathf.Lerp(_speed, _speedEnd, Mathf.Clamp01(distance / Length));
+        }
+
         /// <summary>Flow velocity at a sampled path point: tangent flow + turbulence wobble.</summary>
         public Vector2 FlowVelocity(PathSample sample)
         {
-            Vector2 flow = sample.Tangent * (_speed * DirectionSign);
+            Vector2 flow = sample.Tangent * (SpeedAt(sample.DistanceAlong) * DirectionSign);
             if (_turbulence > 0f)
                 flow += new Vector2(-sample.Tangent.y, sample.Tangent.x)
                       * (_turbulence * Mathf.Sin(Time.time * 3.7f));
@@ -49,6 +60,7 @@ namespace Ngj10.Gameplay
             public Vector2 Point;
             public Vector2 Tangent;
             public float DistanceToPath;
+            public float DistanceAlong;
         }
 
         private Vector2[] _points;
@@ -93,11 +105,13 @@ namespace Ngj10.Gameplay
         {
             var best = new PathSample { DistanceToPath = float.MaxValue };
             int segments = SegmentCount();
+            float walked = 0f;
             for (int i = 0; i < segments; i++)
             {
                 Vector2 a = _points[i];
                 Vector2 b = _points[(i + 1) % _points.Length];
                 Vector2 ab = b - a;
+                float segLen = ab.magnitude;
                 float t = Mathf.Clamp01(Vector2.Dot(position - a, ab) / ab.sqrMagnitude);
                 Vector2 point = a + ab * t;
                 float dist = Vector2.Distance(position, point);
@@ -106,7 +120,9 @@ namespace Ngj10.Gameplay
                     best.Point = point;
                     best.Tangent = ab.normalized;
                     best.DistanceToPath = dist;
+                    best.DistanceAlong = walked + segLen * t;
                 }
+                walked += segLen;
             }
             return best;
         }
@@ -144,7 +160,8 @@ namespace Ngj10.Gameplay
 
         /// <summary>Apply runtime parameters from level data (loop is set by the shape generator).</summary>
         public void Configure(float speed, float width, float activeDuration,
-            float inactiveDuration, float reverseInterval, float turbulence)
+            float inactiveDuration, float reverseInterval, float turbulence, float grip = 3f,
+            float speedEnd = 0f)
         {
             _speed = speed;
             _width = width;
@@ -152,6 +169,8 @@ namespace Ngj10.Gameplay
             _inactiveDuration = inactiveDuration;
             _reverseInterval = reverseInterval;
             _turbulence = turbulence;
+            _grip = grip;
+            _speedEnd = speedEnd;
         }
 
         private void BuildCache()

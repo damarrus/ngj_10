@@ -29,7 +29,11 @@ namespace Ngj10.Gameplay
         private bool _lastActive = true;
         private Color _accent;
         private LineRenderer _ribbonGlow;
-        private LineRenderer _ribbonCore;
+
+        // Three wavy longitudinal lines (lanes across the width), animated per frame.
+        private static readonly float[] WavyLanes = { -0.45f, 0f, 0.45f };
+        private LineRenderer[] _wavyLines;
+        private float[] _wavyDistances;
 
         private void Awake()
         {
@@ -47,7 +51,10 @@ namespace Ngj10.Gameplay
             SpawnWisps();
         }
 
-        /// <summary>Continuous glowing ribbon along the path: wide soft glow + bright core.</summary>
+        /// <summary>
+        /// Prototype-style ribbon: a very soft band covering the capture zone
+        /// plus three thin wavy lines flowing along the path (animated in Update).
+        /// </summary>
         private void BuildRibbon()
         {
             int count = Mathf.Max(8, Mathf.CeilToInt(_path.Length / 0.4f)) + 1;
@@ -57,8 +64,20 @@ namespace Ngj10.Gameplay
                 float d = (float)i / (count - 1) * _path.Length;
                 positions[i] = _path.SampleAtDistance(_path.Loop ? d % _path.Length : d).Point;
             }
-            _ribbonGlow = CreateLine("RibbonGlow", _path.Width * 0.55f, RibbonColor(0.10f), 0, positions);
-            _ribbonCore = CreateLine("RibbonCore", 0.3f, RibbonColor(0.5f), 1, positions);
+            _ribbonGlow = CreateLine("RibbonBand", _path.Width * 1.2f, RibbonColor(0.03f), 0, positions);
+
+            int wavyPoints = Mathf.Max(8, Mathf.CeilToInt(_path.Length / 0.7f)) + 1;
+            _wavyDistances = new float[wavyPoints];
+            for (int k = 0; k < wavyPoints; k++)
+                _wavyDistances[k] = (float)k / (wavyPoints - 1) * _path.Length;
+
+            _wavyLines = new LineRenderer[WavyLanes.Length];
+            var buffer = new Vector3[wavyPoints];
+            for (int i = 0; i < WavyLanes.Length; i++)
+            {
+                float alpha = WavyLanes[i] == 0f ? 0.18f : 0.11f;
+                _wavyLines[i] = CreateLine("Wavy" + i, 0.06f, RibbonColor(alpha), 1, buffer);
+            }
         }
 
         private Color RibbonColor(float alpha)
@@ -98,9 +117,12 @@ namespace Ngj10.Gameplay
             if (active != _lastActive)
             {
                 _lastActive = active;
-                SetLineAlpha(_ribbonGlow, 0.10f * activeMul);
-                SetLineAlpha(_ribbonCore, 0.5f * activeMul);
+                SetLineAlpha(_ribbonGlow, 0.03f * activeMul);
+                for (int i = 0; i < _wavyLines.Length; i++)
+                    SetLineAlpha(_wavyLines[i], (WavyLanes[i] == 0f ? 0.18f : 0.11f) * activeMul);
             }
+
+            AnimateWavyLines();
 
             // Accumulate so reversible streams animate backward without jumps.
             _travelled += _path.Speed * _path.DirectionSign * Time.deltaTime;
@@ -129,7 +151,7 @@ namespace Ngj10.Gameplay
                 _wisps[i].rotation = TangentRotation(sample.Tangent * _path.DirectionSign);
 
                 // Open paths fade wisps at both ends; loops flow seamlessly.
-                float alpha = _path.Loop ? 0.8f : 0.8f * Mathf.Clamp01(Mathf.Min(cycle, 1f - cycle) / 0.15f);
+                float alpha = _path.Loop ? 0.55f : 0.55f * Mathf.Clamp01(Mathf.Min(cycle, 1f - cycle) / 0.15f);
                 var c = _accent;
                 c.a = alpha * activeMul;
                 _renderers[i].color = c;
@@ -138,8 +160,26 @@ namespace Ngj10.Gameplay
             for (int i = 0; i < _arrows.Length; i++)
             {
                 var c = _accent;
-                c.a = 0.5f * activeMul;
+                c.a = 0.3f * activeMul;
                 _arrows[i].color = c;
+            }
+        }
+
+        private void AnimateWavyLines()
+        {
+            for (int i = 0; i < _wavyLines.Length; i++)
+            {
+                float lane = WavyLanes[i];
+                var line = _wavyLines[i];
+                for (int k = 0; k < _wavyDistances.Length; k++)
+                {
+                    float d = _wavyDistances[k];
+                    var sample = _path.SampleAtDistance(d);
+                    var perp = new Vector2(-sample.Tangent.y, sample.Tangent.x);
+                    float offset = lane * _path.Width * 0.36f
+                        + Mathf.Sin(d * 0.55f + Time.time * 2f + lane * 5f) * _path.Width * 0.1f;
+                    line.SetPosition(k, sample.Point + perp * offset);
+                }
             }
         }
 
@@ -162,10 +202,10 @@ namespace Ngj10.Gameplay
                 var go = new GameObject("Arrow");
                 go.transform.SetParent(transform, false);
                 go.transform.SetPositionAndRotation(sample.Point, TangentRotation(sample.Tangent));
-                go.transform.localScale = new Vector3(0.6f, 0.6f, 1f);
+                go.transform.localScale = new Vector3(0.45f, 0.45f, 1f);
                 var sr = go.AddComponent<SpriteRenderer>();
                 sr.sprite = _arrowSprite;
-                sr.color = new Color(_accent.r, _accent.g, _accent.b, 0.5f);
+                sr.color = new Color(_accent.r, _accent.g, _accent.b, 0.3f);
                 sr.sortingOrder = 3;
                 _arrows[i] = sr;
             }
@@ -191,8 +231,8 @@ namespace Ngj10.Gameplay
                 // Deterministic spread from the index.
                 float t = (i + 0.5f) / count;
                 _offsets[i] = Frac(t * 7.13f + 0.37f) * _path.Length;
-                float size = Mathf.Lerp(0.4f, 0.75f, Frac(t * 11.9f));
-                go.transform.localScale = new Vector3(size, size * 0.3f, 1f); // dash stretched along flow
+                float size = Mathf.Lerp(0.7f, 1.1f, Frac(t * 11.9f));
+                go.transform.localScale = new Vector3(size, size * 0.12f, 1f); // comet streak along flow
             }
         }
 

@@ -93,7 +93,8 @@ namespace Ngj10.Gameplay
                 stream.RebuildPath();
 
                 stream.Configure(def.Speed, def.Width, def.ActiveDuration,
-                    def.InactiveDuration, def.ReverseInterval, def.Turbulence);
+                    def.InactiveDuration, def.ReverseInterval, def.Turbulence, def.Grip,
+                    def.SpeedEnd);
 
                 var visual = stream.GetComponent<StreamFlowVisual>();
                 if (visual != null)
@@ -107,11 +108,13 @@ namespace Ngj10.Gameplay
         private static void BuildCustomWaypoints(StreamPath stream, StreamDef def)
         {
             stream.SetLoop(def.CustomLoop);
+            // Reverse flips waypoint order — the flow direction follows it.
             for (int i = 0; i < def.CustomPoints.Length; i++)
             {
+                int src = def.Reverse ? def.CustomPoints.Length - 1 - i : i;
                 var wp = new GameObject("Waypoint" + i);
                 wp.transform.SetParent(stream.transform, false);
-                wp.transform.localPosition = def.CustomPoints[i];
+                wp.transform.localPosition = def.CustomPoints[src];
             }
         }
 

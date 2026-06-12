@@ -26,8 +26,47 @@ namespace Ngj10.EditorTools
         private float _pixelsPerUnit = 24f;
 
         private enum SelKind { None, Stream, Hazard, Start, Goal }
-        private SelKind _selKind = SelKind.None;
+        private SelKind _selKind = SelKind.None; // primary (last clicked) — drives the inspector
         private int _selIndex = -1;
+
+        // Full selection set (includes the primary). Shift/Ctrl+click toggles entries.
+        private readonly List<(SelKind kind, int index)> _multi = new List<(SelKind, int)>();
+
+        private bool IsSelected(SelKind kind, int index) => _multi.Contains((kind, index));
+
+        private void SetSingleSelection(SelKind kind, int index)
+        {
+            _multi.Clear();
+            if (kind != SelKind.None)
+                _multi.Add((kind, index));
+            _selKind = kind;
+            _selIndex = index;
+        }
+
+        private void ToggleSelection(SelKind kind, int index)
+        {
+            var entry = (kind, index);
+            if (_multi.Remove(entry))
+            {
+                // Removed the primary — promote the last remaining entry (or none).
+                if (_selKind == kind && _selIndex == index)
+                {
+                    if (_multi.Count > 0)
+                        (_selKind, _selIndex) = _multi[_multi.Count - 1];
+                    else
+                    {
+                        _selKind = SelKind.None;
+                        _selIndex = -1;
+                    }
+                }
+            }
+            else
+            {
+                _multi.Add(entry);
+                _selKind = kind;
+                _selIndex = index;
+            }
+        }
 
         private Vector2 _inspectorScroll;
         private Rect _canvasRect;
@@ -53,6 +92,7 @@ namespace Ngj10.EditorTools
         private void OnGUI()
         {
             HandleDeleteCommand();
+            HandleClipboardCommands();
 
             // Toolbar drawn with manual GUI (not GUILayout) so it never opens a
             // layout group — the canvas uses raw GUI.BeginClip and mixing the two
@@ -83,12 +123,36 @@ namespace Ngj10.EditorTools
         private void HandleDeleteCommand()
         {
             Event e = Event.current;
+
+            // Plain KeyDown fallback: the command event doesn't always arrive
+            // (depends on focus), so the Delete key works on the canvas directly.
+            if (e.type == EventType.KeyDown
+                && (e.keyCode == KeyCode.Delete || e.keyCode == KeyCode.Backspace)
+                && !EditorGUIUtility.editingTextField)
+            {
+                bool any = false;
+                foreach (var (kind, _) in _multi)
+                    if (kind == SelKind.Stream || kind == SelKind.Hazard)
+                        any = true;
+                if (any)
+                {
+                    _pending = PendingAction.DeleteSelected;
+                    RunPendingAction();
+                    e.Use();
+                    Repaint();
+                }
+                return;
+            }
+
             if (e.type != EventType.ValidateCommand && e.type != EventType.ExecuteCommand)
                 return;
             if (e.commandName != "Delete" && e.commandName != "SoftDelete")
                 return;
 
-            bool canDelete = _selKind == SelKind.Stream || _selKind == SelKind.Hazard;
+            bool canDelete = false;
+            foreach (var (kind, _) in _multi)
+                if (kind == SelKind.Stream || kind == SelKind.Hazard)
+                    canDelete = true;
             if (!canDelete)
                 return;
 
@@ -99,11 +163,124 @@ namespace Ngj10.EditorTools
             }
 
             // ExecuteCommand: defer the array mutation via _pending (same as the buttons).
-            _pending = _selKind == SelKind.Stream ? PendingAction.DeleteStream : PendingAction.DeleteHazard;
-            _pendingIndex = _selIndex;
+            _pending = PendingAction.DeleteSelected;
             RunPendingAction();
             e.Use();
             Repaint();
+        }
+
+        // ── Clipboard: Ctrl+C / Ctrl+V / Ctrl+D on streams and hazards ─────────
+
+        // JSON snapshot of the copied element — cheap deep copy that survives
+        // selection changes and array mutations.
+        private enum ClipKind { None, Stream, Hazard }
+        private ClipKind _clipKind;
+        private string _clipJson;
+
+        private void HandleClipboardCommands()
+        {
+            Event e = Event.current;
+            if (e.type != EventType.ValidateCommand && e.type != EventType.ExecuteCommand)
+                return;
+
+            bool isCopy = e.commandName == "Copy";
+            bool isPaste = e.commandName == "Paste";
+            bool isDuplicate = e.commandName == "Duplicate";
+            if (!isCopy && !isPaste && !isDuplicate)
+                return;
+            if (_level == null)
+                return;
+
+            bool hasSelection = _selKind == SelKind.Stream || _selKind == SelKind.Hazard;
+            if ((isCopy || isDuplicate) && !hasSelection)
+                return;
+            if (isPaste && _clipKind == ClipKind.None)
+                return;
+
+            if (e.type == EventType.ValidateCommand)
+            {
+                e.Use(); // claim the command so Unity doesn't copy the asset itself
+                return;
+            }
+
+            if (isCopy)
+            {
+                CopySelected();
+            }
+            else if (isPaste)
+            {
+                PasteClipboard();
+            }
+            else // duplicate = copy + paste in one step
+            {
+                CopySelected();
+                PasteClipboard();
+            }
+            e.Use();
+            Repaint();
+        }
+
+        [System.Serializable]
+        private class ClipData
+        {
+            public List<StreamDef> Streams = new List<StreamDef>();
+            public List<HazardDef> Hazards = new List<HazardDef>();
+        }
+
+        private void CopySelected()
+        {
+            var clip = new ClipData();
+            foreach (var (kind, index) in _multi)
+            {
+                if (kind == SelKind.Stream)
+                    clip.Streams.Add(_level.Streams[index]);
+                else if (kind == SelKind.Hazard)
+                    clip.Hazards.Add(_level.Hazards[index]);
+            }
+            if (clip.Streams.Count == 0 && clip.Hazards.Count == 0)
+                return;
+            _clipKind = ClipKind.Stream; // any non-None marks the clipboard as filled
+            _clipJson = JsonUtility.ToJson(clip);
+        }
+
+        private void PasteClipboard()
+        {
+            // Offset each paste so copies don't stack exactly on the original;
+            // re-snapshotting the pasted set makes repeated Ctrl+V step a ladder.
+            var offset = new Vector2(1.5f, -1.5f);
+            var clip = JsonUtility.FromJson<ClipData>(_clipJson);
+            if (clip == null)
+                return;
+
+            Undo.RecordObject(_level, "Вставить элементы");
+            _multi.Clear();
+            _selKind = SelKind.None;
+            _selIndex = -1;
+
+            var streams = new List<StreamDef>(_level.Streams ?? new StreamDef[0]);
+            foreach (var def in clip.Streams)
+            {
+                def.Position += offset;
+                streams.Add(def);
+                _multi.Add((SelKind.Stream, streams.Count - 1));
+                _selKind = SelKind.Stream;
+                _selIndex = streams.Count - 1;
+            }
+            _level.Streams = streams.ToArray();
+
+            var hazards = new List<HazardDef>(_level.Hazards ?? new HazardDef[0]);
+            foreach (var def in clip.Hazards)
+            {
+                def.Position += offset;
+                hazards.Add(def);
+                _multi.Add((SelKind.Hazard, hazards.Count - 1));
+                _selKind = SelKind.Hazard;
+                _selIndex = hazards.Count - 1;
+            }
+            _level.Hazards = hazards.ToArray();
+
+            _clipJson = JsonUtility.ToJson(clip); // positions already offset for the next paste
+            Commit();
         }
 
         // ── Toolbar (manual GUI, no layout groups) ─────────────────────────────
@@ -121,8 +298,7 @@ namespace Ngj10.EditorTools
             if (EditorGUI.EndChangeCheck())
             {
                 _level = picked;
-                _selKind = SelKind.None;
-                _selIndex = -1;
+                SetSingleSelection(SelKind.None, -1);
                 RebuildSerialized();
             }
             x += 204f;
@@ -132,6 +308,11 @@ namespace Ngj10.EditorTools
             using (new EditorGUI.DisabledScope(_level == null))
             {
                 if (GUI.Button(new Rect(x, row1.y, 110f, RowHeight), "Копировать", EditorStyles.toolbarButton)) CopyLevel();
+                x += 112f;
+                bool dirty = _level != null && EditorUtility.IsDirty(_level);
+                if (GUI.Button(new Rect(x, row1.y, 110f, RowHeight),
+                    dirty ? "Сохранить *" : "Сохранить", EditorStyles.toolbarButton))
+                    AssetDatabase.SaveAssets();
             }
 
             // Row 2 — element ops: add stream / add circle / add hazard.
@@ -142,6 +323,9 @@ namespace Ngj10.EditorTools
             {
                 if (GUI.Button(new Rect(x, row2.y, 90f, RowHeight), "+ Поток", EditorStyles.toolbarButton)) AddStream();
                 x += 92f;
+                if (GUI.Button(new Rect(x, row2.y, 100f, RowHeight), "+ Форма ▾", EditorStyles.toolbarDropDown))
+                    ShowShapeMenu();
+                x += 102f;
                 if (GUI.Button(new Rect(x, row2.y, 90f, RowHeight), "+ Круг", EditorStyles.toolbarButton)) AddCircle();
                 x += 92f;
                 if (GUI.Button(new Rect(x, row2.y, 90f, RowHeight), "+ Препятствие", EditorStyles.toolbarButton)) AddHazard();
@@ -257,7 +441,7 @@ namespace Ngj10.EditorTools
                 List<Vector2> pts = StreamShapeBuilder.Build(def, out bool loop);
                 if (pts.Count < 2) continue;
 
-                bool selected = _selKind == SelKind.Stream && _selIndex == i;
+                bool selected = IsSelected(SelKind.Stream, i);
                 Color c = def.VisualColor;
                 c.a = selected ? 1f : 0.75f;
                 Handles.color = c;
@@ -276,12 +460,18 @@ namespace Ngj10.EditorTools
                 var screen = new Vector3[wpCount];
                 for (int p = 0; p < wpCount; p++)
                     screen[p] = WorldToScreen(world[p]);
+                if (selected)
+                {
+                    // White underlay so the selection reads instantly.
+                    Handles.color = Color.white;
+                    Handles.DrawAAPolyLine(7f, screen);
+                }
                 Handles.color = c;
                 Handles.DrawAAPolyLine(selected ? 4f : 2f, screen);
 
-                // Direction arrows along the path; arrow length scales with Speed so
-                // faster streams read as longer darts.
-                DrawFlowArrows(world, loop, def.Speed, def.Reverse, c);
+                // Direction arrows along the path; arrow length scales with the local
+                // speed, so a ramp reads as darts growing toward the end.
+                DrawFlowArrows(world, loop, def, c);
 
                 // Selectable handle at the placement origin.
                 Vector2 originScreen = WorldToScreen(def.Position);
@@ -289,8 +479,8 @@ namespace Ngj10.EditorTools
                 GUI.Label(new Rect(originScreen.x + 8f, originScreen.y - 8f, 140f, 16f),
                     $"П{i}  скор {def.Speed:0.#}  шир {def.Width:0.#}");
 
-                // Editable waypoints of the selected custom path.
-                if (selected && def.UsesCustomPoints)
+                // Editable waypoints — only for a single-selected custom path.
+                if (selected && _multi.Count == 1 && def.UsesCustomPoints)
                 {
                     for (int p = 0; p < def.CustomPoints.Length; p++)
                     {
@@ -340,23 +530,26 @@ namespace Ngj10.EditorTools
                 Handles.DrawSolidDisc(WorldToScreen(world[p]), Vector3.forward, half * _pixelsPerUnit);
         }
 
-        /// <summary>Direction arrows spaced along the path; arrow size scales with Speed.</summary>
-        private void DrawFlowArrows(Vector2[] world, bool loop, float speed, bool reverse, Color color)
+        /// <summary>Direction arrows spaced along the path; arrow size scales with the
+        /// local flow speed (ramped streams show growing darts toward the end).</summary>
+        private void DrawFlowArrows(Vector2[] world, bool loop, StreamDef def, Color color)
         {
             int segs = loop ? world.Length : world.Length - 1;
             if (segs < 1)
                 return;
 
-            // Roughly one arrow per few waypoints; longer dart for faster flow.
             int stride = Mathf.Max(1, segs / 4);
-            float worldLen = 0.4f + Mathf.Clamp(speed, 0f, 12f) * 0.12f;
-
             for (int p = 0; p < segs; p += stride)
             {
                 Vector2 a = world[p];
                 Vector2 b = world[(p + 1) % world.Length];
                 Vector2 dir = (b - a).normalized;
-                if (reverse) dir = -dir;
+                if (def.Reverse) dir = -dir;
+
+                float t = segs > 1 ? (float)p / (segs - 1) : 0f;
+                float speed = def.SpeedEnd > 0f ? Mathf.Lerp(def.Speed, def.SpeedEnd, t) : def.Speed;
+                float worldLen = 0.4f + Mathf.Clamp(speed, 0f, 12f) * 0.12f;
+
                 Vector2 baseWorld = (a + b) * 0.5f;
                 DrawArrow(baseWorld + dir * worldLen, dir, color);
             }
@@ -368,12 +561,19 @@ namespace Ngj10.EditorTools
             for (int i = 0; i < _level.Hazards.Length; i++)
             {
                 HazardDef def = _level.Hazards[i];
-                bool selected = _selKind == SelKind.Hazard && _selIndex == i;
+                bool selected = IsSelected(SelKind.Hazard, i);
                 Color c = new Color(1f, 0.35f, 0.3f, selected ? 1f : 0.8f);
                 Handles.color = c;
 
                 Vector2 s = WorldToScreen(def.Position);
                 float r = Mathf.Max(4f, def.Size * 0.5f * _pixelsPerUnit);
+                if (selected)
+                {
+                    Handles.color = Color.white;
+                    Handles.DrawWireDisc(s, Vector3.forward, r + 3f);
+                    Handles.DrawWireDisc(s, Vector3.forward, r + 4.5f);
+                    Handles.color = c;
+                }
                 Handles.DrawWireDisc(s, Vector3.forward, r);
 
                 // Patrol range.
@@ -388,23 +588,78 @@ namespace Ngj10.EditorTools
 
         private void DrawStartGoal()
         {
+            // Player-size silhouette under the start marker — scale reference.
+            DrawPlayerSilhouette(_level.Start);
+
             // Start.
-            bool startSel = _selKind == SelKind.Start;
+            bool startSel = IsSelected(SelKind.Start, -1);
             Color sc = new Color(0.4f, 1f, 0.5f, 1f);
             Vector2 ss = WorldToScreen(_level.Start);
+            if (startSel)
+            {
+                Handles.color = Color.white;
+                Handles.DrawWireDisc(ss, Vector3.forward, 11f);
+                Handles.DrawWireDisc(ss, Vector3.forward, 12.5f);
+            }
             Handles.color = sc;
             Handles.DrawWireDisc(ss, Vector3.forward, 8f);
             DrawHandleDot(ss, startSel, sc);
             GUI.Label(new Rect(ss.x + 8f, ss.y - 8f, 60f, 16f), "старт");
 
             // Goal + radius.
-            bool goalSel = _selKind == SelKind.Goal;
+            bool goalSel = IsSelected(SelKind.Goal, -1);
             Color gc = new Color(1f, 0.9f, 0.3f, 1f);
             Vector2 gs = WorldToScreen(_level.Goal);
+            if (goalSel)
+            {
+                Handles.color = Color.white;
+                float gr = _level.GoalRadius * _pixelsPerUnit;
+                Handles.DrawWireDisc(gs, Vector3.forward, gr + 3f);
+                Handles.DrawWireDisc(gs, Vector3.forward, gr + 4.5f);
+            }
             Handles.color = gc;
             Handles.DrawWireDisc(gs, Vector3.forward, _level.GoalRadius * _pixelsPerUnit);
             DrawHandleDot(gs, goalSel, gc);
             GUI.Label(new Rect(gs.x + 8f, gs.y - 8f, 60f, 16f), "цель");
+        }
+
+        /// <summary>
+        /// Icarus silhouette at real in-game size (wings open, span ~2.2 units):
+        /// body + head + feather fans. Pure scale reference, not selectable on its
+        /// own — it follows the Start point.
+        /// </summary>
+        private void DrawPlayerSilhouette(Vector2 worldPos)
+        {
+            var cream = new Color(0.96f, 0.91f, 0.82f, 0.55f);
+
+            // Body: ellipse rx 0.21, ry 0.375 (matches WingsVisual proportions).
+            Handles.color = cream;
+            var body = new Vector3[12];
+            for (int i = 0; i < body.Length; i++)
+            {
+                float a = i / (float)body.Length * 2f * Mathf.PI;
+                body[i] = WorldToScreen(worldPos + new Vector2(Mathf.Cos(a) * 0.21f, Mathf.Sin(a) * 0.375f));
+            }
+            Handles.DrawAAConvexPolygon(body);
+
+            // Head.
+            Handles.DrawSolidDisc(WorldToScreen(worldPos + new Vector2(0f, 0.52f)),
+                Vector3.forward, 0.17f * _pixelsPerUnit);
+
+            // Open feather fans: 4 strokes per wing, lengths 0.55..1.0 units.
+            for (int side = -1; side <= 1; side += 2)
+            {
+                for (int d = 0; d < 4; d++)
+                {
+                    float angle = (10f + d * 15f) * Mathf.Deg2Rad;
+                    float len = 0.55f + d * 0.15f;
+                    var dir = new Vector2(Mathf.Cos(angle) * side, Mathf.Sin(angle));
+                    Vector2 shoulder = worldPos + new Vector2(side * 0.08f, 0.12f);
+                    Handles.DrawAAPolyLine(3f,
+                        WorldToScreen(shoulder),
+                        WorldToScreen(shoulder + dir * len));
+                }
+            }
         }
 
         private void DrawArrow(Vector2 worldPos, Vector2 worldDir, Color color)
@@ -427,7 +682,13 @@ namespace Ngj10.EditorTools
         // ── Canvas input: pan, zoom, select, drag ─────────────────────────────
 
         private bool _dragging;
+        private bool _draggedThisPress;
         private int _dragPointIndex = -1;
+
+        // Set on plain MouseDown over an already-selected element: if the press
+        // ends without a drag, the selection collapses to just that element
+        // (Explorer-style), otherwise the whole group was dragged.
+        private (SelKind kind, int index)? _collapseOnMouseUp;
 
         private void HandleCanvasInput(Rect rect)
         {
@@ -451,23 +712,34 @@ namespace Ngj10.EditorTools
                     break;
 
                 case EventType.MouseDown:
+                    // Right-click on a waypoint of the single-selected drawn path = delete the point.
+                    if (e.button == 1 && rect.Contains(e.mousePosition)
+                        && TryPickPoint(e.mousePosition - rect.position, out int killPoint))
+                    {
+                        DeleteCustomPoint(killPoint);
+                        Repaint();
+                        e.Use();
+                        break;
+                    }
                     if (e.button == 0 && rect.Contains(e.mousePosition))
                     {
                         Vector2 local = e.mousePosition - rect.position;
-                        if (e.alt && _selKind == SelKind.Stream &&
+                        bool additive = e.shift || e.control;
+                        if (e.alt && _multi.Count == 1 && _selKind == SelKind.Stream &&
                             _level.Streams[_selIndex].UsesCustomPoints)
                         {
                             AddPointToSelected(local);
                         }
-                        else if (TryPickPoint(local, out _dragPointIndex))
+                        else if (!additive && TryPickPoint(local, out _dragPointIndex))
                         {
                             _dragging = true; // dragging a waypoint
                         }
                         else
                         {
                             _dragPointIndex = -1;
-                            SelectAt(local);
-                            _dragging = _selKind != SelKind.None;
+                            SelectAt(local, additive);
+                            _dragging = !additive && _selKind != SelKind.None;
+                            _draggedThisPress = false;
                         }
                         Repaint();
                         e.Use();
@@ -477,12 +749,14 @@ namespace Ngj10.EditorTools
                 case EventType.MouseDrag:
                     if (e.button == 0 && _dragging && _dragPointIndex >= 0)
                     {
+                        _draggedThisPress = true;
                         DragPoint(e.delta);
                         Repaint();
                         e.Use();
                     }
                     else if (e.button == 0 && _dragging)
                     {
+                        _draggedThisPress = true;
                         DragSelected(e.delta);
                         Repaint();
                         e.Use();
@@ -496,18 +770,26 @@ namespace Ngj10.EditorTools
                     break;
 
                 case EventType.MouseUp:
+                    // Click (no drag) on a selected element of a group: collapse to it.
+                    if (_collapseOnMouseUp.HasValue && !_draggedThisPress)
+                    {
+                        var c = _collapseOnMouseUp.Value;
+                        SetSingleSelection(c.kind, c.index);
+                        Repaint();
+                    }
+                    _collapseOnMouseUp = null;
                     _dragging = false;
                     _dragPointIndex = -1;
                     break;
             }
         }
 
-        private void SelectAt(Vector2 screenInCanvas)
+        private void SelectAt(Vector2 screenInCanvas, bool additive)
         {
             const float pickRadius = 12f;
             float best = pickRadius;
-            _selKind = SelKind.None;
-            _selIndex = -1;
+            SelKind hitKind = SelKind.None;
+            int hitIndex = -1;
 
             void Consider(Vector2 worldPos, SelKind kind, int index)
             {
@@ -515,8 +797,8 @@ namespace Ngj10.EditorTools
                 if (d < best)
                 {
                     best = d;
-                    _selKind = kind;
-                    _selIndex = index;
+                    hitKind = kind;
+                    hitIndex = index;
                 }
             }
 
@@ -530,7 +812,7 @@ namespace Ngj10.EditorTools
             // fall through to streams, which pick on the whole path (any point along the
             // band), not just the origin handle — much easier to hit. Tolerance grows
             // with the band width.
-            if (_selKind == SelKind.None && _level.Streams != null)
+            if (hitKind == SelKind.None && _level.Streams != null)
             {
                 float bestStream = float.MaxValue;
                 for (int i = 0; i < _level.Streams.Length; i++)
@@ -540,11 +822,33 @@ namespace Ngj10.EditorTools
                     if (d <= tol && d < bestStream)
                     {
                         bestStream = d;
-                        _selKind = SelKind.Stream;
-                        _selIndex = i;
+                        hitKind = SelKind.Stream;
+                        hitIndex = i;
                     }
                 }
             }
+
+            if (additive)
+            {
+                // Shift/Ctrl+click: toggle the hit element, keep the rest. Click on
+                // empty space changes nothing.
+                if (hitKind != SelKind.None)
+                    ToggleSelection(hitKind, hitIndex);
+                return;
+            }
+
+            // Plain click on an already-selected element keeps the group for now (so
+            // the whole selection can be dragged); if the press ends without a drag,
+            // MouseUp collapses the selection to just this element.
+            if (hitKind != SelKind.None && IsSelected(hitKind, hitIndex))
+            {
+                _selKind = hitKind;
+                _selIndex = hitIndex;
+                _collapseOnMouseUp = (hitKind, hitIndex);
+                return;
+            }
+            _collapseOnMouseUp = null;
+            SetSingleSelection(hitKind, hitIndex);
         }
 
         /// <summary>Screen-space distance from a point to the nearest segment of a stream's path.</summary>
@@ -570,7 +874,7 @@ namespace Ngj10.EditorTools
         private bool TryPickPoint(Vector2 screenInCanvas, out int pointIndex)
         {
             pointIndex = -1;
-            if (_selKind != SelKind.Stream) return false;
+            if (_multi.Count != 1 || _selKind != SelKind.Stream) return false;
             StreamDef def = _level.Streams[_selIndex];
             if (!def.UsesCustomPoints) return false;
 
@@ -582,6 +886,19 @@ namespace Ngj10.EditorTools
                 if (d < best) { best = d; pointIndex = p; }
             }
             return pointIndex >= 0;
+        }
+
+        private void DeleteCustomPoint(int pointIndex)
+        {
+            StreamDef def = _level.Streams[_selIndex];
+            if (def.CustomPoints.Length <= 2)
+                return; // a path needs at least two points
+            Undo.RecordObject(_level, "Удалить точку пути");
+            var list = new List<Vector2>(def.CustomPoints);
+            list.RemoveAt(pointIndex);
+            def.CustomPoints = list.ToArray();
+            _dragPointIndex = -1;
+            EditorUtility.SetDirty(_level);
         }
 
         private void AddPointToSelected(Vector2 screenInCanvas)
@@ -608,13 +925,16 @@ namespace Ngj10.EditorTools
         private void DragSelected(Vector2 screenDelta)
         {
             Vector2 worldDelta = new Vector2(screenDelta.x, -screenDelta.y) / _pixelsPerUnit;
-            Undo.RecordObject(_level, "Двигать элемент");
-            switch (_selKind)
+            Undo.RecordObject(_level, "Двигать элементы");
+            foreach (var (kind, index) in _multi)
             {
-                case SelKind.Start: _level.Start += worldDelta; break;
-                case SelKind.Goal: _level.Goal += worldDelta; break;
-                case SelKind.Hazard: _level.Hazards[_selIndex].Position += worldDelta; break;
-                case SelKind.Stream: _level.Streams[_selIndex].Position += worldDelta; break;
+                switch (kind)
+                {
+                    case SelKind.Start: _level.Start += worldDelta; break;
+                    case SelKind.Goal: _level.Goal += worldDelta; break;
+                    case SelKind.Hazard: _level.Hazards[index].Position += worldDelta; break;
+                    case SelKind.Stream: _level.Streams[index].Position += worldDelta; break;
+                }
             }
             EditorUtility.SetDirty(_level);
         }
@@ -624,7 +944,7 @@ namespace Ngj10.EditorTools
         // Deferred inspector action: button handlers must not mutate the array or
         // exit early mid-layout (it desyncs the GUIClip/ScrollView stack). They set
         // this instead; it runs after the layout groups are closed.
-        private enum PendingAction { None, ConvertToPoints, ClearPoints, DeleteStream, DeleteHazard }
+        private enum PendingAction { None, ConvertToPoints, ClearPoints, DeleteStream, DeleteHazard, DeleteSelected }
         private PendingAction _pending;
         private int _pendingIndex;
 
@@ -636,11 +956,18 @@ namespace Ngj10.EditorTools
             _serialized.Update();
             EditorGUI.BeginChangeCheck();
 
-            switch (_selKind)
+            if (_multi.Count > 1)
             {
-                case SelKind.Stream: DrawStreamInspector(); break;
-                case SelKind.Hazard: DrawHazardInspector(); break;
-                default: DrawLevelInspector(); break;
+                DrawMultiInspector();
+            }
+            else
+            {
+                switch (_selKind)
+                {
+                    case SelKind.Stream: DrawStreamInspector(); break;
+                    case SelKind.Hazard: DrawHazardInspector(); break;
+                    default: DrawLevelInspector(); break;
+                }
             }
 
             if (EditorGUI.EndChangeCheck())
@@ -664,8 +991,114 @@ namespace Ngj10.EditorTools
                 case PendingAction.ClearPoints: ClearCustomPoints(_pendingIndex); break;
                 case PendingAction.DeleteStream: DeleteStream(_pendingIndex); break;
                 case PendingAction.DeleteHazard: DeleteHazard(_pendingIndex); break;
+                case PendingAction.DeleteSelected: DeleteSelected(); break;
             }
             _pending = PendingAction.None;
+        }
+
+        private void DrawMultiInspector()
+        {
+            var streamIdx = new List<int>();
+            int hazards = 0, other = 0;
+            foreach (var (kind, index) in _multi)
+            {
+                if (kind == SelKind.Stream) streamIdx.Add(index);
+                else if (kind == SelKind.Hazard) hazards++;
+                else other++;
+            }
+            EditorGUILayout.LabelField($"Выбрано: {_multi.Count}", EditorStyles.boldLabel);
+            EditorGUILayout.LabelField($"потоков {streamIdx.Count}, препятствий {hazards}" +
+                (other > 0 ? ", старт/цель" : ""));
+            EditorGUILayout.HelpBox(
+                "Тащи — двигать всю группу. Ctrl+C/Ctrl+V — копировать группу. " +
+                "Delete — удалить потоки/препятствия группы. Shift/Ctrl+клик — добавить/убрать из выделения.",
+                MessageType.None);
+
+            if (streamIdx.Count > 0)
+            {
+                EditorGUILayout.Space();
+                EditorGUILayout.LabelField($"Поток (группа из {streamIdx.Count})", EditorStyles.miniBoldLabel);
+                EditorGUILayout.HelpBox(
+                    "Ввод значения — задать всем. «+/−» — сдвинуть каждого от его текущего. Прочерк = значения различаются.",
+                    MessageType.None);
+                GroupFloatRow(streamIdx, "Скорость",
+                    "Скорость течения у всех выбранных потоков.",
+                    d => d.Speed, (d, v) => d.Speed = v, 0.5f, 0f);
+                GroupFloatRow(streamIdx, "Скорость в конце",
+                    "Линейный разгон к концу пути (0 = постоянная).",
+                    d => d.SpeedEnd, (d, v) => d.SpeedEnd = v, 0.5f, 0f);
+                GroupFloatRow(streamIdx, "Ширина",
+                    "Ширина зоны захвата у всех выбранных потоков.",
+                    d => d.Width, (d, v) => d.Width = v, 0.5f, 0.1f);
+                GroupFloatRow(streamIdx, "Время активности",
+                    "Секунды «включён» в пульс-цикле (0 = всегда).",
+                    d => d.ActiveDuration, (d, v) => d.ActiveDuration = v, 0.5f, 0f);
+                GroupFloatRow(streamIdx, "Время паузы",
+                    "Секунды «выключен» в пульс-цикле (0 = не выключается).",
+                    d => d.InactiveDuration, (d, v) => d.InactiveDuration = v, 0.5f, 0f);
+                GroupFloatRow(streamIdx, "Интервал реверса",
+                    "Каждые N секунд разворот течения (0 = никогда).",
+                    d => d.ReverseInterval, (d, v) => d.ReverseInterval = v, 0.5f, 0f);
+                GroupFloatRow(streamIdx, "Турбулентность",
+                    "Амплитуда поперечной болтанки.",
+                    d => d.Turbulence, (d, v) => d.Turbulence = v, 0.25f, 0f);
+                GroupFloatRow(streamIdx, "Хват",
+                    "Насколько плотно поток держит Икара (3 = обычный, 6–10 = рельсы).",
+                    d => d.Grip, (d, v) => d.Grip = v, 1f, 0.5f);
+            }
+
+            EditorGUILayout.Space();
+            if (streamIdx.Count > 0 && GUILayout.Button("⇄ Развернуть стрелки (все)"))
+            {
+                Undo.RecordObject(_level, "Развернуть потоки группы");
+                foreach (int i in streamIdx)
+                    _level.Streams[i].Reverse = !_level.Streams[i].Reverse;
+                EditorUtility.SetDirty(_level);
+            }
+            if ((streamIdx.Count > 0 || hazards > 0) && GUILayout.Button("Удалить выбранные"))
+                _pending = PendingAction.DeleteSelected;
+        }
+
+        /// <summary>
+        /// One float row editing the same field on every selected stream. Mixed
+        /// values show as a dash; typing sets all, +/− nudges each from its own value.
+        /// </summary>
+        private void GroupFloatRow(List<int> streamIdx, string label, string tooltip,
+            System.Func<StreamDef, float> get, System.Action<StreamDef, float> set,
+            float step, float min)
+        {
+            float first = get(_level.Streams[streamIdx[0]]);
+            bool mixed = false;
+            for (int i = 1; i < streamIdx.Count; i++)
+                if (!Mathf.Approximately(get(_level.Streams[streamIdx[i]]), first))
+                {
+                    mixed = true;
+                    break;
+                }
+
+            EditorGUILayout.BeginHorizontal();
+            EditorGUI.showMixedValue = mixed;
+            EditorGUI.BeginChangeCheck();
+            float typed = EditorGUILayout.FloatField(new GUIContent(label, tooltip), first);
+            bool changed = EditorGUI.EndChangeCheck();
+            EditorGUI.showMixedValue = false;
+            bool plus = GUILayout.Button("+", EditorStyles.miniButtonLeft, GUILayout.Width(22f));
+            bool minus = GUILayout.Button("−", EditorStyles.miniButtonRight, GUILayout.Width(22f));
+            EditorGUILayout.EndHorizontal();
+
+            if (!changed && !plus && !minus)
+                return;
+
+            Undo.RecordObject(_level, "Правка группы потоков");
+            foreach (int i in streamIdx)
+            {
+                StreamDef def = _level.Streams[i];
+                float value = changed ? typed : get(def);
+                if (plus) value += step;
+                if (minus) value -= step;
+                set(def, Mathf.Max(min, value));
+            }
+            EditorUtility.SetDirty(_level);
         }
 
         private void DrawLevelInspector()
@@ -734,8 +1167,10 @@ namespace Ngj10.EditorTools
             else
             {
                 EditorGUILayout.LabelField("Форма", EditorStyles.miniBoldLabel);
-                EditorGUILayout.PropertyField(s.FindPropertyRelative("Shape"),
-                    new GUIContent("Форма", "Тип параметрической траектории потока (линия, дуга, круг, спираль и т.д.)."));
+                SerializedProperty shapeProp = s.FindPropertyRelative("Shape");
+                shapeProp.enumValueIndex = EditorGUILayout.Popup(
+                    new GUIContent("Форма", "Тип параметрической траектории потока."),
+                    shapeProp.enumValueIndex, ShapeNamesRu);
                 EditorGUILayout.PropertyField(s.FindPropertyRelative("Size"),
                     new GUIContent("Размер", "Главный размер формы: длина / радиус / ширина."));
                 EditorGUILayout.PropertyField(s.FindPropertyRelative("Size2"),
@@ -757,7 +1192,11 @@ namespace Ngj10.EditorTools
             EditorGUILayout.Space();
             EditorGUILayout.LabelField("Поток", EditorStyles.miniBoldLabel);
             FloatRow(s.FindPropertyRelative("Speed"), "Скорость",
-                "Скорость течения потока — как быстро он несёт Икара вдоль траектории.", 0.5f, 0f);
+                "Скорость течения потока — как быстро он несёт Икара вдоль траектории. " +
+                "Если задана «Скорость в конце», это скорость на СТАРТЕ пути.", 0.5f, 0f);
+            FloatRow(s.FindPropertyRelative("SpeedEnd"), "Скорость в конце",
+                "Скорость на конце пути: течение линейно разгоняется (или замедляется) от «Скорость» " +
+                "к этому значению. 0 = постоянная скорость по всей длине.", 0.5f, 0f);
             FloatRow(s.FindPropertyRelative("Width"), "Ширина",
                 "Ширина потока. Икар захватывается, пока находится внутри этой полосы.", 0.5f, 0.1f);
             FloatRow(s.FindPropertyRelative("ActiveDuration"), "Время активности",
@@ -768,6 +1207,16 @@ namespace Ngj10.EditorTools
                 "Каждые N секунд поток меняет направление течения на противоположное. 0 = никогда.", 0.5f, 0f);
             FloatRow(s.FindPropertyRelative("Turbulence"), "Турбулентность",
                 "Амплитуда поперечного дрожания потока — болтает игрока вбок. 0 = ровный поток.", 0.25f, 0f);
+            FloatRow(s.FindPropertyRelative("Grip"), "Хват",
+                "Насколько плотно поток держит Икара: притяжение к оси + скорость подстройки. " +
+                "3 = обычный, 6–10 = рельсы (не вылетит на резких поворотах даже на большой скорости), 1 = рыхлая река.", 1f, 0.5f);
+
+            EditorGUILayout.Space();
+            if (GUILayout.Button("⇄ Развернуть стрелки"))
+            {
+                SerializedProperty rev = s.FindPropertyRelative("Reverse");
+                rev.boolValue = !rev.boolValue;
+            }
             EditorGUILayout.HelpBox("Цвет потока зависит от скорости: синий — медленно, красный — быстро.",
                 MessageType.None);
 
@@ -879,8 +1328,7 @@ namespace Ngj10.EditorTools
         private void LoadLevel(LevelData level)
         {
             _level = level;
-            _selKind = SelKind.None;
-            _selIndex = -1;
+            SetSingleSelection(SelKind.None, -1);
             // Deliberately NOT selecting the asset in the Project window: a selected
             // asset turns the Delete key into "delete asset file", which would nuke
             // the level when the user only meant to delete a stream/hazard.
@@ -889,6 +1337,40 @@ namespace Ngj10.EditorTools
         }
 
         // ── Mutations ─────────────────────────────────────────────────────────
+
+        // Russian labels aligned to the StreamShape enum order.
+        private static readonly string[] ShapeNamesRu =
+        {
+            "Линия", "Дуга", "Круг", "Эллипс", "Синусоида", "Зигзаг", "Спираль",
+            "Восьмёрка", "S-кривая", "Горка", "Яма", "Мёртвая петля", "Штопор",
+            "Лестница", "Звезда", "Шум", "Прямоугольник", "Сердце",
+        };
+
+        /// <summary>Dropdown with every parametric shape — picks one and adds a shaped stream.</summary>
+        private void ShowShapeMenu()
+        {
+            var menu = new GenericMenu();
+            var shapes = (StreamShape[])System.Enum.GetValues(typeof(StreamShape));
+            for (int i = 0; i < shapes.Length; i++)
+            {
+                string label = i < ShapeNamesRu.Length ? ShapeNamesRu[i] : shapes[i].ToString();
+                StreamShape shape = shapes[i];
+                menu.AddItem(new GUIContent(label), false, () => AddShapedStream(shape));
+            }
+            menu.ShowAsContext();
+        }
+
+        private void AddShapedStream(StreamShape shape)
+        {
+            Undo.RecordObject(_level, "Добавить поток-форму");
+            var list = new List<StreamDef>(_level.Streams ?? new StreamDef[0]);
+            // Empty CustomPoints -> the shape generator builds the trajectory;
+            // its parameters are edited in the inspector (Размер/Количество/...).
+            list.Add(new StreamDef { Position = _panWorld, Shape = shape });
+            _level.Streams = list.ToArray();
+            SetSingleSelection(SelKind.Stream, list.Count - 1);
+            Commit();
+        }
 
         private void AddStream()
         {
@@ -902,8 +1384,7 @@ namespace Ngj10.EditorTools
             };
             list.Add(def);
             _level.Streams = list.ToArray();
-            _selKind = SelKind.Stream;
-            _selIndex = list.Count - 1;
+            SetSingleSelection(SelKind.Stream, list.Count - 1);
             Commit();
         }
 
@@ -913,8 +1394,7 @@ namespace Ngj10.EditorTools
             var list = new List<StreamDef>(_level.Streams ?? new StreamDef[0]);
             list.Add(new StreamDef { Position = _panWorld, IsCircle = true, CircleRadius = 4f });
             _level.Streams = list.ToArray();
-            _selKind = SelKind.Stream;
-            _selIndex = list.Count - 1;
+            SetSingleSelection(SelKind.Stream, list.Count - 1);
             Commit();
         }
 
@@ -924,8 +1404,7 @@ namespace Ngj10.EditorTools
             var list = new List<HazardDef>(_level.Hazards ?? new HazardDef[0]);
             list.Add(new HazardDef { Position = _panWorld });
             _level.Hazards = list.ToArray();
-            _selKind = SelKind.Hazard;
-            _selIndex = list.Count - 1;
+            SetSingleSelection(SelKind.Hazard, list.Count - 1);
             Commit();
         }
 
@@ -954,7 +1433,7 @@ namespace Ngj10.EditorTools
             var list = new List<StreamDef>(_level.Streams);
             list.RemoveAt(index);
             _level.Streams = list.ToArray();
-            _selKind = SelKind.None;
+            SetSingleSelection(SelKind.None, -1);
             Commit();
         }
 
@@ -964,7 +1443,37 @@ namespace Ngj10.EditorTools
             var list = new List<HazardDef>(_level.Hazards);
             list.RemoveAt(index);
             _level.Hazards = list.ToArray();
-            _selKind = SelKind.None;
+            SetSingleSelection(SelKind.None, -1);
+            Commit();
+        }
+
+        /// <summary>Delete every selected stream/hazard (multi-selection aware).</summary>
+        private void DeleteSelected()
+        {
+            Undo.RecordObject(_level, "Удалить выбранные");
+
+            // Collect indices per array and remove from the end so they stay valid.
+            var streamIdx = new List<int>();
+            var hazardIdx = new List<int>();
+            foreach (var (kind, index) in _multi)
+            {
+                if (kind == SelKind.Stream) streamIdx.Add(index);
+                else if (kind == SelKind.Hazard) hazardIdx.Add(index);
+            }
+            streamIdx.Sort();
+            hazardIdx.Sort();
+
+            var streams = new List<StreamDef>(_level.Streams ?? new StreamDef[0]);
+            for (int i = streamIdx.Count - 1; i >= 0; i--)
+                streams.RemoveAt(streamIdx[i]);
+            _level.Streams = streams.ToArray();
+
+            var hazards = new List<HazardDef>(_level.Hazards ?? new HazardDef[0]);
+            for (int i = hazardIdx.Count - 1; i >= 0; i--)
+                hazards.RemoveAt(hazardIdx[i]);
+            _level.Hazards = hazards.ToArray();
+
+            SetSingleSelection(SelKind.None, -1);
             Commit();
         }
 
