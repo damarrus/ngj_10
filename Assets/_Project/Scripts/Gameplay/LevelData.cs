@@ -96,6 +96,11 @@ namespace Ngj10.Gameplay
         /// 6-10 = rails that survive sharp bends at high speed, 1 = loose river.</summary>
         public float Grip = 3f;
 
+        /// <summary>Exit impulse multiplier: applied to the player's velocity the
+        /// moment he folds his wings while carried by this stream. 1 = plain
+        /// momentum, 1.5 = catapult feel, &lt;1 = sticky exit.</summary>
+        public float ExitBoost = 1f;
+
         /// <summary>Stream colour is derived from Speed, not authored by hand.</summary>
         public Color VisualColor => SpeedToColor(Speed);
 

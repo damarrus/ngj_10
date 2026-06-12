@@ -19,12 +19,14 @@ namespace Ngj10.Gameplay
         [SerializeField] private float _turbulence;       // perpendicular wobble amplitude
         [SerializeField] private float _grip = 3f;        // hold strength: centering pull + velocity convergence
         [SerializeField] private float _speedEnd;         // linear ramp target at the path end (0 = constant)
+        [SerializeField] private float _exitBoost = 1f;   // velocity multiplier on wings-fold exit
 
         public bool Loop => _loop;
         public float Speed => _speed;
         public float Width => _width;
         public float Turbulence => _turbulence;
         public float Grip => _grip;
+        public float ExitBoost => _exitBoost;
         public float Length { get; private set; }
 
         /// <summary>Pulsing streams turn off periodically and drop the player.</summary>
@@ -71,18 +73,8 @@ namespace Ngj10.Gameplay
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         private static void ResetStatics() => All.Clear();
 
-        /// <summary>Stream whose capture zone contains the position, or null.</summary>
-        public static StreamPath TryCapture(Vector2 position)
-        {
-            foreach (var stream in All)
-                if (stream.IsActive && stream.SampleNearest(position).DistanceToPath <= stream._width * 0.5f)
-                    return stream;
-            return null;
-        }
-
-        /// <summary>Slightly wider than capture so a carried player is not dropped on the boundary.</summary>
-        public bool IsInside(Vector2 position) =>
-            IsActive && SampleNearest(position).DistanceToPath <= _width * 0.7f;
+        /// <summary>All enabled streams — the controller samples the whole field each step.</summary>
+        public static System.Collections.Generic.IReadOnlyList<StreamPath> Streams => All;
 
         private void OnEnable()
         {
@@ -161,7 +153,7 @@ namespace Ngj10.Gameplay
         /// <summary>Apply runtime parameters from level data (loop is set by the shape generator).</summary>
         public void Configure(float speed, float width, float activeDuration,
             float inactiveDuration, float reverseInterval, float turbulence, float grip = 3f,
-            float speedEnd = 0f)
+            float speedEnd = 0f, float exitBoost = 1f)
         {
             _speed = speed;
             _width = width;
@@ -171,6 +163,7 @@ namespace Ngj10.Gameplay
             _turbulence = turbulence;
             _grip = grip;
             _speedEnd = speedEnd;
+            _exitBoost = exitBoost;
         }
 
         private void BuildCache()

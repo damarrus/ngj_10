@@ -25,7 +25,7 @@ namespace Ngj10.EditorTools
         private Vector2 _panWorld = Vector2.zero; // world point at canvas center
         private float _pixelsPerUnit = 24f;
 
-        private enum SelKind { None, Stream, Hazard, Start, Goal }
+        private enum SelKind { None, Stream, Hazard, Start, Goal, KillLine }
         private SelKind _selKind = SelKind.None; // primary (last clicked) — drives the inspector
         private int _selIndex = -1;
 
@@ -78,7 +78,22 @@ namespace Ngj10.EditorTools
         {
             if (_level == null)
                 _level = Selection.activeObject as LevelData;
+            if (_level == null)
+                _level = FindFirstLevelAsset();
             RebuildSerialized();
+        }
+
+        /// <summary>First LevelData asset in the project (by path) — the default map.</summary>
+        private static LevelData FindFirstLevelAsset()
+        {
+            string[] guids = AssetDatabase.FindAssets("t:LevelData");
+            if (guids.Length == 0)
+                return null;
+            var paths = new List<string>(guids.Length);
+            foreach (string guid in guids)
+                paths.Add(AssetDatabase.GUIDToAssetPath(guid));
+            paths.Sort(System.StringComparer.Ordinal);
+            return AssetDatabase.LoadAssetAtPath<LevelData>(paths[0]);
         }
 
         private void RebuildSerialized()
@@ -378,13 +393,20 @@ namespace Ngj10.EditorTools
 
         private void DrawKillLine(Rect rect)
         {
-            Handles.color = new Color(0.2f, 0.5f, 1f, 0.7f);
+            bool selected = _selKind == SelKind.KillLine;
             Vector2 min = ScreenToWorld(new Vector2(0f, rect.height));
             Vector2 max = ScreenToWorld(new Vector2(rect.width, 0f));
             Vector2 a = WorldToScreen(new Vector2(min.x, _level.KillY));
             Vector2 b = WorldToScreen(new Vector2(max.x, _level.KillY));
+            if (selected)
+            {
+                Handles.color = Color.white;
+                Handles.DrawAAPolyLine(6f, a, b);
+            }
+            Handles.color = new Color(0.2f, 0.5f, 1f, 0.7f);
             Handles.DrawAAPolyLine(3f, a, b);
-            GUI.Label(new Rect(a.x + 4f, a.y, 80f, 16f), "смерть");
+            GUI.Label(new Rect(a.x + 4f, a.y, 200f, 16f),
+                selected ? "смерть (тащи вверх/вниз)" : "смерть");
         }
 
         // Camera framing in the editor is anchored on the Start point (where the
@@ -466,8 +488,20 @@ namespace Ngj10.EditorTools
                     Handles.color = Color.white;
                     Handles.DrawAAPolyLine(7f, screen);
                 }
-                Handles.color = c;
-                Handles.DrawAAPolyLine(selected ? 4f : 2f, screen);
+
+                // Centre line segment-by-segment, coloured by flow direction
+                // (up = green, down = red, sideways = yellow).
+                float lineWidth = selected ? 4f : 2f;
+                int lineSegs = loop ? pts.Count : pts.Count - 1;
+                for (int p = 0; p < lineSegs; p++)
+                {
+                    Vector2 wa = world[p];
+                    Vector2 wb = world[(p + 1) % pts.Count];
+                    Vector2 dir = (wb - wa).normalized;
+                    if (def.Reverse) dir = -dir;
+                    Handles.color = DirectionColor(dir);
+                    Handles.DrawAAPolyLine(lineWidth, WorldToScreen(wa), WorldToScreen(wb));
+                }
 
                 // Direction arrows along the path; arrow length scales with the local
                 // speed, so a ramp reads as darts growing toward the end.
@@ -551,8 +585,19 @@ namespace Ngj10.EditorTools
                 float worldLen = 0.4f + Mathf.Clamp(speed, 0f, 12f) * 0.12f;
 
                 Vector2 baseWorld = (a + b) * 0.5f;
-                DrawArrow(baseWorld + dir * worldLen, dir, color);
+                DrawArrow(baseWorld + dir * worldLen, dir, DirectionColor(dir));
             }
+        }
+
+        /// <summary>Arrow colour by vertical direction: up = green, down = red, sideways = yellow.</summary>
+        private static Color DirectionColor(Vector2 dir)
+        {
+            var up = new Color(0.35f, 1f, 0.45f);
+            var down = new Color(1f, 0.3f, 0.3f);
+            var side = new Color(1f, 0.9f, 0.35f);
+            return dir.y >= 0f
+                ? Color.Lerp(side, up, dir.y)
+                : Color.Lerp(side, down, -dir.y);
         }
 
         private void DrawHazards()
@@ -591,9 +636,10 @@ namespace Ngj10.EditorTools
             // Player-size silhouette under the start marker — scale reference.
             DrawPlayerSilhouette(_level.Start);
 
-            // Start.
+            // Start. Red when below the kill line — the player would die on spawn.
             bool startSel = IsSelected(SelKind.Start, -1);
-            Color sc = new Color(0.4f, 1f, 0.5f, 1f);
+            bool startDead = _level.Start.y < _level.KillY;
+            Color sc = startDead ? new Color(1f, 0.25f, 0.25f, 1f) : new Color(0.4f, 1f, 0.5f, 1f);
             Vector2 ss = WorldToScreen(_level.Start);
             if (startSel)
             {
@@ -604,7 +650,8 @@ namespace Ngj10.EditorTools
             Handles.color = sc;
             Handles.DrawWireDisc(ss, Vector3.forward, 8f);
             DrawHandleDot(ss, startSel, sc);
-            GUI.Label(new Rect(ss.x + 8f, ss.y - 8f, 60f, 16f), "старт");
+            GUI.Label(new Rect(ss.x + 8f, ss.y - 8f, 200f, 16f),
+                startDead ? "старт ПОД ЛИНИЕЙ СМЕРТИ!" : "старт");
 
             // Goal + radius.
             bool goalSel = IsSelected(SelKind.Goal, -1);
@@ -631,31 +678,38 @@ namespace Ngj10.EditorTools
         private void DrawPlayerSilhouette(Vector2 worldPos)
         {
             var cream = new Color(0.96f, 0.91f, 0.82f, 0.55f);
+            const float k = 0.8f; // in-game player visual is scaled to 0.8
 
-            // Body: ellipse rx 0.21, ry 0.375 (matches WingsVisual proportions).
+            // Proportions match WingsVisual: slim body, small head, legs.
             Handles.color = cream;
             var body = new Vector3[12];
             for (int i = 0; i < body.Length; i++)
             {
                 float a = i / (float)body.Length * 2f * Mathf.PI;
-                body[i] = WorldToScreen(worldPos + new Vector2(Mathf.Cos(a) * 0.21f, Mathf.Sin(a) * 0.375f));
+                body[i] = WorldToScreen(worldPos + new Vector2(Mathf.Cos(a) * 0.10f, Mathf.Sin(a) * 0.18f) * k);
             }
             Handles.DrawAAConvexPolygon(body);
 
             // Head.
-            Handles.DrawSolidDisc(WorldToScreen(worldPos + new Vector2(0f, 0.52f)),
-                Vector3.forward, 0.17f * _pixelsPerUnit);
+            Handles.DrawSolidDisc(WorldToScreen(worldPos + new Vector2(0f, 0.245f) * k),
+                Vector3.forward, 0.09f * k * _pixelsPerUnit);
 
-            // Open feather fans: 4 strokes per wing, lengths 0.55..1.0 units.
+            // Legs.
+            for (int side = -1; side <= 1; side += 2)
+                Handles.DrawAAPolyLine(2f,
+                    WorldToScreen(worldPos + new Vector2(side * 0.05f, -0.16f) * k),
+                    WorldToScreen(worldPos + new Vector2(side * 0.05f, -0.34f) * k));
+
+            // Open feather fans: 4 strokes per wing.
             for (int side = -1; side <= 1; side += 2)
             {
                 for (int d = 0; d < 4; d++)
                 {
                     float angle = (10f + d * 15f) * Mathf.Deg2Rad;
-                    float len = 0.55f + d * 0.15f;
+                    float len = (0.45f + d * 0.18f) * k;
                     var dir = new Vector2(Mathf.Cos(angle) * side, Mathf.Sin(angle));
-                    Vector2 shoulder = worldPos + new Vector2(side * 0.08f, 0.12f);
-                    Handles.DrawAAPolyLine(3f,
+                    Vector2 shoulder = worldPos + new Vector2(side * 0.04f, 0.06f) * k;
+                    Handles.DrawAAPolyLine(2.5f,
                         WorldToScreen(shoulder),
                         WorldToScreen(shoulder + dir * len));
                 }
@@ -828,11 +882,23 @@ namespace Ngj10.EditorTools
                 }
             }
 
+            // Kill line: picked only when nothing else is under the cursor — it
+            // spans the whole canvas and must not shadow real elements.
+            if (hitKind == SelKind.None)
+            {
+                float lineY = WorldToScreen(new Vector2(0f, _level.KillY)).y;
+                if (Mathf.Abs(screenInCanvas.y - lineY) < 10f)
+                {
+                    hitKind = SelKind.KillLine;
+                    hitIndex = -1;
+                }
+            }
+
             if (additive)
             {
                 // Shift/Ctrl+click: toggle the hit element, keep the rest. Click on
                 // empty space changes nothing.
-                if (hitKind != SelKind.None)
+                if (hitKind != SelKind.None && hitKind != SelKind.KillLine)
                     ToggleSelection(hitKind, hitIndex);
                 return;
             }
@@ -934,6 +1000,7 @@ namespace Ngj10.EditorTools
                     case SelKind.Goal: _level.Goal += worldDelta; break;
                     case SelKind.Hazard: _level.Hazards[index].Position += worldDelta; break;
                     case SelKind.Stream: _level.Streams[index].Position += worldDelta; break;
+                    case SelKind.KillLine: _level.KillY += worldDelta.y; break;
                 }
             }
             EditorUtility.SetDirty(_level);
@@ -1045,6 +1112,9 @@ namespace Ngj10.EditorTools
                 GroupFloatRow(streamIdx, "Хват",
                     "Насколько плотно поток держит Икара (3 = обычный, 6–10 = рельсы).",
                     d => d.Grip, (d, v) => d.Grip = v, 1f, 0.5f);
+                GroupFloatRow(streamIdx, "Импульс выхода",
+                    "Множитель скорости при складывании крыльев в потоке (1 = без буста).",
+                    d => d.ExitBoost, (d, v) => d.ExitBoost = v, 0.1f, 0.1f);
             }
 
             EditorGUILayout.Space();
@@ -1210,6 +1280,9 @@ namespace Ngj10.EditorTools
             FloatRow(s.FindPropertyRelative("Grip"), "Хват",
                 "Насколько плотно поток держит Икара: притяжение к оси + скорость подстройки. " +
                 "3 = обычный, 6–10 = рельсы (не вылетит на резких поворотах даже на большой скорости), 1 = рыхлая река.", 1f, 0.5f);
+            FloatRow(s.FindPropertyRelative("ExitBoost"), "Импульс выхода",
+                "Множитель скорости в момент складывания крыльев внутри потока. " +
+                "1 = чистый импульс потока, 1.5 = катапульта, меньше 1 = вязкий выход.", 0.1f, 0.1f);
 
             EditorGUILayout.Space();
             if (GUILayout.Button("⇄ Развернуть стрелки"))

@@ -33,11 +33,15 @@ namespace Ngj10.Gameplay
 
         private void Build()
         {
-            _halo = NewSprite("Halo", new Vector3(0f, 0f, 0f), new Vector3(2.6f, 2.6f, 1f),
+            _halo = NewSprite("Halo", new Vector3(0f, 0f, 0f), new Vector3(1.4f, 1.4f, 1f),
                 new Color(1f, 1f, 1f, 0f), 7);
 
-            NewSprite("Body", Vector3.zero, new Vector3(0.42f, 0.75f, 1f), BodyColor, 10);
-            NewSprite("Head", new Vector3(0f, 0.52f, 0f), new Vector3(0.34f, 0.34f, 1f), BodyColor, 11);
+            // Prototype proportions: slim drop body, small head above, two stick legs.
+            NewSprite("Body", Vector3.zero, new Vector3(0.20f, 0.36f, 1f), BodyColor, 10);
+            NewSprite("Head", new Vector3(0f, 0.245f, 0f), new Vector3(0.18f, 0.18f, 1f), BodyColor, 11);
+            var legColor = new Color(0.851f, 0.784f, 0.651f);
+            NewSprite("LegL", new Vector3(-0.05f, -0.26f, 0f), new Vector3(0.035f, 0.16f, 1f), legColor, 9);
+            NewSprite("LegR", new Vector3(0.05f, -0.26f, 0f), new Vector3(0.035f, 0.16f, 1f), legColor, 9);
 
             int total = _feathersPerWing * 2;
             _feathers = new Transform[total];
@@ -48,9 +52,9 @@ namespace Ngj10.Gameplay
             {
                 for (int d = 0; d < _feathersPerWing; d++)
                 {
-                    float length = 0.5f + d * 0.1f;
+                    float length = 0.45f + d * 0.11f;
                     var sr = NewSprite("Feather", Vector3.zero,
-                        new Vector3(length, 0.11f, 1f), FeatherColor, 9);
+                        new Vector3(length, 0.085f, 1f), FeatherColor, 9);
                     _feathers[index] = sr.transform;
                     _sides[index] = s;
                     _lengths[index] = length;
@@ -82,7 +86,7 @@ namespace Ngj10.Gameplay
             float tilt = Mathf.Clamp(vx * -_tiltPerSpeed, -32f, 32f);
             transform.localRotation = Quaternion.Euler(0f, 0f, tilt);
 
-            var shoulder = new Vector3(0f, 0.12f, 0f);
+            var shoulder = new Vector3(0f, 0.06f, 0f);
             float lengthMul = 0.45f + 0.55f * _spread;
             for (int i = 0; i < _feathers.Length; i++)
             {
@@ -96,9 +100,9 @@ namespace Ngj10.Gameplay
                 float half = _lengths[i] * lengthMul * 0.5f;
                 float rad = worldAngle * Mathf.Deg2Rad;
                 var dir = new Vector3(Mathf.Cos(rad), Mathf.Sin(rad), 0f);
-                _feathers[i].localPosition = shoulder + dir * (half + 0.08f);
+                _feathers[i].localPosition = shoulder + dir * (half + 0.05f);
                 _feathers[i].localRotation = Quaternion.Euler(0f, 0f, worldAngle);
-                _feathers[i].localScale = new Vector3(_lengths[i] * lengthMul, 0.11f, 1f);
+                _feathers[i].localScale = new Vector3(_lengths[i] * lengthMul, 0.085f, 1f);
             }
 
             bool carried = _controller != null && _controller.CurrentStream != null && _spread > 0.5f;
