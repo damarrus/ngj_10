@@ -179,26 +179,44 @@ namespace Ngj10.Gameplay
     }
 
     /// <summary>
-    /// Zeus' lightning node: an anchor that periodically electrifies a chosen set
-    /// of streams. While a stream is charged, lightning runs along it and Icarus
-    /// caught inside its band has his wings shocked (folded and blocked briefly).
-    /// Place the node in the editor and pick which streams it strikes by index.
+    /// Zeus' lightning node: an anchor that fires bolts into one or more target
+    /// areas. Each area runs on its own timer; on a tick a bolt travels from the
+    /// anchor to the area over its flight time, and on arrival Icarus standing
+    /// inside the area's ellipse has his wings shocked (folded and blocked
+    /// briefly). Place the node in the editor and add/tune areas individually.
     /// </summary>
     [Serializable]
     public class ZeusDef
     {
+        /// <summary>The anchor — the point bolts launch from.</summary>
         public Vector2 Position;
 
-        /// <summary>Indices into LevelData.Streams this node strikes.</summary>
-        public int[] TargetStreams = Array.Empty<int>();
+        public ZeusAreaDef[] Areas = { new ZeusAreaDef() };
+    }
 
-        /// <summary>Seconds of one full cycle: charged then quiet.</summary>
-        public float FireInterval = 4f;
+    /// <summary>
+    /// One strike area for a Zeus node: an ellipse the bolt lands in, plus its
+    /// own firing timer. The bolt hits exactly on arrival — Icarus only gets
+    /// shocked if he is inside the ellipse the frame the bolt lands.
+    /// </summary>
+    [Serializable]
+    public class ZeusAreaDef
+    {
+        /// <summary>Area centre, world-space offset from the Zeus anchor.</summary>
+        public Vector2 Offset = new Vector2(0f, -3f);
 
-        /// <summary>Seconds the targeted streams stay electrified each cycle.</summary>
-        public float ElectrifyDuration = 1.5f;
+        /// <summary>Horizontal ellipse radius. Equal radii = circle.</summary>
+        public float RadiusX = 2f;
+        /// <summary>Vertical ellipse radius.</summary>
+        public float RadiusY = 2f;
 
-        /// <summary>Phase shift in seconds so several nodes fire out of sync.</summary>
-        public float PhaseOffset;
+        /// <summary>Seconds between strikes (from one bolt's launch to the next).</summary>
+        public float Period = 4f;
+
+        /// <summary>Seconds to wait before the very first strike of this area.</summary>
+        public float StartDelay;
+
+        /// <summary>Seconds a bolt takes to travel from the anchor to the area.</summary>
+        public float FlightTime = 0.6f;
     }
 }

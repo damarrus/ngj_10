@@ -734,18 +734,29 @@ namespace Ngj10.EditorTools
                 Vector2 s = WorldToScreen(def.Position);
                 var color = new Color(1f, 0.92f, 0.2f, selected ? 1f : 0.85f);
 
-                // A bolt line from the node to each targeted stream's nearest point.
-                if (def.TargetStreams != null && _level.Streams != null)
+                // A dotted bolt line from the anchor to each target area, and the
+                // area's ellipse footprint.
+                if (def.Areas != null)
                 {
-                    Handles.color = new Color(1f, 0.95f, 0.35f, selected ? 0.9f : 0.5f);
-                    foreach (int t in def.TargetStreams)
+                    foreach (ZeusAreaDef area in def.Areas)
                     {
-                        if (t < 0 || t >= _level.Streams.Length) continue;
-                        Vector2 hit = NearestStreamPoint(_level.Streams[t], def.Position);
-                        Handles.DrawDottedLine(s, WorldToScreen(hit), 4f);
-                        // Mark the struck stream's origin with a small ring.
-                        Vector2 hs = WorldToScreen(_level.Streams[t].Position);
-                        Handles.DrawWireDisc(hs, Vector3.forward, 6f);
+                        if (area == null) continue;
+                        Vector2 c = WorldToScreen(def.Position + area.Offset);
+                        Handles.color = new Color(1f, 0.95f, 0.35f, selected ? 0.9f : 0.5f);
+                        Handles.DrawDottedLine(s, c, 4f);
+                        DrawEllipse(c, area.RadiusX * _pixelsPerUnit, area.RadiusY * _pixelsPerUnit,
+                            new Color(1f, 0.92f, 0.2f, selected ? 0.85f : 0.45f));
+
+                        // On-canvas edit handles for the selected Zeus: centre (move),
+                        // right edge (Radius X), top edge (Radius Y).
+                        if (selected)
+                        {
+                            Vector2 hx = WorldToScreen(def.Position + area.Offset + new Vector2(area.RadiusX, 0f));
+                            Vector2 hy = WorldToScreen(def.Position + area.Offset + new Vector2(0f, area.RadiusY));
+                            DrawHandleDot(c, false, new Color(1f, 0.85f, 0.2f, 1f));
+                            DrawHandleDot(hx, false, new Color(0.4f, 0.85f, 1f, 1f));
+                            DrawHandleDot(hy, false, new Color(0.6f, 1f, 0.5f, 1f));
+                        }
                     }
                 }
 
@@ -754,7 +765,7 @@ namespace Ngj10.EditorTools
                     Handles.color = Color.white;
                     Handles.DrawWireDisc(s, Vector3.forward, 7f);
                 }
-                // Anchor: a small lightning-bolt glyph plus the handle dot.
+                // Anchor: a small ring plus the handle dot.
                 Handles.color = color;
                 Handles.DrawWireDisc(s, Vector3.forward, 5f);
                 DrawHandleDot(s, selected, color);
@@ -762,27 +773,19 @@ namespace Ngj10.EditorTools
             }
         }
 
-        /// <summary>World point on a stream's path nearest to a world position — used to
-        /// draw where a Zeus bolt strikes the stream.</summary>
-        private static Vector2 NearestStreamPoint(StreamDef def, Vector2 fromWorld)
+        /// <summary>Outline an axis-aligned ellipse in screen space.</summary>
+        private static void DrawEllipse(Vector2 center, float rx, float ry, Color color)
         {
-            List<Vector2> pts = StreamShapeBuilder.Build(def, out bool loop);
-            if (pts.Count == 0) return def.Position;
-
-            int segs = loop ? pts.Count : pts.Count - 1;
-            float best = float.MaxValue;
-            Vector2 bestPt = def.Position;
-            for (int p = 0; p < segs; p++)
+            const int Segments = 32;
+            Handles.color = color;
+            Vector3 prev = center + new Vector2(rx, 0f);
+            for (int i = 1; i <= Segments; i++)
             {
-                Vector2 a = def.Position + Rotate(pts[p], def.Rotation);
-                Vector2 b = def.Position + Rotate(pts[(p + 1) % pts.Count], def.Rotation);
-                Vector2 ab = b - a;
-                float t = ab.sqrMagnitude > 0f ? Mathf.Clamp01(Vector2.Dot(fromWorld - a, ab) / ab.sqrMagnitude) : 0f;
-                Vector2 q = a + ab * t;
-                float d = Vector2.Distance(fromWorld, q);
-                if (d < best) { best = d; bestPt = q; }
+                float a = i / (float)Segments * Mathf.PI * 2f;
+                Vector3 p = center + new Vector2(Mathf.Cos(a) * rx, Mathf.Sin(a) * ry);
+                Handles.DrawLine(prev, p);
+                prev = p;
             }
-            return bestPt;
         }
 
         private Vector2 ConeEnd(Vector2 originWorld, float angleRad, float length)
@@ -900,6 +903,10 @@ namespace Ngj10.EditorTools
         private int _dragPointIndex = -1;
         private int _dragConeIndex = -1; // tip handle of a cone on the single-selected burner
 
+        private enum AreaHandle { None, Center, RadiusX, RadiusY }
+        private int _dragAreaIndex = -1;            // area handle on the single-selected Zeus
+        private AreaHandle _dragAreaHandle = AreaHandle.None;
+
         // Set on plain MouseDown over an already-selected element: if the press
         // ends without a drag, the selection collapses to just that element
         // (Explorer-style), otherwise the whole group was dragged.
@@ -949,6 +956,10 @@ namespace Ngj10.EditorTools
                         {
                             _dragging = true; // dragging a cone tip = rotate + lengthen
                         }
+                        else if (!additive && TryPickAreaHandle(local, out _dragAreaIndex, out _dragAreaHandle))
+                        {
+                            _dragging = true; // dragging a Zeus area handle = move / resize
+                        }
                         else if (!additive && TryPickPoint(local, out _dragPointIndex))
                         {
                             _dragging = true; // dragging a waypoint
@@ -970,6 +981,13 @@ namespace Ngj10.EditorTools
                     {
                         _draggedThisPress = true;
                         DragConeTip(e.mousePosition - rect.position);
+                        Repaint();
+                        e.Use();
+                    }
+                    else if (e.button == 0 && _dragging && _dragAreaHandle != AreaHandle.None)
+                    {
+                        _draggedThisPress = true;
+                        DragAreaHandle(e.mousePosition - rect.position);
                         Repaint();
                         e.Use();
                     }
@@ -1007,6 +1025,8 @@ namespace Ngj10.EditorTools
                     _dragging = false;
                     _dragPointIndex = -1;
                     _dragConeIndex = -1;
+                    _dragAreaIndex = -1;
+                    _dragAreaHandle = AreaHandle.None;
                     break;
             }
         }
@@ -1209,6 +1229,66 @@ namespace Ngj10.EditorTools
             return origin + new Vector2(Mathf.Cos(rad), Mathf.Sin(rad)) * cone.Length;
         }
 
+        private static Vector2 AreaCenterWorld(ZeusDef zeus, ZeusAreaDef area)
+            => zeus.Position + area.Offset;
+
+        /// <summary>Hit-test the move/resize handles of each area on the single-selected Zeus.</summary>
+        private bool TryPickAreaHandle(Vector2 screenInCanvas, out int areaIndex, out AreaHandle handle)
+        {
+            areaIndex = -1;
+            handle = AreaHandle.None;
+            if (_multi.Count != 1 || _selKind != SelKind.Zeus) return false;
+            ZeusDef zeus = _level.Zeuses[_selIndex];
+            if (zeus.Areas == null) return false;
+
+            float best = 14f; // generous hitbox, same feel as the cone tip
+            AreaHandle hit = AreaHandle.None;
+            int hitIdx = -1;
+
+            void Consider(Vector2 world, AreaHandle h, int idx)
+            {
+                float d = Vector2.Distance(WorldToScreen(world), screenInCanvas);
+                if (d < best) { best = d; hit = h; hitIdx = idx; }
+            }
+
+            for (int i = 0; i < zeus.Areas.Length; i++)
+            {
+                ZeusAreaDef area = zeus.Areas[i];
+                Vector2 center = AreaCenterWorld(zeus, area);
+                Consider(center, AreaHandle.Center, i);
+                Consider(center + new Vector2(area.RadiusX, 0f), AreaHandle.RadiusX, i);
+                Consider(center + new Vector2(0f, area.RadiusY), AreaHandle.RadiusY, i);
+            }
+
+            handle = hit;
+            areaIndex = hitIdx;
+            return handle != AreaHandle.None;
+        }
+
+        /// <summary>Drag a Zeus area handle: centre moves the area, edge handles resize it.</summary>
+        private void DragAreaHandle(Vector2 screenInCanvas)
+        {
+            ZeusDef zeus = _level.Zeuses[_selIndex];
+            ZeusAreaDef area = zeus.Areas[_dragAreaIndex];
+            Vector2 world = ScreenToWorld(screenInCanvas);
+
+            Undo.RecordObject(_level, "Настроить область");
+            switch (_dragAreaHandle)
+            {
+                case AreaHandle.Center:
+                    area.Offset = world - zeus.Position;
+                    break;
+                case AreaHandle.RadiusX:
+                    area.RadiusX = Mathf.Max(0.1f, Mathf.Abs(world.x - AreaCenterWorld(zeus, area).x));
+                    break;
+                case AreaHandle.RadiusY:
+                    area.RadiusY = Mathf.Max(0.1f, Mathf.Abs(world.y - AreaCenterWorld(zeus, area).y));
+                    break;
+            }
+            EditorUtility.SetDirty(_level);
+            RebuildSerialized(); // keep the inspector's SerializedObject in sync with the live edit
+        }
+
         private void DragSelected(Vector2 screenDelta)
         {
             Vector2 worldDelta = new Vector2(screenDelta.x, -screenDelta.y) / _pixelsPerUnit;
@@ -1274,6 +1354,7 @@ namespace Ngj10.EditorTools
 
             RunPendingAction();
             RunPendingConeEdits();
+            RunPendingAreaEdits();
         }
 
         private void RunPendingAction()
@@ -1581,6 +1662,10 @@ namespace Ngj10.EditorTools
         private int _coneAddBurner = -1;
         private int _coneRemoveBurner = -1, _coneRemoveIndex = -1;
 
+        // Same deferred pattern for Zeus area-list edits.
+        private int _areaAddZeus = -1;
+        private int _areaRemoveZeus = -1, _areaRemoveIndex = -1;
+
         private void DrawBurnerInspector()
         {
             EditorGUILayout.LabelField("Горелка " + _selIndex, EditorStyles.boldLabel);
@@ -1667,44 +1752,45 @@ namespace Ngj10.EditorTools
             SerializedProperty z = zeuses.GetArrayElementAtIndex(_selIndex);
 
             EditorGUILayout.PropertyField(z.FindPropertyRelative("Position"),
-                new GUIContent("Позиция", "Точка, из которой бьют молнии."));
-
-            EditorGUILayout.PropertyField(z.FindPropertyRelative("FireInterval"),
-                new GUIContent("Период, сек", "Длина полного цикла: заряжен, затем тишина до следующего удара."));
-            EditorGUILayout.PropertyField(z.FindPropertyRelative("ElectrifyDuration"),
-                new GUIContent("Электризация, сек", "Сколько секунд потоки заряжены в каждом цикле (≤ периода)."));
-            EditorGUILayout.PropertyField(z.FindPropertyRelative("PhaseOffset"),
-                new GUIContent("Сдвиг фазы, сек", "Смещение цикла, чтобы несколько узлов били вразнобой."));
+                new GUIContent("Позиция", "Точка, из которой вылетают молнии."));
 
             EditorGUILayout.Space();
-            EditorGUILayout.LabelField("Цели — какие потоки бьёт", EditorStyles.boldLabel);
-            int streamCount = _level.Streams != null ? _level.Streams.Length : 0;
-            if (streamCount == 0)
-            {
-                EditorGUILayout.HelpBox("На уровне нет потоков.", MessageType.Info);
-            }
-            else
-            {
-                SerializedProperty targets = z.FindPropertyRelative("TargetStreams");
-                for (int i = 0; i < streamCount; i++)
-                {
-                    int existing = IndexInArray(targets, i);
-                    bool was = existing >= 0;
-                    bool now = EditorGUILayout.ToggleLeft(
-                        $"Поток {i}  (скор {_level.Streams[i].Speed:0.#})", was);
-                    if (now == was) continue;
+            SerializedProperty areas = z.FindPropertyRelative("Areas");
+            EditorGUILayout.LabelField($"Области ({areas.arraySize})", EditorStyles.boldLabel);
 
-                    if (now)
-                    {
-                        targets.arraySize++;
-                        targets.GetArrayElementAtIndex(targets.arraySize - 1).intValue = i;
-                    }
-                    else
-                    {
-                        targets.DeleteArrayElementAtIndex(existing);
-                    }
+            for (int i = 0; i < areas.arraySize; i++)
+            {
+                SerializedProperty area = areas.GetArrayElementAtIndex(i);
+                EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+
+                EditorGUILayout.BeginHorizontal();
+                EditorGUILayout.LabelField("Область " + i, EditorStyles.miniBoldLabel);
+                if (GUILayout.Button("Удалить", GUILayout.Width(70f)))
+                {
+                    _areaRemoveZeus = _selIndex;
+                    _areaRemoveIndex = i;
                 }
+                EditorGUILayout.EndHorizontal();
+
+                EditorGUILayout.PropertyField(area.FindPropertyRelative("Offset"),
+                    new GUIContent("Смещение", "Центр области относительно точки Зевса."));
+                EditorGUILayout.PropertyField(area.FindPropertyRelative("RadiusX"),
+                    new GUIContent("Радиус X", "Горизонтальный радиус эллипса. Равные радиусы = круг."));
+                EditorGUILayout.PropertyField(area.FindPropertyRelative("RadiusY"),
+                    new GUIContent("Радиус Y", "Вертикальный радиус эллипса."));
+                EditorGUILayout.PropertyField(area.FindPropertyRelative("Period"),
+                    new GUIContent("Период, сек", "Сколько секунд между ударами по этой области."));
+                EditorGUILayout.PropertyField(area.FindPropertyRelative("StartDelay"),
+                    new GUIContent("Задержка старта, сек", "Пауза перед самым первым ударом."));
+                EditorGUILayout.PropertyField(area.FindPropertyRelative("FlightTime"),
+                    new GUIContent("Время полёта, сек", "Сколько молния летит от Зевса до области."));
+
+                EditorGUILayout.EndVertical();
             }
+
+            EditorGUILayout.Space();
+            if (GUILayout.Button("+ Область"))
+                _areaAddZeus = _selIndex;
 
             EditorGUILayout.Space();
             if (GUILayout.Button("Удалить Зевса"))
@@ -1712,15 +1798,6 @@ namespace Ngj10.EditorTools
                 _pending = PendingAction.DeleteZeus;
                 _pendingIndex = _selIndex;
             }
-        }
-
-        /// <summary>Index of <paramref name="value"/> in an int SerializedProperty array, or -1.</summary>
-        private static int IndexInArray(SerializedProperty intArray, int value)
-        {
-            for (int i = 0; i < intArray.arraySize; i++)
-                if (intArray.GetArrayElementAtIndex(i).intValue == value)
-                    return i;
-            return -1;
         }
 
         /// <summary>Apply deferred cone add/remove after the layout pass closes.</summary>
@@ -1752,6 +1829,38 @@ namespace Ngj10.EditorTools
             _coneAddBurner = -1;
             _coneRemoveBurner = -1;
             _coneRemoveIndex = -1;
+            Repaint();
+        }
+
+        /// <summary>Apply deferred Zeus area add/remove after the layout pass closes.</summary>
+        private void RunPendingAreaEdits()
+        {
+            if (_areaAddZeus < 0 && _areaRemoveZeus < 0)
+                return;
+
+            _serialized.Update();
+            SerializedProperty zeuses = _serialized.FindProperty("Zeuses");
+
+            if (_areaAddZeus >= 0 && _areaAddZeus < zeuses.arraySize)
+            {
+                SerializedProperty areas = zeuses.GetArrayElementAtIndex(_areaAddZeus)
+                    .FindPropertyRelative("Areas");
+                areas.arraySize++; // new element copies the last one's values — fine as a starting point
+            }
+
+            if (_areaRemoveZeus >= 0 && _areaRemoveZeus < zeuses.arraySize)
+            {
+                SerializedProperty areas = zeuses.GetArrayElementAtIndex(_areaRemoveZeus)
+                    .FindPropertyRelative("Areas");
+                if (_areaRemoveIndex >= 0 && _areaRemoveIndex < areas.arraySize)
+                    areas.DeleteArrayElementAtIndex(_areaRemoveIndex);
+            }
+
+            _serialized.ApplyModifiedProperties();
+            EditorUtility.SetDirty(_level);
+            _areaAddZeus = -1;
+            _areaRemoveZeus = -1;
+            _areaRemoveIndex = -1;
             Repaint();
         }
 
