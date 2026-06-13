@@ -27,6 +27,12 @@ namespace Ngj10.Gameplay
         [Tooltip("Colour body sprites tint toward at full heat.")]
         [SerializeField] private Color _burntColor = new Color(0.85f, 0.12f, 0.05f);
 
+        [Header("Shock (Zeus lightning)")]
+        [Tooltip("Seconds the wings stay folded and blocked after a shock.")]
+        [SerializeField] private float _wingBlockDuration = 1f;
+        [Tooltip("Colour body sprites blink toward while shocked.")]
+        [SerializeField] private Color _shockColor = new Color(1f, 0.92f, 0.15f);
+
         [Header("Level")]
         [Tooltip("Level to load on start. Overrides the LevelBuilder's own Data.")]
         [SerializeField] private LevelData _startLevel;
@@ -48,6 +54,10 @@ namespace Ngj10.Gameplay
             var burn = FindAnyObjectByType<BurnState>();
             if (burn != null)
                 burn.Configure(_burnHeatUpTime, _burnCoolDownTime, _burntColor);
+
+            var shock = FindAnyObjectByType<ShockState>();
+            if (shock != null)
+                shock.Configure(_wingBlockDuration, _shockColor);
 
             // Build the chosen level now, before anything starts it. GameConfig
             // runs at exec order -100, ahead of LevelBuilder's own Awake build —

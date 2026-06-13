@@ -38,6 +38,7 @@ namespace Ngj10.Gameplay
         public StreamDef[] Streams = Array.Empty<StreamDef>();
         public HazardDef[] Hazards = Array.Empty<HazardDef>();
         public BurnerDef[] Burners = Array.Empty<BurnerDef>();
+        public ZeusDef[] Zeuses = Array.Empty<ZeusDef>();
 
         /// <summary>The stream the player respawns into (index into Streams).</summary>
         public int StartStreamIndex;
@@ -175,5 +176,47 @@ namespace Ngj10.Gameplay
     {
         public Vector2 Position;
         public ConeDef[] Cones = { new ConeDef() };
+    }
+
+    /// <summary>
+    /// Zeus' lightning node: an anchor that fires bolts into one or more target
+    /// areas. Each area runs on its own timer; on a tick a bolt travels from the
+    /// anchor to the area over its flight time, and on arrival Icarus standing
+    /// inside the area's ellipse has his wings shocked (folded and blocked
+    /// briefly). Place the node in the editor and add/tune areas individually.
+    /// </summary>
+    [Serializable]
+    public class ZeusDef
+    {
+        /// <summary>The anchor — the point bolts launch from.</summary>
+        public Vector2 Position;
+
+        public ZeusAreaDef[] Areas = { new ZeusAreaDef() };
+    }
+
+    /// <summary>
+    /// One strike area for a Zeus node: an ellipse the bolt lands in, plus its
+    /// own firing timer. The bolt hits exactly on arrival — Icarus only gets
+    /// shocked if he is inside the ellipse the frame the bolt lands.
+    /// </summary>
+    [Serializable]
+    public class ZeusAreaDef
+    {
+        /// <summary>Area centre, world-space offset from the Zeus anchor.</summary>
+        public Vector2 Offset = new Vector2(0f, -3f);
+
+        /// <summary>Horizontal ellipse radius. Equal radii = circle.</summary>
+        public float RadiusX = 2f;
+        /// <summary>Vertical ellipse radius.</summary>
+        public float RadiusY = 2f;
+
+        /// <summary>Seconds between strikes (from one bolt's launch to the next).</summary>
+        public float Period = 4f;
+
+        /// <summary>Seconds to wait before the very first strike of this area.</summary>
+        public float StartDelay;
+
+        /// <summary>Seconds a bolt takes to travel from the anchor to the area.</summary>
+        public float FlightTime = 0.6f;
     }
 }
