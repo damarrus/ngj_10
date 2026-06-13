@@ -39,7 +39,6 @@ namespace Ngj10.Gameplay
         [SerializeField] private float _turns = 2f;   // spiral turns; for Arc: sweep in degrees
         [SerializeField] private int _seed;           // NoisePath only
         [SerializeField] private bool _reverse;       // flip flow direction
-        [SerializeField] private float _scale = 1f;   // uniform multiplier on the whole figure
         [SerializeField] private bool _autoRegenerate = true;
 
         public bool AutoRegenerate => _autoRegenerate;
@@ -47,7 +46,7 @@ namespace Ngj10.Gameplay
 
         /// <summary>Set shape inputs from level data; call Generate() afterwards to rebuild waypoints.</summary>
         public void Configure(StreamShape shape, float size, float size2, int count,
-            float turns, int seed, bool reverse, float scale = 1f)
+            float turns, int seed, bool reverse)
         {
             _shape = shape;
             _size = size;
@@ -56,12 +55,11 @@ namespace Ngj10.Gameplay
             _turns = turns;
             _seed = seed;
             _reverse = reverse;
-            _scale = scale;
         }
 
         public void Generate()
         {
-            var points = StreamShapeBuilder.Build(_shape, _size, _size2, _count, _turns, _seed, _scale, out bool loop);
+            var points = StreamShapeBuilder.Build(_shape, _size, _size2, _count, _turns, _seed, out bool loop);
             if (_reverse) points.Reverse();
 
             for (int i = transform.childCount - 1; i >= 0; i--)

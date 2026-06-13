@@ -375,6 +375,8 @@ namespace Ngj10.EditorTools
                 x += 102f;
                 if (GUI.Button(new Rect(x, row2.y, 90f, RowHeight), "+ Круг", EditorStyles.toolbarButton)) AddCircle();
                 x += 92f;
+                if (GUI.Button(new Rect(x, row2.y, 90f, RowHeight), "+ Развилка", EditorStyles.toolbarButton)) AddFork();
+                x += 92f;
                 if (GUI.Button(new Rect(x, row2.y, 90f, RowHeight), "+ Препятствие", EditorStyles.toolbarButton)) AddHazard();
                 x += 92f;
                 if (GUI.Button(new Rect(x, row2.y, 90f, RowHeight), "+ Горелка", EditorStyles.toolbarButton)) AddBurner();
@@ -398,6 +400,7 @@ namespace Ngj10.EditorTools
             DrawBurners();
             DrawZeuses();
             DrawStartGoal();
+            DrawRotateHandle();
 
             GUI.EndClip();
 
@@ -465,7 +468,10 @@ namespace Ngj10.EditorTools
             Vector2 visMin = ScreenToWorld(new Vector2(0f, rect.height));
             Vector2 visMax = ScreenToWorld(new Vector2(rect.width, 0f));
 
-            var wall = new Color(1f, 0.3f, 0.3f, 0.9f);
+            // SingleScreen edges kill; UpOnly edges are solid physical walls (you bump,
+            // you don't die) — show them differently so it reads right.
+            bool lethal = _level.Mode == LevelMode.SingleScreen;
+            var wall = lethal ? new Color(1f, 0.3f, 0.3f, 0.9f) : new Color(0.45f, 0.7f, 1f, 0.9f);
             Handles.color = wall;
 
             // Left / right walls (both modes). Extend to the visible range vertically
@@ -489,7 +495,8 @@ namespace Ngj10.EditorTools
             }
 
             GUI.Label(new Rect(WorldToScreen(new Vector2(c.x - halfW, top)).x + 4f,
-                WorldToScreen(new Vector2(c.x - halfW, top)).y, 100f, 16f), "стена смерти");
+                WorldToScreen(new Vector2(c.x - halfW, top)).y, 140f, 16f),
+                lethal ? "стена смерти" : "стена (физическая)");
         }
 
         private void DrawStreams()
@@ -915,6 +922,14 @@ namespace Ngj10.EditorTools
         private int _dragAreaIndex = -1;            // area handle on the single-selected Zeus
         private AreaHandle _dragAreaHandle = AreaHandle.None;
 
+        // Mouse rotation of the selection (single element around its origin, or a group
+        // around its centroid). Snapshot start-pose so the drag is absolute, no drift.
+        private bool _rotating;
+        private float _rotStartAngle;
+        private Vector2 _rotPivot;
+        private readonly List<(SelKind kind, int index, Vector2 pos, float rot)> _rotSnapshot = new List<(SelKind, int, Vector2, float)>();
+        private const float RotHandlePx = 64f;
+
         // Set on plain MouseDown over an already-selected element: if the press
         // ends without a drag, the selection collapses to just that element
         // (Explorer-style), otherwise the whole group was dragged.
@@ -960,6 +975,10 @@ namespace Ngj10.EditorTools
                         {
                             AddPointToSelected(local);
                         }
+                        else if (!additive && TryStartRotate(local))
+                        {
+                            // rotating the selection via the handle (state set inside)
+                        }
                         else if (!additive && TryPickConeTip(local, out _dragConeIndex))
                         {
                             _dragging = true; // dragging a cone tip = rotate + lengthen
@@ -985,7 +1004,14 @@ namespace Ngj10.EditorTools
                     break;
 
                 case EventType.MouseDrag:
-                    if (e.button == 0 && _dragging && _dragConeIndex >= 0)
+                    if (e.button == 0 && _rotating)
+                    {
+                        _draggedThisPress = true;
+                        DragRotate(e.mousePosition - rect.position);
+                        Repaint();
+                        e.Use();
+                    }
+                    else if (e.button == 0 && _dragging && _dragConeIndex >= 0)
                     {
                         _draggedThisPress = true;
                         DragConeTip(e.mousePosition - rect.position);
@@ -1031,6 +1057,8 @@ namespace Ngj10.EditorTools
                     }
                     _collapseOnMouseUp = null;
                     _dragging = false;
+                    _rotating = false;
+                    _rotSnapshot.Clear();
                     _dragPointIndex = -1;
                     _dragConeIndex = -1;
                     _dragAreaIndex = -1;
@@ -1317,6 +1345,106 @@ namespace Ngj10.EditorTools
             EditorUtility.SetDirty(_level);
         }
 
+        // ── Mouse rotation ────────────────────────────────────────────────────
+
+        /// <summary>Kinds that have a world position and can be rotated/orbited.</summary>
+        private static bool IsPositional(SelKind k) =>
+            k == SelKind.Stream || k == SelKind.Hazard || k == SelKind.Burner ||
+            k == SelKind.Zeus || k == SelKind.Start || k == SelKind.Goal;
+
+        private bool HasRotatablePivot()
+        {
+            foreach (var (kind, _) in _multi)
+                if (IsPositional(kind)) return true;
+            return false;
+        }
+
+        private Vector2 ElementPos(SelKind k, int i) => k switch
+        {
+            SelKind.Stream => _level.Streams[i].Position,
+            SelKind.Hazard => _level.Hazards[i].Position,
+            SelKind.Burner => _level.Burners[i].Position,
+            SelKind.Zeus => _level.Zeuses[i].Position,
+            SelKind.Start => _level.Start,
+            SelKind.Goal => _level.Goal,
+            _ => Vector2.zero,
+        };
+
+        private void SetElementPos(SelKind k, int i, Vector2 p)
+        {
+            switch (k)
+            {
+                case SelKind.Stream: _level.Streams[i].Position = p; break;
+                case SelKind.Hazard: _level.Hazards[i].Position = p; break;
+                case SelKind.Burner: _level.Burners[i].Position = p; break;
+                case SelKind.Zeus: _level.Zeuses[i].Position = p; break;
+                case SelKind.Start: _level.Start = p; break;
+                case SelKind.Goal: _level.Goal = p; break;
+            }
+        }
+
+        /// <summary>Centroid of the selected positional elements — the rotation pivot.</summary>
+        private Vector2 SelectionPivot()
+        {
+            Vector2 sum = Vector2.zero;
+            int n = 0;
+            foreach (var (kind, index) in _multi)
+                if (IsPositional(kind)) { sum += ElementPos(kind, index); n++; }
+            return n > 0 ? sum / n : Vector2.zero;
+        }
+
+        private static float AngleDeg(Vector2 pivot, Vector2 p) =>
+            Mathf.Atan2(p.y - pivot.y, p.x - pivot.x) * Mathf.Rad2Deg;
+
+        private bool TryStartRotate(Vector2 local)
+        {
+            if (!HasRotatablePivot()) return false;
+            Vector2 pivot = SelectionPivot();
+            Vector2 knob = WorldToScreen(pivot) + new Vector2(0f, -RotHandlePx);
+            if (Vector2.Distance(local, knob) > 11f) return false;
+
+            _rotPivot = pivot;
+            _rotStartAngle = AngleDeg(pivot, ScreenToWorld(local));
+            _rotSnapshot.Clear();
+            foreach (var (kind, index) in _multi)
+            {
+                if (!IsPositional(kind)) continue;
+                float rot = kind == SelKind.Stream ? _level.Streams[index].Rotation : 0f;
+                _rotSnapshot.Add((kind, index, ElementPos(kind, index), rot));
+            }
+            _rotating = _rotSnapshot.Count > 0;
+            return _rotating;
+        }
+
+        private void DragRotate(Vector2 local)
+        {
+            float delta = AngleDeg(_rotPivot, ScreenToWorld(local)) - _rotStartAngle;
+            Undo.RecordObject(_level, "Повернуть элементы");
+            foreach (var s in _rotSnapshot)
+            {
+                SetElementPos(s.kind, s.index, _rotPivot + Rotate(s.pos - _rotPivot, delta));
+                if (s.kind == SelKind.Stream)
+                    _level.Streams[s.index].Rotation = s.rot + delta;
+            }
+            EditorUtility.SetDirty(_level);
+        }
+
+        /// <summary>Ring + knob above the selection's pivot; grab the knob and swing to rotate.</summary>
+        private void DrawRotateHandle()
+        {
+            if (!HasRotatablePivot()) return;
+            Vector2 pivot = WorldToScreen(SelectionPivot());
+            Vector2 knob = pivot + new Vector2(0f, -RotHandlePx);
+
+            Handles.color = new Color(1f, 1f, 1f, 0.3f);
+            Handles.DrawWireDisc(pivot, Vector3.forward, RotHandlePx);
+            Handles.DrawLine(pivot, knob);
+            Handles.color = new Color(0f, 0f, 0f, 0.5f);
+            Handles.DrawSolidDisc(knob, Vector3.forward, _rotating ? 9f : 7f);
+            Handles.color = new Color(0.4f, 0.8f, 1f, _rotating ? 1f : 0.85f);
+            Handles.DrawSolidDisc(knob, Vector3.forward, _rotating ? 7f : 5.5f);
+        }
+
         // ── Inspector ─────────────────────────────────────────────────────────
 
         // Deferred inspector action: button handlers must not mutate the array or
@@ -1407,6 +1535,9 @@ namespace Ngj10.EditorTools
                 EditorGUILayout.HelpBox(
                     "Ввод значения — задать всем. «+/−» — сдвинуть каждого от его текущего. Прочерк = значения различаются.",
                     MessageType.None);
+                GroupFloatRow(streamIdx, "Масштаб",
+                    "Равномерный масштаб траектории у всех выбранных (любой тип).",
+                    d => d.Scale, (d, v) => d.Scale = v, 0.1f, 0.1f);
                 GroupFloatRow(streamIdx, "Скорость",
                     "Скорость течения у всех выбранных потоков.",
                     d => d.Speed, (d, v) => d.Speed = v, 0.5f, 0f);
@@ -1576,8 +1707,6 @@ namespace Ngj10.EditorTools
                     new GUIContent("Размер", "Главный размер формы: длина / радиус / ширина."));
                 EditorGUILayout.PropertyField(s.FindPropertyRelative("Size2"),
                     new GUIContent("Размер 2", "Вторичный размер: высота / амплитуда / внутренний радиус."));
-                EditorGUILayout.PropertyField(s.FindPropertyRelative("Scale"),
-                    new GUIContent("Масштаб", "Равномерно масштабирует всю фигуру, не меняя пропорций. Размер/Размер2 задают форму, Масштаб — общий размер. 1 = как есть."));
                 EditorGUILayout.PropertyField(s.FindPropertyRelative("Count"),
                     new GUIContent("Количество", "Число повторов: периоды / ступени / лепестки / витки."));
                 EditorGUILayout.PropertyField(s.FindPropertyRelative("Turns"),
@@ -1594,6 +1723,9 @@ namespace Ngj10.EditorTools
             }
             EditorGUILayout.Space();
             EditorGUILayout.LabelField("Поток", EditorStyles.miniBoldLabel);
+            FloatRow(s.FindPropertyRelative("Scale"), "Масштаб",
+                "Равномерно масштабирует всю траекторию (любой тип: круг, рисованный, форма), " +
+                "не меняя ширину. 1 = как есть, 2 = вдвое больше.", 0.1f, 0.1f);
             FloatRow(s.FindPropertyRelative("Speed"), "Скорость",
                 "Скорость течения потока — как быстро он несёт Икара вдоль траектории. " +
                 "Если задана «Скорость в конце», это скорость на СТАРТЕ пути.", 0.5f, 0f);
@@ -2018,6 +2150,37 @@ namespace Ngj10.EditorTools
             Commit();
         }
 
+        /// <summary>
+        /// A fork: one trunk stream up to a split point, then several branches fanning
+        /// out from it — each a separate hand-drawn stream sharing the same origin, so
+        /// the player can hop between them. All branches start at the fork point so they
+        /// stay joined when the trunk is dragged.
+        /// </summary>
+        private void AddFork()
+        {
+            Undo.RecordObject(_level, "Добавить развилку");
+            var list = new List<StreamDef>(_level.Streams ?? new StreamDef[0]);
+            Vector2 o = _panWorld;
+            var fork = new Vector2(0f, 4f);
+
+            StreamDef Branch(params Vector2[] pts) => new StreamDef { Position = o, CustomPoints = pts };
+
+            int first = list.Count;
+            list.Add(Branch(new Vector2(0f, 0f), new Vector2(0f, 2f), fork));                      // trunk (up)
+            list.Add(Branch(fork, new Vector2(-2f, 6f), new Vector2(-4f, 8.5f)));                  // up-left
+            list.Add(Branch(fork, new Vector2(0.4f, 6.5f), new Vector2(1f, 9f)));                  // up
+            list.Add(Branch(fork, new Vector2(2f, 4.5f), new Vector2(4f, 2f), new Vector2(5.5f, -1.5f))); // down-right
+            _level.Streams = list.ToArray();
+
+            // Select the whole fork so it drags / edits as a group.
+            _multi.Clear();
+            for (int i = first; i < list.Count; i++)
+                _multi.Add((SelKind.Stream, i));
+            _selKind = SelKind.Stream;
+            _selIndex = first;
+            Commit();
+        }
+
         private void AddHazard()
         {
             Undo.RecordObject(_level, "Добавить препятствие");
@@ -2057,6 +2220,7 @@ namespace Ngj10.EditorTools
             List<Vector2> pts = StreamShapeBuilder.Build(def, out bool loop);
             def.IsCircle = false;   // a baked ring is now just an editable closed path
             def.Reverse = false;    // Build already baked Reverse into the point order
+            def.Scale = 1f;         // Build already baked Scale into the points
             def.CustomPoints = pts.ToArray();
             def.CustomLoop = loop;
             Commit();

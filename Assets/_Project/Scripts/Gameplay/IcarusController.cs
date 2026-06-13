@@ -77,6 +77,9 @@ namespace Ngj10.Gameplay
             {
                 Body = GetComponent<Rigidbody2D>();
                 Body.gravityScale = 0f; // gravity is integrated manually (prototype model)
+                // Fast flight + thin kill-walls = tunneling with Discrete detection;
+                // continuous sweeps the path so the player bumps instead of passing through.
+                Body.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
             }
         }
 

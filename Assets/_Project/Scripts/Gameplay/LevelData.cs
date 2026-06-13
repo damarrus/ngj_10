@@ -14,7 +14,8 @@ namespace Ngj10.Gameplay
     {
         /// <summary>Camera follows freely; only the kill line below is deadly.</summary>
         Free,
-        /// <summary>Camera follows upward only (X locked); left/right screen edges are deadly.</summary>
+        /// <summary>Camera follows upward only (X locked); left/right screen edges are solid
+        /// physical walls — the player bumps into them, they do not kill.</summary>
         UpOnly,
         /// <summary>Camera is static; all four screen edges are deadly (one screen of play).</summary>
         SingleScreen,
@@ -81,10 +82,10 @@ namespace Ngj10.Gameplay
         public int Seed;
         public bool Reverse;
 
-        /// <summary>Uniform multiplier on the generated shape — resize the whole figure
-        /// without changing its proportions. Size/Size2 define the form, Scale the overall
-        /// size. 1 = as authored. Only affects the shape generator (circles use CircleRadius,
-        /// hand-drawn paths use their explicit points).</summary>
+        /// <summary>Uniform multiplier on the whole trajectory — every stream type
+        /// (circle, hand-drawn, shape). Scales the geometry, not the Width. 1 = as authored.
+        /// Runtime applies it as the stream's transform.localScale; the editor/bake multiplies
+        /// the points.</summary>
         public float Scale = 1f;
 
         // StreamPath runtime parameters.

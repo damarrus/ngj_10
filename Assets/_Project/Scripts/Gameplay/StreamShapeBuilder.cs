@@ -13,21 +13,29 @@ namespace Ngj10.Gameplay
         /// <summary>Build local-space points for a stream definition.</summary>
         public static List<Vector2> Build(StreamDef def, out bool loop)
         {
+            List<Vector2> pts;
             if (def.IsCircle)
             {
                 loop = true;
-                return BuildCircle(def.CircleRadius, def.CirclePointCount, def.Reverse);
+                pts = BuildCircle(def.CircleRadius, def.CirclePointCount, def.Reverse);
             }
-            if (def.UsesCustomPoints)
+            else if (def.UsesCustomPoints)
             {
                 loop = def.CustomLoop;
-                var custom = new List<Vector2>(def.CustomPoints);
-                if (def.Reverse) custom.Reverse(); // direction follows point order (matches runtime)
-                return custom;
+                pts = new List<Vector2>(def.CustomPoints);
+                if (def.Reverse) pts.Reverse(); // direction follows point order (matches runtime)
             }
-            var pts = Build(def.Shape, def.Size, def.Size2, def.Count, def.Turns, def.Seed,
-                def.Scale, out loop);
-            if (def.Reverse) pts.Reverse();
+            else
+            {
+                pts = Build(def.Shape, def.Size, def.Size2, def.Count, def.Turns, def.Seed, out loop);
+                if (def.Reverse) pts.Reverse();
+            }
+
+            // Uniform scale applies to EVERY stream type (circle, hand-drawn, shape).
+            float s = def.Scale <= 0f ? 1f : def.Scale;
+            if (s != 1f)
+                for (int i = 0; i < pts.Count; i++)
+                    pts[i] *= s;
             return pts;
         }
 
@@ -47,7 +55,7 @@ namespace Ngj10.Gameplay
         }
 
         public static List<Vector2> Build(StreamShape shape, float size, float size2,
-            int count, float turns, int seed, float scale, out bool loop)
+            int count, float turns, int seed, out bool loop)
         {
             loop = false;
             var pts = new List<Vector2>();
@@ -211,10 +219,6 @@ namespace Ngj10.Gameplay
                     }
                     break;
             }
-
-            if (scale != 1f)
-                for (int i = 0; i < pts.Count; i++)
-                    pts[i] *= scale;
             return pts;
         }
 

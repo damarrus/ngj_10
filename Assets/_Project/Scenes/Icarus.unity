@@ -2001,6 +2001,14 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 5002585224547848222, guid: 05f539e52fa7cc8479b3df8e4e7d974e, type: 3}
+      propertyPath: _legacyLaunchGrace
+      value: 0.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 5002585224547848222, guid: 05f539e52fa7cc8479b3df8e4e7d974e, type: 3}
+      propertyPath: _legacyWindowGravity
+      value: 5
+      objectReference: {fileID: 0}
     - target: {fileID: 7289304769620728654, guid: 05f539e52fa7cc8479b3df8e4e7d974e, type: 3}
       propertyPath: m_Name
       value: Icarus
@@ -3536,6 +3544,8 @@ MonoBehaviour:
   _burnHeatUpTime: 1
   _burnCoolDownTime: 2
   _burntColor: {r: 0.85, g: 0.12, b: 0.05, a: 1}
+  _wingBlockDuration: 1
+  _shockColor: {r: 1, g: 0.92, b: 0.15, a: 1}
   _startLevel: {fileID: 11400000, guid: 9751134df7491504594aa981758b7ddd, type: 2}
   _startScreen: {fileID: 834991541}
   _controller: {fileID: 226200009}
