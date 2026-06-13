@@ -3,23 +3,49 @@ using UnityEngine;
 namespace Ngj10.Gameplay
 {
     /// <summary>
-    /// Icarus, one-button control: space toggles wings.
-    /// Wings open inside a stream = carried along its trajectory.
-    /// Wings open outside = parachute (slow descent).
-    /// Wings closed = ballistic flight (inertia + gravity), streams ignore him.
+    /// Icarus, one-button control: HOLD space (or mouse) = wings open,
+    /// release = wings folded.
+    ///
+    /// Physics is a port of the web prototype's "influence field" model:
+    /// open wings sample EVERY stream — each pulls toward its flow with a
+    /// smoothstep weight that fades from the axis to the band edge, overlapping
+    /// streams blend, the strongest one adds a capped centering pull, and
+    /// gravity acts everywhere (you sag on weak edges). Closed wings ignore
+    /// streams entirely: ballistic dive with a terminal speed.
+    /// After a respawn he hovers in place until the first hold.
     /// </summary>
+    /// <summary>Which flight physics drives Icarus (runtime-switchable for comparison).</summary>
+    public enum FlightModel
+    {
+        Field,  // prototype port: all streams blend, soft edges, gravity everywhere
+        Legacy, // rails: one stream captures fully, no gravity inside, parachute drag
+    }
+
     [RequireComponent(typeof(Rigidbody2D))]
     public class IcarusController : MonoBehaviour
     {
-        [SerializeField] private float _closedGravityScale = 0.8f;
-        [SerializeField] private float _parachuteGravityScale = 0.3f;
-        [SerializeField] private float _parachuteLinearDamping = 1.5f;
-        [SerializeField] private float _captureBlend = 6f;   // velocity convergence rate inside a stream
-        [SerializeField] private float _centeringGain = 3f;  // pull toward the stream centerline
+        [Header("Flight model (T toggles in play)")]
+        [SerializeField] private FlightModel _flightModel = FlightModel.Field;
+
+        public FlightModel Model => _flightModel;
+
+        [Header("Gravity / air (prototype numbers, units)")]
+        [SerializeField] private float _gravity = 17.5f;          // u/s², applies in every state
+        [SerializeField] private float _openFallTerminal = 2.4f;  // parachute sink speed
+        [SerializeField] private float _openDragX = 1.6f;         // horizontal decay, wings open, no stream
+        [SerializeField] private float _openMaxSpeed = 12.2f;     // overall cap with wings open
+        [SerializeField] private float _closedFallTerminal = 13.6f;
+        [SerializeField] private float _closedDragX = 0.25f;
+
+        [Header("Stream field")]
+        [SerializeField] private float _centeringMaxSpeed = 3.6f; // cap on the centering pull
         [SerializeField] private SpriteRenderer _wingsVisual;
 
         public bool WingsOpen { get; private set; } = true;
+
+        /// <summary>Strongest stream currently influencing him (null when free).</summary>
         public StreamPath CurrentStream { get; private set; }
+
         public Rigidbody2D Body { get; private set; }
 
         public event System.Action<bool> WingsToggled;
@@ -35,66 +61,243 @@ namespace Ngj10.Gameplay
         private void EnsureBody()
         {
             if (Body == null)
+            {
                 Body = GetComponent<Rigidbody2D>();
+                Body.gravityScale = 0f; // gravity is integrated manually (prototype model)
+            }
         }
+
+        private bool _waitingForInput;
+
+        /// <summary>Parked at spawn until the first hold — the level skips kill checks.</summary>
+        public bool IsWaitingForInput => _waitingForInput;
 
         private void Update()
         {
-            if (Input.GetKeyDown(KeyCode.Space))
-                SetWings(!WingsOpen);
+            if (Input.GetKeyDown(KeyCode.T))
+            {
+                _flightModel = _flightModel == FlightModel.Field ? FlightModel.Legacy : FlightModel.Field;
+                Debug.Log("[Icarus] Flight model: " + _flightModel);
+            }
+
+            bool held = Input.GetKey(KeyCode.Space) || Input.GetMouseButton(0);
+            if (_waitingForInput)
+            {
+                if (!held) return;
+                _waitingForInput = false;
+            }
+            if (held != WingsOpen)
+                SetWings(held);
         }
 
         private void FixedUpdate()
         {
-            UpdateStreamCapture();
+            if (_waitingForInput)
+            {
+                // Parked at the spawn point until the player holds the button.
+                Body.linearVelocity = Vector2.zero;
+                return;
+            }
+
+            if (_flightModel == FlightModel.Field)
+                FixedUpdateField();
+            else
+                FixedUpdateLegacy();
+        }
+
+        private void FixedUpdateField()
+        {
+            float dt = Time.fixedDeltaTime;
+            Vector2 v = Body.linearVelocity;
+            v.y -= _gravity * dt;
+
+            if (WingsOpen)
+                v = ApplyStreamField(v, dt);
+            else
+            {
+                CurrentStream = null;
+                v.x *= Mathf.Exp(-_closedDragX * dt);
+                if (v.y < -_closedFallTerminal)
+                    v.y = Mathf.Lerp(v.y, -_closedFallTerminal, 1f - Mathf.Exp(-4f * dt));
+            }
+
+            Body.linearVelocity = v;
+        }
+
+        // ── Legacy model: hard capture by one stream, rails inside, parachute outside ──
+
+        private void FixedUpdateLegacy()
+        {
+            float dt = Time.fixedDeltaTime;
+            UpdateLegacyCapture();
+            Vector2 v = Body.linearVelocity;
 
             if (CurrentStream != null)
             {
-                Body.gravityScale = 0f;
-                Body.linearDamping = 0f;
+                // Rails: gravity off, velocity converges to flow + centering.
                 var sample = CurrentStream.SampleNearest(Body.position);
-                Vector2 desired = CurrentStream.FlowVelocity(sample)
-                                + (sample.Point - Body.position) * _centeringGain;
-                float blend = 1f - Mathf.Exp(-_captureBlend * Time.fixedDeltaTime);
-                Body.linearVelocity = Vector2.Lerp(Body.linearVelocity, desired, blend);
+                Vector2 desired = sample.Tangent
+                        * (CurrentStream.SpeedAt(sample.DistanceAlong) * CurrentStream.DirectionSign)
+                    + (sample.Point - Body.position) * CurrentStream.Grip;
+                if (CurrentStream.Turbulence > 0f)
+                {
+                    var perp = new Vector2(-sample.Tangent.y, sample.Tangent.x);
+                    desired += perp * (CurrentStream.Turbulence * Mathf.Sin(Time.time * 3.7f));
+                }
+                float blend = 1f - Mathf.Exp(-CurrentStream.Grip * 2f * dt);
+                v = Vector2.Lerp(v, desired, blend);
             }
             else if (WingsOpen)
             {
-                Body.gravityScale = _parachuteGravityScale;
-                Body.linearDamping = _parachuteLinearDamping;
+                // Parachute: weak gravity, strong drag on both axes.
+                v.y -= 0.3f * 9.81f * dt;
+                v *= Mathf.Exp(-1.5f * dt);
             }
             else
             {
-                Body.gravityScale = _closedGravityScale;
-                Body.linearDamping = 0f;
+                // Ballistic dive, no drag, no terminal.
+                v.y -= 0.8f * 9.81f * dt;
             }
+
+            Body.linearVelocity = v;
         }
 
-        /// <summary>Respawn helper: place at a point, kill momentum, open wings.</summary>
-        public void ResetAt(Vector2 position)
-        {
-            EnsureBody();
-            Body.position = position;
-            Body.linearVelocity = Vector2.zero;
-            CurrentStream = null;
-            SetWings(true);
-        }
-
-        private void UpdateStreamCapture()
+        private void UpdateLegacyCapture()
         {
             if (!WingsOpen)
             {
                 CurrentStream = null;
                 return;
             }
-            if (CurrentStream != null && !CurrentStream.IsInside(Body.position))
-                CurrentStream = null; // flung off the end of an open path
-            if (CurrentStream == null)
-                CurrentStream = StreamPath.TryCapture(Body.position);
+
+            // Keep the current stream until clearly outside its band.
+            if (CurrentStream != null)
+            {
+                var sample = CurrentStream.SampleNearest(Body.position);
+                if (!CurrentStream.IsActive || sample.DistanceToPath > CurrentStream.Width * 0.7f)
+                    CurrentStream = null;
+            }
+
+            if (CurrentStream != null) return;
+
+            // Capture the stream covering the player deepest.
+            StreamPath best = null;
+            float bestDepth = 0f;
+            Vector2 pos = Body.position;
+            foreach (var stream in StreamPath.Streams)
+            {
+                if (!stream.IsActive) continue;
+                var sample = stream.SampleNearest(pos);
+                float depth = stream.Width * 0.5f - sample.DistanceToPath;
+                if (depth > bestDepth)
+                {
+                    bestDepth = depth;
+                    best = stream;
+                }
+            }
+            CurrentStream = best;
+        }
+
+        /// <summary>
+        /// The prototype's field blend: weight every stream by smoothstep depth,
+        /// sum their flow directions, pull toward the strongest stream's axis,
+        /// converge velocity at a rate scaled by the total influence.
+        /// </summary>
+        private Vector2 ApplyStreamField(Vector2 v, float dt)
+        {
+            Vector2 sumDir = Vector2.zero;
+            float weightSq = 0f;
+            float speedAccum = 0f;
+            float weightAccum = 0f;
+            StreamPath strongest = null;
+            float strongestWeight = 0f;
+            StreamPath.PathSample strongestSample = default;
+
+            Vector2 pos = Body.position;
+            foreach (var stream in StreamPath.Streams)
+            {
+                if (!stream.IsActive) continue;
+                var sample = stream.SampleNearest(pos);
+                float half = stream.Width * 0.5f;
+                if (half <= 0f || sample.DistanceToPath >= half) continue;
+
+                float linear = 1f - sample.DistanceToPath / half;
+                float weight = linear * linear * (3f - 2f * linear); // smoothstep edge->axis
+
+                sumDir += sample.Tangent * (stream.DirectionSign * weight);
+                weightSq += weight * weight;
+                speedAccum += stream.SpeedAt(sample.DistanceAlong) * weight;
+                weightAccum += weight;
+
+                if (weight > strongestWeight)
+                {
+                    strongestWeight = weight;
+                    strongest = stream;
+                    strongestSample = sample;
+                }
+            }
+
+            float dirMagnitude = sumDir.magnitude;
+            float influence = Mathf.Min(dirMagnitude, Mathf.Sqrt(weightSq));
+
+            if (influence > 0.01f && strongest != null)
+            {
+                // Capped pull toward the strongest stream's axis.
+                Vector2 toAxis = strongestSample.Point - pos;
+                float distance = toAxis.magnitude;
+                Vector2 centering = distance > 0.01f
+                    ? toAxis / distance * Mathf.Min(distance * strongest.Grip * 1.67f, _centeringMaxSpeed)
+                    : Vector2.zero;
+
+                float flowSpeed = weightAccum > 0f ? speedAccum / weightAccum : 0f;
+                Vector2 target = sumDir / dirMagnitude * (flowSpeed * Mathf.Min(influence, 1.3f)) + centering;
+
+                if (strongest.Turbulence > 0f)
+                {
+                    var perp = new Vector2(-strongestSample.Tangent.y, strongestSample.Tangent.x);
+                    target += perp * (strongest.Turbulence * Mathf.Sin(Time.time * 3.7f));
+                }
+
+                // Grip 3 reproduces the prototype's catch rate of 10.
+                float catchRate = strongest.Grip * 3.33f;
+                float blend = 1f - Mathf.Exp(-catchRate * Mathf.Min(influence, 1f) * dt);
+                v = Vector2.Lerp(v, target, blend);
+
+                CurrentStream = influence > 0.08f ? strongest : null;
+            }
+            else
+            {
+                // Open wings, no stream: parachute — horizontal drag, slow sink.
+                CurrentStream = null;
+                v.x *= Mathf.Exp(-_openDragX * dt);
+                if (v.y < -_openFallTerminal)
+                    v.y = Mathf.Lerp(v.y, -_openFallTerminal, 1f - Mathf.Exp(-5f * dt));
+            }
+
+            float speed = v.magnitude;
+            if (speed > _openMaxSpeed)
+                v *= _openMaxSpeed / speed;
+            return v;
+        }
+
+        /// <summary>Respawn helper: place at a point, kill momentum, wait for input.</summary>
+        public void ResetAt(Vector2 position)
+        {
+            EnsureBody();
+            Body.position = position;
+            Body.linearVelocity = Vector2.zero;
+            CurrentStream = null;
+            _waitingForInput = true;
+            SetWings(false);
         }
 
         private void SetWings(bool open)
         {
+            // Folding wings while carried: the stream's exit boost multiplies the
+            // launch velocity — per-stream catapult feel.
+            if (!open && WingsOpen && CurrentStream != null)
+                Body.linearVelocity *= CurrentStream.ExitBoost;
+
             WingsOpen = open;
             ApplyWingsVisual();
             WingsToggled?.Invoke(open);

@@ -44,6 +44,8 @@ namespace Ngj10.Gameplay
             _killY = data.KillY;
             _timeScale = data.TimeScale;
             _startStream = startStream;
+            _spawnPoint = data.Start;
+            _hasSpawnPoint = true;
             _mode = data.Mode;
             if (_camera != null)
                 _camera.orthographicSize = data.CameraSize;
@@ -52,6 +54,27 @@ namespace Ngj10.Gameplay
                 // Keep the bottom edge at or above the kill line: center >= killY + halfHeight.
                 float minCenterY = data.KillY + data.CameraSize;
                 _cameraFollow.SetMode(_mode, minCenterY);
+            }
+            if (_mode == LevelMode.UpOnly)
+                BuildSideWalls(data);
+        }
+
+        /// <summary>
+        /// UpOnly: the screen sides are solid walls, not killers — the player just
+        /// bumps into them. Two tall static colliders at the locked camera edges.
+        /// </summary>
+        private void BuildSideWalls(LevelData data)
+        {
+            float halfW = data.CameraSize * (_camera != null ? _camera.aspect : 16f / 9f);
+            float centerX = _camera != null ? _camera.transform.position.x : data.Start.x;
+
+            for (int side = -1; side <= 1; side += 2)
+            {
+                var wall = new GameObject(side < 0 ? "WallLeft" : "WallRight");
+                wall.transform.SetParent(transform, false);
+                wall.transform.position = new Vector3(centerX + side * (halfW + 0.5f), 0f, 0f);
+                var col = wall.AddComponent<BoxCollider2D>();
+                col.size = new Vector2(1f, 4000f);
             }
         }
 
@@ -86,7 +109,10 @@ namespace Ngj10.Gameplay
                 return;
             }
 
-            if (_dying)
+            // No kill checks while dying (the fade/respawn routine owns the
+            // player) or while parked at spawn — a Start placed in a bad spot
+            // must not melt into an endless respawn loop.
+            if (_dying || _player.IsWaitingForInput)
                 return;
 
             Vector2 pos = _player.transform.position;
@@ -117,16 +143,16 @@ namespace Ngj10.Gameplay
         }
 
         /// <summary>
-        /// Bottom kill line is deadly in every mode. The side and top edges of the
-        /// camera viewport become deadly per the level mode: UpOnly adds left/right,
-        /// SingleScreen adds left/right and top.
+        /// Bottom kill line is deadly in every mode. SingleScreen also kills on
+        /// the side/top edges. UpOnly side edges are physical walls (see
+        /// BuildSideWalls), not killers.
         /// </summary>
         private bool IsOutOfBounds(Vector2 pos)
         {
             if (pos.y < _killY)
                 return true;
 
-            if (_mode == LevelMode.Free || _camera == null)
+            if (_mode != LevelMode.SingleScreen || _camera == null)
                 return false;
 
             Vector2 center = _camera.transform.position;
@@ -135,7 +161,7 @@ namespace Ngj10.Gameplay
 
             if (pos.x < center.x - halfW + _edgeMargin || pos.x > center.x + halfW - _edgeMargin)
                 return true;
-            if (_mode == LevelMode.SingleScreen && pos.y > center.y + halfH - _edgeMargin)
+            if (pos.y > center.y + halfH - _edgeMargin)
                 return true;
 
             return false;
@@ -174,9 +200,16 @@ namespace Ngj10.Gameplay
             _dying = false;
         }
 
+        // Spawn point from LevelData.Start; falls back to the start stream's first
+        // waypoint when the level is wired in the scene without a LevelBuilder.
+        private Vector2 _spawnPoint;
+        private bool _hasSpawnPoint;
+
         private void Respawn()
         {
-            _player.ResetAt(_startStream.SampleAtDistance(0f).Point);
+            _player.ResetAt(_hasSpawnPoint
+                ? _spawnPoint
+                : _startStream.SampleAtDistance(0f).Point);
         }
     }
 }

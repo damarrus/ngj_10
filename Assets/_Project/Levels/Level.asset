@@ -1,0 +1,1156 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f5ef9d4f316c673419f78b05c2096493, type: 3}
+  m_Name: Level
+  m_EditorClassIdentifier: Ngj10::Ngj10.Gameplay.LevelData
+  Mode: 1
+  CameraSize: 5
+  Start: {x: 0.7492535, y: -10.516986}
+  Goal: {x: 19.02, y: 86.96}
+  GoalRadius: 1.5
+  KillY: -11.883493
+  TimeScale: 1
+  Streams:
+  - Position: {x: -3.5390155, y: 38.57707}
+    Rotation: 0
+    CustomPoints:
+    - {x: 0.20460731, y: -0.7524933}
+    - {x: -4.1356444, y: 1.4470253}
+    - {x: 0.3046229, y: 8.772286}
+    - {x: -3.7867496, y: 14.237603}
+    - {x: 1.8198237, y: 18.063704}
+    CustomLoop: 0
+    IsCircle: 0
+    CircleRadius: 4
+    Shape: 0
+    Size: 8
+    Size2: 3
+    Count: 3
+    Turns: 2
+    Seed: 0
+    Reverse: 0
+    Speed: 5
+    SpeedEnd: 0
+    Width: 2
+    ActiveDuration: 0
+    InactiveDuration: 0
+    ReverseInterval: 0
+    Turbulence: 3
+    Grip: 3
+    ExitBoost: 1
+  - Position: {x: -17.972874, y: 13.20134}
+    Rotation: 0
+    CustomPoints:
+    - {x: 0.42125088, y: 0.8260961}
+    - {x: -2.6921763, y: 4.4021764}
+    - {x: -1.462953, y: 7.946074}
+    CustomLoop: 0
+    IsCircle: 0
+    CircleRadius: 4
+    Shape: 0
+    Size: 8
+    Size2: 3
+    Count: 3
+    Turns: 2
+    Seed: 0
+    Reverse: 0
+    Speed: 3
+    SpeedEnd: 0
+    Width: 2
+    ActiveDuration: 0
+    InactiveDuration: 0
+    ReverseInterval: 0
+    Turbulence: 2
+    Grip: 3
+    ExitBoost: 1
+  - Position: {x: -3.9002552, y: 18.353071}
+    Rotation: 0
+    CustomPoints:
+    - {x: -0.13770995, y: -0.20008118}
+    - {x: -3.1705017, y: 4.7391095}
+    - {x: -2.148843, y: 9.860658}
+    - {x: 5.0625563, y: 12.213461}
+    - {x: 10.228244, y: 10.427392}
+    - {x: 12.593297, y: 4.7183046}
+    - {x: 10.8775625, y: -0.4131888}
+    - {x: -0.05030382, y: -0.17469655}
+    CustomLoop: 0
+    IsCircle: 0
+    CircleRadius: 4
+    Shape: 0
+    Size: 8
+    Size2: 3
+    Count: 3
+    Turns: 2
+    Seed: 0
+    Reverse: 0
+    Speed: 10
+    SpeedEnd: 0
+    Width: 2
+    ActiveDuration: 0
+    InactiveDuration: 0
+    ReverseInterval: 0
+    Turbulence: 0
+    Grip: 4
+    ExitBoost: 1
+  - Position: {x: 3.7257726, y: 34.23053}
+    Rotation: 0
+    CustomPoints:
+    - {x: -2.0262988, y: -1.6974775}
+    - {x: 3.6909654, y: 2.1035304}
+    - {x: 0.8814485, y: 6.975982}
+    - {x: -5.2544813, y: 3.3383913}
+    CustomLoop: 0
+    IsCircle: 0
+    CircleRadius: 4
+    Shape: 0
+    Size: 8
+    Size2: 3
+    Count: 3
+    Turns: 2
+    Seed: 0
+    Reverse: 0
+    Speed: 10
+    SpeedEnd: 0
+    Width: 2
+    ActiveDuration: 0
+    InactiveDuration: 0
+    ReverseInterval: 0
+    Turbulence: 0
+    Grip: 5
+    ExitBoost: 1
+  - Position: {x: 4.2432013, y: 42.154293}
+    Rotation: 0
+    CustomPoints:
+    - {x: -1.8907803, y: 0.4342202}
+    - {x: 1.5931482, y: 3.3620002}
+    - {x: -0.3958135, y: 11.139224}
+    CustomLoop: 0
+    IsCircle: 0
+    CircleRadius: 4
+    Shape: 0
+    Size: 8
+    Size2: 3
+    Count: 3
+    Turns: 2
+    Seed: 0
+    Reverse: 0
+    Speed: 5
+    SpeedEnd: 0
+    Width: 2
+    ActiveDuration: 0
+    InactiveDuration: 0
+    ReverseInterval: 0
+    Turbulence: 3
+    Grip: 3
+    ExitBoost: 1
+  - Position: {x: 2.4492297, y: 43.66923}
+    Rotation: 0
+    CustomPoints:
+    - {x: -3.3008242, y: -1.0103971}
+    - {x: -1.5151817, y: 3.640503}
+    - {x: -8.419308, y: 14.12793}
+    CustomLoop: 0
+    IsCircle: 0
+    CircleRadius: 4
+    Shape: 0
+    Size: 8
+    Size2: 3
+    Count: 3
+    Turns: 2
+    Seed: 0
+    Reverse: 0
+    Speed: 5
+    SpeedEnd: 0
+    Width: 2
+    ActiveDuration: 0
+    InactiveDuration: 0
+    ReverseInterval: 0
+    Turbulence: 3
+    Grip: 3
+    ExitBoost: 1
+  - Position: {x: 0.8845198, y: 52.367496}
+    Rotation: 0
+    CustomPoints:
+    - {x: 0.20460731, y: -0.7524933}
+    - {x: -4.1356444, y: 1.4470253}
+    - {x: 0.96033216, y: 8.608359}
+    - {x: -5.038772, y: 11.659907}
+    - {x: -0.7967948, y: 16.633606}
+    - {x: -5.0767565, y: 19.658375}
+    - {x: -7.376944, y: 21.32606}
+    CustomLoop: 0
+    IsCircle: 0
+    CircleRadius: 4
+    Shape: 0
+    Size: 8
+    Size2: 3
+    Count: 3
+    Turns: 2
+    Seed: 0
+    Reverse: 0
+    Speed: 5
+    SpeedEnd: 0
+    Width: 2
+    ActiveDuration: 0
+    InactiveDuration: 0
+    ReverseInterval: 0
+    Turbulence: 3
+    Grip: 3
+    ExitBoost: 1
+  - Position: {x: -4.7871904, y: 30.819504}
+    Rotation: 0
+    CustomPoints:
+    - {x: -1.433057, y: -0.5854516}
+    - {x: -2.050245, y: 3.1685605}
+    - {x: -1.0391269, y: 7.55556}
+    CustomLoop: 0
+    IsCircle: 0
+    CircleRadius: 4
+    Shape: 0
+    Size: 8
+    Size2: 3
+    Count: 3
+    Turns: 2
+    Seed: 0
+    Reverse: 0
+    Speed: 5
+    SpeedEnd: 0
+    Width: 2
+    ActiveDuration: 0
+    InactiveDuration: 0
+    ReverseInterval: 0
+    Turbulence: 3
+    Grip: 3
+    ExitBoost: 1
+  - Position: {x: 8.079382, y: 39.2553}
+    Rotation: 270
+    CustomPoints:
+    - {x: -10, y: -0.0000008742278}
+    - {x: -9.659258, y: 2.5881913}
+    - {x: -8.660254, y: 5.0000005}
+    - {x: -7.071068, y: 7.071068}
+    - {x: -5.0000005, y: 8.660254}
+    - {x: -2.5881906, y: 9.659258}
+    - {x: -0.0000004371139, y: 10}
+    - {x: 2.5881908, y: 9.659258}
+    - {x: 4.9999995, y: 8.6602545}
+    - {x: 7.071068, y: 7.071068}
+    - {x: 8.660254, y: 5}
+    - {x: 9.659258, y: 2.5881906}
+    - {x: 10, y: 0}
+    CustomLoop: 0
+    IsCircle: 0
+    CircleRadius: 4
+    Shape: 1
+    Size: 10
+    Size2: 3
+    Count: 3
+    Turns: 2
+    Seed: 0
+    Reverse: 0
+    Speed: 12
+    SpeedEnd: 0
+    Width: 3
+    ActiveDuration: 0
+    InactiveDuration: 0
+    ReverseInterval: 0
+    Turbulence: 3
+    Grip: 5
+    ExitBoost: 1
+  - Position: {x: -8.648685, y: 38.806187}
+    Rotation: 90
+    CustomPoints:
+    - {x: -10, y: -0.0000008742278}
+    - {x: -9.659258, y: 2.5881913}
+    - {x: -8.660254, y: 5.0000005}
+    - {x: -7.071068, y: 7.071068}
+    - {x: -5.0000005, y: 8.660254}
+    - {x: -2.5881906, y: 9.659258}
+    - {x: -0.0000004371139, y: 10}
+    - {x: 2.5881908, y: 9.659258}
+    - {x: 4.9999995, y: 8.6602545}
+    - {x: 7.071068, y: 7.071068}
+    - {x: 8.660254, y: 5}
+    - {x: 9.659258, y: 2.5881906}
+    - {x: 10.255238, y: 0.51047564}
+    CustomLoop: 0
+    IsCircle: 0
+    CircleRadius: 4
+    Shape: 1
+    Size: 10
+    Size2: 3
+    Count: 3
+    Turns: 2
+    Seed: 0
+    Reverse: 1
+    Speed: 12
+    SpeedEnd: 0
+    Width: 3
+    ActiveDuration: 0
+    InactiveDuration: 0
+    ReverseInterval: 0
+    Turbulence: 3
+    Grip: 5
+    ExitBoost: 1
+  - Position: {x: 3.8581393, y: 80.47142}
+    Rotation: 110
+    CustomPoints:
+    - {x: 11, y: 0.0000038466023}
+    - {x: 9.237606, y: -5.3333287}
+    - {x: 5.1666718, y: -8.948927}
+    - {x: 0.000006636076, y: -10}
+    - {x: -4.833335, y: -8.371577}
+    - {x: -8.0829, y: -4.666674}
+    - {x: -9, y: -0.00000021464786}
+    - {x: -7.5055532, y: 4.333332}
+    - {x: -4.1666684, y: 7.216878}
+    - {x: -0.00000270213, y: 8}
+    - {x: 3.8333337, y: 6.639528}
+    - {x: 6.350851, y: 3.6666703}
+    - {x: 7, y: 0.0000012239188}
+    - {x: 5.7735043, y: -3.3333318}
+    - {x: 3.166666, y: -5.4848275}
+    - {x: 0.00000007154928, y: -6}
+    - {x: -2.833333, y: -4.907478}
+    - {x: -4.6188016, y: -2.6666663}
+    - {x: -5, y: -0.0000004371139}
+    - {x: -4.0414515, y: 2.3333335}
+    - {x: -2.166667, y: 3.7527769}
+    - {x: -0.00000017484555, y: 4}
+    - {x: 1.8333333, y: 3.1754267}
+    - {x: 2.8867512, y: 1.6666666}
+    - {x: 3.1125906, y: -1.6924545}
+    CustomLoop: 0
+    IsCircle: 0
+    CircleRadius: 4
+    Shape: 6
+    Size: 11
+    Size2: 3
+    Count: 3
+    Turns: 2
+    Seed: 0
+    Reverse: 0
+    Speed: 7
+    SpeedEnd: 20
+    Width: 3
+    ActiveDuration: 0
+    InactiveDuration: 0
+    ReverseInterval: 0
+    Turbulence: 0
+    Grip: 5
+    ExitBoost: 1
+  - Position: {x: -6.4798326, y: 73.96536}
+    Rotation: 1899
+    CustomPoints:
+    - {x: 0, y: 0}
+    - {x: 1.25, y: 0.9166667}
+    - {x: 2.5, y: 1.6666667}
+    - {x: 3.75, y: 2.25}
+    - {x: 5, y: 2.6666667}
+    - {x: 6.25, y: 2.9166667}
+    - {x: 7.5, y: 3}
+    - {x: 8.75, y: 2.9166667}
+    - {x: 10, y: 2.6666665}
+    - {x: 11.507937, y: 2.040564}
+    - {x: 13.236367, y: 0.87874705}
+    - {x: 14.560856, y: -1.2773302}
+    - {x: 15.337879, y: -7.2561035}
+    CustomLoop: 0
+    IsCircle: 0
+    CircleRadius: 4
+    Shape: 9
+    Size: 15
+    Size2: 3
+    Count: 3
+    Turns: 2
+    Seed: 0
+    Reverse: 0
+    Speed: 5
+    SpeedEnd: 0
+    Width: 3
+    ActiveDuration: 0
+    InactiveDuration: 0
+    ReverseInterval: 0
+    Turbulence: 3
+    Grip: 2
+    ExitBoost: 1
+  - Position: {x: 8.2851, y: -12.281797}
+    Rotation: 0
+    CustomPoints:
+    - {x: -6.203306, y: 5.668165}
+    - {x: -0.8745029, y: 4.400255}
+    CustomLoop: 0
+    IsCircle: 0
+    CircleRadius: 4
+    Shape: 0
+    Size: 8
+    Size2: 3
+    Count: 3
+    Turns: 2
+    Seed: 0
+    Reverse: 0
+    Speed: 7
+    SpeedEnd: 9
+    Width: 2.4
+    ActiveDuration: 0
+    InactiveDuration: 0
+    ReverseInterval: 0
+    Turbulence: 3
+    Grip: 4
+    ExitBoost: 1
+  - Position: {x: 5.7977247, y: -11.027408}
+    Rotation: 0
+    CustomPoints:
+    - {x: -5.7527704, y: 4.864899}
+    - {x: -9.888321, y: 6.8186}
+    CustomLoop: 0
+    IsCircle: 0
+    CircleRadius: 4
+    Shape: 0
+    Size: 8
+    Size2: 3
+    Count: 3
+    Turns: 2
+    Seed: 0
+    Reverse: 0
+    Speed: 7
+    SpeedEnd: 0
+    Width: 2.4
+    ActiveDuration: 0
+    InactiveDuration: 0
+    ReverseInterval: 0
+    Turbulence: 3
+    Grip: 4
+    ExitBoost: 1.2
+  - Position: {x: -5.800847, y: -13.382045}
+    Rotation: 0
+    CustomPoints:
+    - {x: -1.1380705, y: 8.571972}
+    - {x: -1.061381, y: 5.234651}
+    CustomLoop: 0
+    IsCircle: 0
+    CircleRadius: 4
+    Shape: 0
+    Size: 8
+    Size2: 3
+    Count: 3
+    Turns: 2
+    Seed: 0
+    Reverse: 0
+    Speed: 7
+    SpeedEnd: 9
+    Width: 2.4
+    ActiveDuration: 0
+    InactiveDuration: 0
+    ReverseInterval: 0
+    Turbulence: 3
+    Grip: 4
+    ExitBoost: 1
+  - Position: {x: -5.4379854, y: -11.203741}
+    Rotation: 0
+    CustomPoints:
+    - {x: -1.8420788, y: 0.7820821}
+    - {x: 4.2559824, y: 0.67180526}
+    CustomLoop: 0
+    IsCircle: 0
+    CircleRadius: 4
+    Shape: 0
+    Size: 8
+    Size2: 3
+    Count: 3
+    Turns: 2
+    Seed: 0
+    Reverse: 0
+    Speed: 7
+    SpeedEnd: 9
+    Width: 2.4
+    ActiveDuration: 0
+    InactiveDuration: 0
+    ReverseInterval: 0
+    Turbulence: 3
+    Grip: 7
+    ExitBoost: 1
+  - Position: {x: 9.231527, y: -10.774907}
+    Rotation: 0
+    CustomPoints:
+    - {x: -0.24190216, y: 0.39111355}
+    - {x: -6.4620185, y: 0.39586258}
+    CustomLoop: 0
+    IsCircle: 0
+    CircleRadius: 4
+    Shape: 0
+    Size: 8
+    Size2: 3
+    Count: 3
+    Turns: 2
+    Seed: 0
+    Reverse: 0
+    Speed: 7
+    SpeedEnd: 9
+    Width: 2.4
+    ActiveDuration: 0
+    InactiveDuration: 0
+    ReverseInterval: 0
+    Turbulence: 3
+    Grip: 4
+    ExitBoost: 1
+  - Position: {x: 2.8599741, y: -13.830003}
+    Rotation: 0
+    CustomPoints:
+    - {x: -2.1417215, y: 3.0976708}
+    - {x: -2.1378503, y: 7.9680796}
+    CustomLoop: 0
+    IsCircle: 0
+    CircleRadius: 4
+    Shape: 0
+    Size: 8
+    Size2: 3
+    Count: 3
+    Turns: 2
+    Seed: 0
+    Reverse: 0
+    Speed: 7
+    SpeedEnd: 9
+    Width: 3
+    ActiveDuration: 0
+    InactiveDuration: 0
+    ReverseInterval: 0
+    Turbulence: 3
+    Grip: 4
+    ExitBoost: 1
+  - Position: {x: 1.2640884, y: -10.751935}
+    Rotation: 0
+    CustomPoints:
+    - {x: -2.3378239, y: 1.948033}
+    - {x: -7.474548, y: 5.963723}
+    CustomLoop: 0
+    IsCircle: 0
+    CircleRadius: 4
+    Shape: 0
+    Size: 8
+    Size2: 3
+    Count: 3
+    Turns: 2
+    Seed: 0
+    Reverse: 0
+    Speed: 7
+    SpeedEnd: 9
+    Width: 2.4
+    ActiveDuration: 0
+    InactiveDuration: 0
+    ReverseInterval: 0
+    Turbulence: 3
+    Grip: 4
+    ExitBoost: 1
+  - Position: {x: 3.9865208, y: -10.670174}
+    Rotation: 0
+    CustomPoints:
+    - {x: -10.608276, y: 7.8327475}
+    - {x: -10.591299, y: 11.714248}
+    CustomLoop: 0
+    IsCircle: 0
+    CircleRadius: 4
+    Shape: 0
+    Size: 8
+    Size2: 3
+    Count: 3
+    Turns: 2
+    Seed: 0
+    Reverse: 1
+    Speed: 7
+    SpeedEnd: 9
+    Width: 2.4
+    ActiveDuration: 0
+    InactiveDuration: 0
+    ReverseInterval: 0
+    Turbulence: 3
+    Grip: 4
+    ExitBoost: 1
+  - Position: {x: 20.169611, y: -9.027506}
+    Rotation: 0
+    CustomPoints:
+    - {x: -17.93893, y: 3.9968784}
+    - {x: -12.188828, y: 6.99662}
+    CustomLoop: 0
+    IsCircle: 0
+    CircleRadius: 4
+    Shape: 0
+    Size: 8
+    Size2: 3
+    Count: 3
+    Turns: 2
+    Seed: 0
+    Reverse: 0
+    Speed: 7
+    SpeedEnd: 9
+    Width: 2.4
+    ActiveDuration: 0
+    InactiveDuration: 0
+    ReverseInterval: 0
+    Turbulence: 3
+    Grip: 4
+    ExitBoost: 1
+  - Position: {x: 4.632132, y: -12.422374}
+    Rotation: 0
+    CustomPoints:
+    - {x: -9.396639, y: 8.926229}
+    - {x: -5.450677, y: 11.286498}
+    CustomLoop: 0
+    IsCircle: 0
+    CircleRadius: 4
+    Shape: 0
+    Size: 8
+    Size2: 3
+    Count: 3
+    Turns: 2
+    Seed: 0
+    Reverse: 0
+    Speed: 7
+    SpeedEnd: 9
+    Width: 2.4
+    ActiveDuration: 0
+    InactiveDuration: 0
+    ReverseInterval: 0
+    Turbulence: 3
+    Grip: 4
+    ExitBoost: 1
+  - Position: {x: 12.00762, y: -12.689821}
+    Rotation: 0
+    CustomPoints:
+    - {x: -3.3570704, y: 11.21787}
+    - {x: -7.076584, y: 14.315542}
+    CustomLoop: 0
+    IsCircle: 0
+    CircleRadius: 4
+    Shape: 0
+    Size: 8
+    Size2: 3
+    Count: 3
+    Turns: 2
+    Seed: 0
+    Reverse: 0
+    Speed: 7
+    SpeedEnd: 9
+    Width: 2.4
+    ActiveDuration: 0
+    InactiveDuration: 0
+    ReverseInterval: 0
+    Turbulence: 3
+    Grip: 4
+    ExitBoost: 1
+  - Position: {x: 6.0224237, y: -14.202965}
+    Rotation: 0
+    CustomPoints:
+    - {x: -1.134073, y: 15.898075}
+    - {x: -4.9258785, y: 10.134439}
+    CustomLoop: 0
+    IsCircle: 0
+    CircleRadius: 4
+    Shape: 0
+    Size: 8
+    Size2: 3
+    Count: 3
+    Turns: 2
+    Seed: 0
+    Reverse: 0
+    Speed: 7
+    SpeedEnd: 9
+    Width: 2.4
+    ActiveDuration: 0
+    InactiveDuration: 0
+    ReverseInterval: 0
+    Turbulence: 3
+    Grip: 4
+    ExitBoost: 1
+  - Position: {x: 8.554091, y: -10.6661}
+    Rotation: 0
+    CustomPoints:
+    - {x: -8.096539, y: 9.515145}
+    - {x: -6.301383, y: 13.4484}
+    CustomLoop: 0
+    IsCircle: 0
+    CircleRadius: 4
+    Shape: 0
+    Size: 8
+    Size2: 3
+    Count: 3
+    Turns: 2
+    Seed: 0
+    Reverse: 0
+    Speed: 7
+    SpeedEnd: 9
+    Width: 2.4
+    ActiveDuration: 0
+    InactiveDuration: 0
+    ReverseInterval: 0
+    Turbulence: 3
+    Grip: 4
+    ExitBoost: 1
+  - Position: {x: 6.697019, y: -9.567957}
+    Rotation: 0
+    CustomPoints:
+    - {x: -7.999358, y: 9.913609}
+    - {x: -13.4042635, y: 11.227357}
+    CustomLoop: 0
+    IsCircle: 0
+    CircleRadius: 4
+    Shape: 0
+    Size: 8
+    Size2: 3
+    Count: 3
+    Turns: 2
+    Seed: 0
+    Reverse: 0
+    Speed: 7
+    SpeedEnd: 9
+    Width: 2.4
+    ActiveDuration: 0
+    InactiveDuration: 0
+    ReverseInterval: 0
+    Turbulence: 3
+    Grip: 4
+    ExitBoost: 1
+  - Position: {x: 22.64703, y: -11.004591}
+    Rotation: 0
+    CustomPoints:
+    - {x: -13.91904, y: 7.891261}
+    - {x: -13.9660015, y: 2.7492638}
+    CustomLoop: 0
+    IsCircle: 0
+    CircleRadius: 4
+    Shape: 0
+    Size: 8
+    Size2: 3
+    Count: 3
+    Turns: 2
+    Seed: 0
+    Reverse: 0
+    Speed: 7
+    SpeedEnd: 9
+    Width: 2.4
+    ActiveDuration: 0
+    InactiveDuration: 0
+    ReverseInterval: 0
+    Turbulence: 3
+    Grip: 4
+    ExitBoost: 1
+  - Position: {x: 14.244157, y: -15.897813}
+    Rotation: 0
+    CustomPoints:
+    - {x: -14.936957, y: 14.143568}
+    - {x: -14.242707, y: 11.113119}
+    CustomLoop: 0
+    IsCircle: 0
+    CircleRadius: 4
+    Shape: 0
+    Size: 8
+    Size2: 3
+    Count: 3
+    Turns: 2
+    Seed: 0
+    Reverse: 0
+    Speed: 7
+    SpeedEnd: 9
+    Width: 2.4
+    ActiveDuration: 0
+    InactiveDuration: 0
+    ReverseInterval: 0
+    Turbulence: 3
+    Grip: 4
+    ExitBoost: 1
+  - Position: {x: 3.8497295, y: 3.3793445}
+    Rotation: 0
+    CustomPoints:
+    - {x: -10.608276, y: 7.8327475}
+    - {x: -10.591299, y: 11.714248}
+    CustomLoop: 0
+    IsCircle: 0
+    CircleRadius: 4
+    Shape: 0
+    Size: 8
+    Size2: 3
+    Count: 3
+    Turns: 2
+    Seed: 0
+    Reverse: 1
+    Speed: 7
+    SpeedEnd: 9
+    Width: 2.4
+    ActiveDuration: 0
+    InactiveDuration: 0
+    ReverseInterval: 0
+    Turbulence: 3
+    Grip: 4
+    ExitBoost: 1
+  - Position: {x: -5.5747766, y: 2.845777}
+    Rotation: 0
+    CustomPoints:
+    - {x: -1.8420788, y: 0.7820821}
+    - {x: 4.2559824, y: 0.67180526}
+    CustomLoop: 0
+    IsCircle: 0
+    CircleRadius: 4
+    Shape: 0
+    Size: 8
+    Size2: 3
+    Count: 3
+    Turns: 2
+    Seed: 0
+    Reverse: 0
+    Speed: 7
+    SpeedEnd: 9
+    Width: 2.4
+    ActiveDuration: 0
+    InactiveDuration: 0
+    ReverseInterval: 0
+    Turbulence: 3
+    Grip: 7
+    ExitBoost: 1
+  - Position: {x: -5.937638, y: 0.66747606}
+    Rotation: 0
+    CustomPoints:
+    - {x: -1.1380705, y: 8.571972}
+    - {x: -1.061381, y: 5.234651}
+    CustomLoop: 0
+    IsCircle: 0
+    CircleRadius: 4
+    Shape: 0
+    Size: 8
+    Size2: 3
+    Count: 3
+    Turns: 2
+    Seed: 0
+    Reverse: 0
+    Speed: 7
+    SpeedEnd: 9
+    Width: 2.4
+    ActiveDuration: 0
+    InactiveDuration: 0
+    ReverseInterval: 0
+    Turbulence: 3
+    Grip: 4
+    ExitBoost: 1
+  - Position: {x: 1.1272967, y: 3.297583}
+    Rotation: 0
+    CustomPoints:
+    - {x: -2.3378239, y: 1.948033}
+    - {x: -7.474548, y: 5.963723}
+    CustomLoop: 0
+    IsCircle: 0
+    CircleRadius: 4
+    Shape: 0
+    Size: 8
+    Size2: 3
+    Count: 3
+    Turns: 2
+    Seed: 0
+    Reverse: 0
+    Speed: 7
+    SpeedEnd: 9
+    Width: 2.4
+    ActiveDuration: 0
+    InactiveDuration: 0
+    ReverseInterval: 0
+    Turbulence: 3
+    Grip: 4
+    ExitBoost: 1
+  - Position: {x: 5.660934, y: 3.0221105}
+    Rotation: 0
+    CustomPoints:
+    - {x: -5.7527704, y: 4.864899}
+    - {x: -9.888321, y: 6.8186}
+    CustomLoop: 0
+    IsCircle: 0
+    CircleRadius: 4
+    Shape: 0
+    Size: 8
+    Size2: 3
+    Count: 3
+    Turns: 2
+    Seed: 0
+    Reverse: 0
+    Speed: 7
+    SpeedEnd: 0
+    Width: 2.4
+    ActiveDuration: 0
+    InactiveDuration: 0
+    ReverseInterval: 0
+    Turbulence: 3
+    Grip: 4
+    ExitBoost: 1.2
+  - Position: {x: 4.4953413, y: 1.6271462}
+    Rotation: 0
+    CustomPoints:
+    - {x: -9.396639, y: 8.926229}
+    - {x: -5.450677, y: 11.286498}
+    CustomLoop: 0
+    IsCircle: 0
+    CircleRadius: 4
+    Shape: 0
+    Size: 8
+    Size2: 3
+    Count: 3
+    Turns: 2
+    Seed: 0
+    Reverse: 0
+    Speed: 7
+    SpeedEnd: 9
+    Width: 2.4
+    ActiveDuration: 0
+    InactiveDuration: 0
+    ReverseInterval: 0
+    Turbulence: 3
+    Grip: 4
+    ExitBoost: 1
+  - Position: {x: 6.5602283, y: 4.481561}
+    Rotation: 0
+    CustomPoints:
+    - {x: -7.999358, y: 9.913609}
+    - {x: -13.4042635, y: 11.227357}
+    CustomLoop: 0
+    IsCircle: 0
+    CircleRadius: 4
+    Shape: 0
+    Size: 8
+    Size2: 3
+    Count: 3
+    Turns: 2
+    Seed: 0
+    Reverse: 0
+    Speed: 7
+    SpeedEnd: 9
+    Width: 2.4
+    ActiveDuration: 0
+    InactiveDuration: 0
+    ReverseInterval: 0
+    Turbulence: 3
+    Grip: 4
+    ExitBoost: 1
+  - Position: {x: 8.4173, y: 3.3834186}
+    Rotation: 0
+    CustomPoints:
+    - {x: -8.096539, y: 9.515145}
+    - {x: -6.301383, y: 13.4484}
+    CustomLoop: 0
+    IsCircle: 0
+    CircleRadius: 4
+    Shape: 0
+    Size: 8
+    Size2: 3
+    Count: 3
+    Turns: 2
+    Seed: 0
+    Reverse: 0
+    Speed: 7
+    SpeedEnd: 9
+    Width: 2.4
+    ActiveDuration: 0
+    InactiveDuration: 0
+    ReverseInterval: 0
+    Turbulence: 3
+    Grip: 4
+    ExitBoost: 1
+  - Position: {x: 14.107365, y: -1.8482914}
+    Rotation: 0
+    CustomPoints:
+    - {x: -14.936957, y: 14.143568}
+    - {x: -14.242707, y: 11.113119}
+    CustomLoop: 0
+    IsCircle: 0
+    CircleRadius: 4
+    Shape: 0
+    Size: 8
+    Size2: 3
+    Count: 3
+    Turns: 2
+    Seed: 0
+    Reverse: 0
+    Speed: 7
+    SpeedEnd: 9
+    Width: 2.4
+    ActiveDuration: 0
+    InactiveDuration: 0
+    ReverseInterval: 0
+    Turbulence: 3
+    Grip: 4
+    ExitBoost: 1
+  - Position: {x: 5.885633, y: -0.1534442}
+    Rotation: 0
+    CustomPoints:
+    - {x: -1.134073, y: 15.898075}
+    - {x: -4.9258785, y: 10.134439}
+    CustomLoop: 0
+    IsCircle: 0
+    CircleRadius: 4
+    Shape: 0
+    Size: 8
+    Size2: 3
+    Count: 3
+    Turns: 2
+    Seed: 0
+    Reverse: 0
+    Speed: 7
+    SpeedEnd: 9
+    Width: 2.4
+    ActiveDuration: 0
+    InactiveDuration: 0
+    ReverseInterval: 0
+    Turbulence: 3
+    Grip: 4
+    ExitBoost: 1
+  - Position: {x: 8.134622, y: 1.7677214}
+    Rotation: 0
+    CustomPoints:
+    - {x: -6.203306, y: 5.668165}
+    - {x: -0.8745029, y: 4.400255}
+    CustomLoop: 0
+    IsCircle: 0
+    CircleRadius: 4
+    Shape: 0
+    Size: 8
+    Size2: 3
+    Count: 3
+    Turns: 2
+    Seed: 0
+    Reverse: 0
+    Speed: 7
+    SpeedEnd: 9
+    Width: 2.4
+    ActiveDuration: 0
+    InactiveDuration: 0
+    ReverseInterval: 0
+    Turbulence: 3
+    Grip: 4
+    ExitBoost: 1
+  - Position: {x: 9.081052, y: 3.274611}
+    Rotation: 0
+    CustomPoints:
+    - {x: -0.24190216, y: 0.39111355}
+    - {x: -6.4620185, y: 0.39586258}
+    CustomLoop: 0
+    IsCircle: 0
+    CircleRadius: 4
+    Shape: 0
+    Size: 8
+    Size2: 3
+    Count: 3
+    Turns: 2
+    Seed: 0
+    Reverse: 0
+    Speed: 7
+    SpeedEnd: 9
+    Width: 2.4
+    ActiveDuration: 0
+    InactiveDuration: 0
+    ReverseInterval: 0
+    Turbulence: 3
+    Grip: 4
+    ExitBoost: 1
+  - Position: {x: 11.870829, y: 1.3596982}
+    Rotation: 0
+    CustomPoints:
+    - {x: -3.3570704, y: 11.21787}
+    - {x: -7.076584, y: 14.315542}
+    CustomLoop: 0
+    IsCircle: 0
+    CircleRadius: 4
+    Shape: 0
+    Size: 8
+    Size2: 3
+    Count: 3
+    Turns: 2
+    Seed: 0
+    Reverse: 0
+    Speed: 7
+    SpeedEnd: 9
+    Width: 2.4
+    ActiveDuration: 0
+    InactiveDuration: 0
+    ReverseInterval: 0
+    Turbulence: 3
+    Grip: 4
+    ExitBoost: 1
+  - Position: {x: 20.03282, y: 5.022012}
+    Rotation: 0
+    CustomPoints:
+    - {x: -17.93893, y: 3.9968784}
+    - {x: -12.188828, y: 6.99662}
+    CustomLoop: 0
+    IsCircle: 0
+    CircleRadius: 4
+    Shape: 0
+    Size: 8
+    Size2: 3
+    Count: 3
+    Turns: 2
+    Seed: 0
+    Reverse: 0
+    Speed: 7
+    SpeedEnd: 9
+    Width: 2.4
+    ActiveDuration: 0
+    InactiveDuration: 0
+    ReverseInterval: 0
+    Turbulence: 3
+    Grip: 4
+    ExitBoost: 1
+  - Position: {x: 22.510239, y: 3.0449271}
+    Rotation: 0
+    CustomPoints:
+    - {x: -13.91904, y: 7.891261}
+    - {x: -13.9660015, y: 2.7492638}
+    CustomLoop: 0
+    IsCircle: 0
+    CircleRadius: 4
+    Shape: 0
+    Size: 8
+    Size2: 3
+    Count: 3
+    Turns: 2
+    Seed: 0
+    Reverse: 0
+    Speed: 7
+    SpeedEnd: 9
+    Width: 2.4
+    ActiveDuration: 0
+    InactiveDuration: 0
+    ReverseInterval: 0
+    Turbulence: 3
+    Grip: 4
+    ExitBoost: 1
+  - Position: {x: 2.7094986, y: 0.31530505}
+    Rotation: 0
+    CustomPoints:
+    - {x: -2.1827736, y: 3.0976708}
+    - {x: -2.1104825, y: 6.928092}
+    CustomLoop: 0
+    IsCircle: 0
+    CircleRadius: 4
+    Shape: 0
+    Size: 8
+    Size2: 3
+    Count: 3
+    Turns: 2
+    Seed: 0
+    Reverse: 0
+    Speed: 7
+    SpeedEnd: 9
+    Width: 2.4
+    ActiveDuration: 0
+    InactiveDuration: 0
+    ReverseInterval: 0
+    Turbulence: 3
+    Grip: 4
+    ExitBoost: 1
+  Hazards: []
+  StartStreamIndex: 0
