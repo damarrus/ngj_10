@@ -1,3 +1,4 @@
+using Ngj10.Core;
 using UnityEngine;
 
 namespace Ngj10.Gameplay
@@ -15,6 +16,12 @@ namespace Ngj10.Gameplay
         [Header("Audio")]
         [Range(0f, 1f)]
         [SerializeField] private float _initialVolume = 1f;
+
+        [Tooltip("Calm track on the title screen. Crossfades into the game track on start.")]
+        [SerializeField] private AudioClip _menuMusic;
+
+        [Tooltip("Energetic track during play. Crossfades back from the menu track when the level begins.")]
+        [SerializeField] private AudioClip _gameMusic;
 
         [Header("Flow")]
         [SerializeField] private bool _showStartScreen = true;
@@ -70,8 +77,14 @@ namespace Ngj10.Gameplay
                 _builder.BuildNow();
             }
 
+            // The level swaps to the game track itself when it begins, so it owns
+            // the clip. The menu track plays here while the title screen is up.
+            if (_controller != null)
+                _controller.SetGameMusic(_gameMusic);
+
             if (_showStartScreen && _startScreen != null)
             {
+                AudioManager.Instance.CrossfadeTo(_menuMusic);
                 _startScreen.Show();
             }
             else

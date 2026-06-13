@@ -1,4 +1,5 @@
 using System.Collections;
+using Ngj10.Core;
 using UnityEngine;
 
 namespace Ngj10.Gameplay
@@ -28,6 +29,13 @@ namespace Ngj10.Gameplay
         [SerializeField] private float _edgeMargin = 0.3f;
 
         public float TimeScale => _timeScale;
+
+        // Energetic track the level crossfades to on Begin(). Authored on GameConfig
+        // (the one place game settings live) and pushed in at startup.
+        private AudioClip _gameMusic;
+
+        /// <summary>Set the track played while the level runs. Called by GameConfig at startup.</summary>
+        public void SetGameMusic(AudioClip clip) => _gameMusic = clip;
 
         private void OnEnable() => Hazard.PlayerHit += Die;
 
@@ -89,6 +97,10 @@ namespace Ngj10.Gameplay
         public void Begin()
         {
             Time.timeScale = _timeScale;
+            // Slow crossfade from the menu track to the energetic game track. A
+            // no-op if it's already playing (e.g. restart after a win), so the
+            // beat keeps going instead of restarting.
+            AudioManager.Instance.CrossfadeTo(_gameMusic);
             Respawn();
         }
 

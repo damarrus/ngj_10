@@ -5,10 +5,10 @@ using UnityEngine.UI;
 namespace Ngj10.Gameplay
 {
     /// <summary>
-    /// Title screen: game title, master-volume slider, Start button. Driven by
-    /// GameConfig — Show() freezes the level and reveals the panel, the Start button
-    /// fades it out and hands off to the LevelController. The volume slider drives the
-    /// global AudioListener and persists in PlayerPrefs.
+    /// Title screen. Driven by GameConfig — Show() freezes the level and reveals the
+    /// panel. Starting: click the START button or press SPACE, then the panel fades
+    /// and hands off to the LevelController. The volume slider drives the global
+    /// AudioListener and persists in PlayerPrefs.
     /// </summary>
     public class StartScreen : MonoBehaviour
     {
@@ -19,7 +19,7 @@ namespace Ngj10.Gameplay
         [SerializeField] private Button _startButton;
         [SerializeField] private Slider _volumeSlider;
         [SerializeField] private LevelController _controller;
-        [SerializeField] private float _fadeDuration = 0.6f;
+        [SerializeField] private float _fadeDuration = 0.5f;
 
         private bool _starting;
 
@@ -31,6 +31,7 @@ namespace Ngj10.Gameplay
                 _panelGroup.alpha = 1f;
             if (_panel != null)
                 _panel.SetActive(true);
+            _starting = false;
         }
 
         /// <summary>Hide the title panel without starting it (start screen disabled in config).</summary>
@@ -57,6 +58,12 @@ namespace Ngj10.Gameplay
                 _startButton.onClick.RemoveListener(StartGame);
             if (_volumeSlider != null)
                 _volumeSlider.onValueChanged.RemoveListener(SetVolume);
+        }
+
+        private void Update()
+        {
+            if (!_starting && Input.GetKeyDown(KeyCode.Space))
+                StartGame();
         }
 
         private void SetVolume(float value)
