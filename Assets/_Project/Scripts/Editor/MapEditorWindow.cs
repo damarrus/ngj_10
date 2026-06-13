@@ -25,7 +25,7 @@ namespace Ngj10.EditorTools
         private Vector2 _panWorld = Vector2.zero; // world point at canvas center
         private float _pixelsPerUnit = 24f;
 
-        private enum SelKind { None, Stream, Hazard, Start, Goal, KillLine }
+        private enum SelKind { None, Stream, Hazard, Burner, Start, Goal, KillLine }
         private SelKind _selKind = SelKind.None; // primary (last clicked) — drives the inspector
         private int _selIndex = -1;
 
@@ -147,7 +147,7 @@ namespace Ngj10.EditorTools
             {
                 bool any = false;
                 foreach (var (kind, _) in _multi)
-                    if (kind == SelKind.Stream || kind == SelKind.Hazard)
+                    if (kind == SelKind.Stream || kind == SelKind.Hazard || kind == SelKind.Burner)
                         any = true;
                 if (any)
                 {
@@ -166,7 +166,7 @@ namespace Ngj10.EditorTools
 
             bool canDelete = false;
             foreach (var (kind, _) in _multi)
-                if (kind == SelKind.Stream || kind == SelKind.Hazard)
+                if (kind == SelKind.Stream || kind == SelKind.Hazard || kind == SelKind.Burner)
                     canDelete = true;
             if (!canDelete)
                 return;
@@ -188,7 +188,7 @@ namespace Ngj10.EditorTools
 
         // JSON snapshot of the copied element — cheap deep copy that survives
         // selection changes and array mutations.
-        private enum ClipKind { None, Stream, Hazard }
+        private enum ClipKind { None, Stream, Hazard, Burner }
         private ClipKind _clipKind;
         private string _clipJson;
 
@@ -206,7 +206,8 @@ namespace Ngj10.EditorTools
             if (_level == null)
                 return;
 
-            bool hasSelection = _selKind == SelKind.Stream || _selKind == SelKind.Hazard;
+            bool hasSelection = _selKind == SelKind.Stream || _selKind == SelKind.Hazard
+                || _selKind == SelKind.Burner;
             if ((isCopy || isDuplicate) && !hasSelection)
                 return;
             if (isPaste && _clipKind == ClipKind.None)
@@ -240,6 +241,7 @@ namespace Ngj10.EditorTools
         {
             public List<StreamDef> Streams = new List<StreamDef>();
             public List<HazardDef> Hazards = new List<HazardDef>();
+            public List<BurnerDef> Burners = new List<BurnerDef>();
         }
 
         private void CopySelected()
@@ -251,8 +253,10 @@ namespace Ngj10.EditorTools
                     clip.Streams.Add(_level.Streams[index]);
                 else if (kind == SelKind.Hazard)
                     clip.Hazards.Add(_level.Hazards[index]);
+                else if (kind == SelKind.Burner)
+                    clip.Burners.Add(_level.Burners[index]);
             }
-            if (clip.Streams.Count == 0 && clip.Hazards.Count == 0)
+            if (clip.Streams.Count == 0 && clip.Hazards.Count == 0 && clip.Burners.Count == 0)
                 return;
             _clipKind = ClipKind.Stream; // any non-None marks the clipboard as filled
             _clipJson = JsonUtility.ToJson(clip);
@@ -293,6 +297,17 @@ namespace Ngj10.EditorTools
                 _selIndex = hazards.Count - 1;
             }
             _level.Hazards = hazards.ToArray();
+
+            var burners = new List<BurnerDef>(_level.Burners ?? new BurnerDef[0]);
+            foreach (var def in clip.Burners)
+            {
+                def.Position += offset;
+                burners.Add(def);
+                _multi.Add((SelKind.Burner, burners.Count - 1));
+                _selKind = SelKind.Burner;
+                _selIndex = burners.Count - 1;
+            }
+            _level.Burners = burners.ToArray();
 
             _clipJson = JsonUtility.ToJson(clip); // positions already offset for the next paste
             Commit();
@@ -344,6 +359,8 @@ namespace Ngj10.EditorTools
                 if (GUI.Button(new Rect(x, row2.y, 90f, RowHeight), "+ Круг", EditorStyles.toolbarButton)) AddCircle();
                 x += 92f;
                 if (GUI.Button(new Rect(x, row2.y, 90f, RowHeight), "+ Препятствие", EditorStyles.toolbarButton)) AddHazard();
+                x += 92f;
+                if (GUI.Button(new Rect(x, row2.y, 90f, RowHeight), "+ Горелка", EditorStyles.toolbarButton)) AddBurner();
             }
         }
 
@@ -359,6 +376,7 @@ namespace Ngj10.EditorTools
             DrawBounds(rect);
             DrawStreams();
             DrawHazards();
+            DrawBurners();
             DrawStartGoal();
 
             GUI.EndClip();
@@ -631,6 +649,67 @@ namespace Ngj10.EditorTools
             }
         }
 
+        private void DrawBurners()
+        {
+            if (_level.Burners == null) return;
+            for (int i = 0; i < _level.Burners.Length; i++)
+            {
+                BurnerDef def = _level.Burners[i];
+                bool selected = IsSelected(SelKind.Burner, i);
+                Vector2 s = WorldToScreen(def.Position);
+                var anchorColor = new Color(1f, 0.55f, 0.15f, selected ? 1f : 0.85f);
+
+                // Each cone: two edge rays + a short arc joining their far ends.
+                if (def.Cones != null)
+                {
+                    foreach (ConeDef cone in def.Cones)
+                    {
+                        Handles.color = new Color(1f, 0.45f, 0.12f, selected ? 0.9f : 0.55f);
+                        float a0 = (cone.Angle - cone.HalfAngle) * Mathf.Deg2Rad;
+                        float a1 = (cone.Angle + cone.HalfAngle) * Mathf.Deg2Rad;
+                        Vector2 e0 = ConeEnd(def.Position, a0, cone.Length);
+                        Vector2 e1 = ConeEnd(def.Position, a1, cone.Length);
+                        Handles.DrawAAPolyLine(2f, s, e0);
+                        Handles.DrawAAPolyLine(2f, s, e1);
+                        // Arc across the mouth (a few segments).
+                        const int seg = 8;
+                        Vector2 prev = e0;
+                        for (int k = 1; k <= seg; k++)
+                        {
+                            float a = Mathf.Lerp(a0, a1, k / (float)seg);
+                            Vector2 p = ConeEnd(def.Position, a, cone.Length);
+                            Handles.DrawAAPolyLine(2f, prev, p);
+                            prev = p;
+                        }
+
+                        // Centerline + draggable tip handle (only when the burner is
+                        // single-selected, so the canvas isn't cluttered otherwise).
+                        if (selected && _multi.Count == 1)
+                        {
+                            Vector2 tip = WorldToScreen(ConeTipWorld(def.Position, cone));
+                            Handles.color = new Color(1f, 0.75f, 0.3f, 0.6f);
+                            Handles.DrawAAPolyLine(1.5f, s, tip);
+                            DrawHandleDot(tip, true, new Color(1f, 0.85f, 0.4f, 1f));
+                        }
+                    }
+                }
+
+                if (selected)
+                {
+                    Handles.color = Color.white;
+                    Handles.DrawWireDisc(s, Vector3.forward, 7f);
+                }
+                DrawHandleDot(s, selected, anchorColor);
+                GUI.Label(new Rect(s.x + 8f, s.y - 8f, 80f, 16f), "Горелка" + i);
+            }
+        }
+
+        private Vector2 ConeEnd(Vector2 originWorld, float angleRad, float length)
+        {
+            var tip = originWorld + new Vector2(Mathf.Cos(angleRad), Mathf.Sin(angleRad)) * length;
+            return WorldToScreen(tip);
+        }
+
         private void DrawStartGoal()
         {
             // Player-size silhouette under the start marker — scale reference.
@@ -738,6 +817,7 @@ namespace Ngj10.EditorTools
         private bool _dragging;
         private bool _draggedThisPress;
         private int _dragPointIndex = -1;
+        private int _dragConeIndex = -1; // tip handle of a cone on the single-selected burner
 
         // Set on plain MouseDown over an already-selected element: if the press
         // ends without a drag, the selection collapses to just that element
@@ -784,6 +864,10 @@ namespace Ngj10.EditorTools
                         {
                             AddPointToSelected(local);
                         }
+                        else if (!additive && TryPickConeTip(local, out _dragConeIndex))
+                        {
+                            _dragging = true; // dragging a cone tip = rotate + lengthen
+                        }
                         else if (!additive && TryPickPoint(local, out _dragPointIndex))
                         {
                             _dragging = true; // dragging a waypoint
@@ -801,7 +885,14 @@ namespace Ngj10.EditorTools
                     break;
 
                 case EventType.MouseDrag:
-                    if (e.button == 0 && _dragging && _dragPointIndex >= 0)
+                    if (e.button == 0 && _dragging && _dragConeIndex >= 0)
+                    {
+                        _draggedThisPress = true;
+                        DragConeTip(e.mousePosition - rect.position);
+                        Repaint();
+                        e.Use();
+                    }
+                    else if (e.button == 0 && _dragging && _dragPointIndex >= 0)
                     {
                         _draggedThisPress = true;
                         DragPoint(e.delta);
@@ -834,6 +925,7 @@ namespace Ngj10.EditorTools
                     _collapseOnMouseUp = null;
                     _dragging = false;
                     _dragPointIndex = -1;
+                    _dragConeIndex = -1;
                     break;
             }
         }
@@ -861,6 +953,9 @@ namespace Ngj10.EditorTools
             if (_level.Hazards != null)
                 for (int i = 0; i < _level.Hazards.Length; i++)
                     Consider(_level.Hazards[i].Position, SelKind.Hazard, i);
+            if (_level.Burners != null)
+                for (int i = 0; i < _level.Burners.Length; i++)
+                    Consider(_level.Burners[i].Position, SelKind.Burner, i);
 
             // A point element (start/goal/hazard) right under the cursor wins. Otherwise
             // fall through to streams, which pick on the whole path (any point along the
@@ -988,6 +1083,48 @@ namespace Ngj10.EditorTools
             EditorUtility.SetDirty(_level);
         }
 
+        /// <summary>Hit-test the tip handle of each cone on the single-selected burner.</summary>
+        private bool TryPickConeTip(Vector2 screenInCanvas, out int coneIndex)
+        {
+            coneIndex = -1;
+            if (_multi.Count != 1 || _selKind != SelKind.Burner) return false;
+            BurnerDef burner = _level.Burners[_selIndex];
+            if (burner.Cones == null) return false;
+
+            float best = 16f; // generous hitbox, same feel as waypoints
+            for (int i = 0; i < burner.Cones.Length; i++)
+            {
+                ConeDef cone = burner.Cones[i];
+                Vector2 tip = ConeTipWorld(burner.Position, cone);
+                float d = Vector2.Distance(WorldToScreen(tip), screenInCanvas);
+                if (d < best) { best = d; coneIndex = i; }
+            }
+            return coneIndex >= 0;
+        }
+
+        /// <summary>Drag a cone tip: distance sets Length, direction sets Angle.</summary>
+        private void DragConeTip(Vector2 screenInCanvas)
+        {
+            BurnerDef burner = _level.Burners[_selIndex];
+            ConeDef cone = burner.Cones[_dragConeIndex];
+            Vector2 world = ScreenToWorld(screenInCanvas);
+            Vector2 to = world - burner.Position;
+            if (to.sqrMagnitude < 0.0001f)
+                return;
+
+            Undo.RecordObject(_level, "Настроить конус");
+            cone.Angle = Mathf.Atan2(to.y, to.x) * Mathf.Rad2Deg;
+            cone.Length = Mathf.Max(0.25f, to.magnitude);
+            EditorUtility.SetDirty(_level);
+            RebuildSerialized(); // keep the inspector's SerializedObject in sync with the live edit
+        }
+
+        private static Vector2 ConeTipWorld(Vector2 origin, ConeDef cone)
+        {
+            float rad = cone.Angle * Mathf.Deg2Rad;
+            return origin + new Vector2(Mathf.Cos(rad), Mathf.Sin(rad)) * cone.Length;
+        }
+
         private void DragSelected(Vector2 screenDelta)
         {
             Vector2 worldDelta = new Vector2(screenDelta.x, -screenDelta.y) / _pixelsPerUnit;
@@ -999,6 +1136,7 @@ namespace Ngj10.EditorTools
                     case SelKind.Start: _level.Start += worldDelta; break;
                     case SelKind.Goal: _level.Goal += worldDelta; break;
                     case SelKind.Hazard: _level.Hazards[index].Position += worldDelta; break;
+                    case SelKind.Burner: _level.Burners[index].Position += worldDelta; break;
                     case SelKind.Stream: _level.Streams[index].Position += worldDelta; break;
                     case SelKind.KillLine: _level.KillY += worldDelta.y; break;
                 }
@@ -1011,7 +1149,7 @@ namespace Ngj10.EditorTools
         // Deferred inspector action: button handlers must not mutate the array or
         // exit early mid-layout (it desyncs the GUIClip/ScrollView stack). They set
         // this instead; it runs after the layout groups are closed.
-        private enum PendingAction { None, ConvertToPoints, ClearPoints, DeleteStream, DeleteHazard, DeleteSelected }
+        private enum PendingAction { None, ConvertToPoints, ClearPoints, DeleteStream, DeleteHazard, DeleteBurner, DeleteSelected }
         private PendingAction _pending;
         private int _pendingIndex;
 
@@ -1033,6 +1171,7 @@ namespace Ngj10.EditorTools
                 {
                     case SelKind.Stream: DrawStreamInspector(); break;
                     case SelKind.Hazard: DrawHazardInspector(); break;
+                    case SelKind.Burner: DrawBurnerInspector(); break;
                     default: DrawLevelInspector(); break;
                 }
             }
@@ -1048,6 +1187,7 @@ namespace Ngj10.EditorTools
             GUILayout.EndArea();
 
             RunPendingAction();
+            RunPendingConeEdits();
         }
 
         private void RunPendingAction()
@@ -1058,6 +1198,7 @@ namespace Ngj10.EditorTools
                 case PendingAction.ClearPoints: ClearCustomPoints(_pendingIndex); break;
                 case PendingAction.DeleteStream: DeleteStream(_pendingIndex); break;
                 case PendingAction.DeleteHazard: DeleteHazard(_pendingIndex); break;
+                case PendingAction.DeleteBurner: DeleteBurner(_pendingIndex); break;
                 case PendingAction.DeleteSelected: DeleteSelected(); break;
             }
             _pending = PendingAction.None;
@@ -1066,15 +1207,16 @@ namespace Ngj10.EditorTools
         private void DrawMultiInspector()
         {
             var streamIdx = new List<int>();
-            int hazards = 0, other = 0;
+            int hazards = 0, burners = 0, other = 0;
             foreach (var (kind, index) in _multi)
             {
                 if (kind == SelKind.Stream) streamIdx.Add(index);
                 else if (kind == SelKind.Hazard) hazards++;
+                else if (kind == SelKind.Burner) burners++;
                 else other++;
             }
             EditorGUILayout.LabelField($"Выбрано: {_multi.Count}", EditorStyles.boldLabel);
-            EditorGUILayout.LabelField($"потоков {streamIdx.Count}, препятствий {hazards}" +
+            EditorGUILayout.LabelField($"потоков {streamIdx.Count}, препятствий {hazards}, горелок {burners}" +
                 (other > 0 ? ", старт/цель" : ""));
             EditorGUILayout.HelpBox(
                 "Тащи — двигать всю группу. Ctrl+C/Ctrl+V — копировать группу. " +
@@ -1345,6 +1487,117 @@ namespace Ngj10.EditorTools
             }
         }
 
+        // Deferred cone-list edits (mutate the SerializedProperty array after the
+        // current layout pass, same reasoning as PendingAction).
+        private int _coneAddBurner = -1;
+        private int _coneRemoveBurner = -1, _coneRemoveIndex = -1;
+
+        private void DrawBurnerInspector()
+        {
+            EditorGUILayout.LabelField("Горелка " + _selIndex, EditorStyles.boldLabel);
+            SerializedProperty burners = _serialized.FindProperty("Burners");
+            if (_selIndex < 0 || _selIndex >= burners.arraySize)
+            {
+                EditorGUILayout.LabelField("(горелка не выбрана)");
+                return;
+            }
+            SerializedProperty b = burners.GetArrayElementAtIndex(_selIndex);
+
+            EditorGUILayout.PropertyField(b.FindPropertyRelative("Position"),
+                new GUIContent("Позиция", "Точка, из которой выходят лучи."));
+
+            EditorGUILayout.Space();
+            SerializedProperty cones = b.FindPropertyRelative("Cones");
+            EditorGUILayout.LabelField($"Конусы ({cones.arraySize})", EditorStyles.boldLabel);
+
+            for (int i = 0; i < cones.arraySize; i++)
+            {
+                SerializedProperty cone = cones.GetArrayElementAtIndex(i);
+                EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+
+                EditorGUILayout.BeginHorizontal();
+                EditorGUILayout.LabelField("Конус " + i, EditorStyles.miniBoldLabel);
+                if (GUILayout.Button("Удалить", GUILayout.Width(70f)))
+                {
+                    _coneRemoveBurner = _selIndex;
+                    _coneRemoveIndex = i;
+                }
+                EditorGUILayout.EndHorizontal();
+
+                EditorGUILayout.PropertyField(cone.FindPropertyRelative("Angle"),
+                    new GUIContent("Угол", "Направление луча, градусы (0 = вправо). Для вращения — начальный угол."));
+                EditorGUILayout.PropertyField(cone.FindPropertyRelative("Length"),
+                    new GUIContent("Длина", "Дальность луча в мире."));
+                EditorGUILayout.PropertyField(cone.FindPropertyRelative("HalfAngle"),
+                    new GUIContent("Полуугол", "Половина раствора конуса, градусы."));
+
+                SerializedProperty motion = cone.FindPropertyRelative("Motion");
+                EditorGUILayout.PropertyField(motion,
+                    new GUIContent("Движение", "Статичный / вращение / мигание по таймеру."));
+
+                var mode = (ConeMotion)motion.enumValueIndex;
+                if (mode == ConeMotion.Rotate)
+                {
+                    EditorGUILayout.PropertyField(cone.FindPropertyRelative("RotateSpeed"),
+                        new GUIContent("Скорость вращения", "Градусы/сек (знак задаёт направление)."));
+                }
+                else if (mode == ConeMotion.Pulse)
+                {
+                    EditorGUILayout.PropertyField(cone.FindPropertyRelative("OnDuration"),
+                        new GUIContent("Горит, сек", "Сколько секунд луч активен в цикле."));
+                    EditorGUILayout.PropertyField(cone.FindPropertyRelative("OffDuration"),
+                        new GUIContent("Пауза, сек", "Сколько секунд луч погашен в цикле."));
+                    EditorGUILayout.PropertyField(cone.FindPropertyRelative("PhaseOffset"),
+                        new GUIContent("Сдвиг фазы, сек", "Смещение цикла, чтобы конусы мигали вразнобой."));
+                }
+
+                EditorGUILayout.EndVertical();
+            }
+
+            EditorGUILayout.Space();
+            if (GUILayout.Button("+ Конус"))
+                _coneAddBurner = _selIndex;
+
+            EditorGUILayout.Space();
+            if (GUILayout.Button("Удалить горелку"))
+            {
+                _pending = PendingAction.DeleteBurner;
+                _pendingIndex = _selIndex;
+            }
+        }
+
+        /// <summary>Apply deferred cone add/remove after the layout pass closes.</summary>
+        private void RunPendingConeEdits()
+        {
+            if (_coneAddBurner < 0 && _coneRemoveBurner < 0)
+                return;
+
+            _serialized.Update();
+            SerializedProperty burners = _serialized.FindProperty("Burners");
+
+            if (_coneAddBurner >= 0 && _coneAddBurner < burners.arraySize)
+            {
+                SerializedProperty cones = burners.GetArrayElementAtIndex(_coneAddBurner)
+                    .FindPropertyRelative("Cones");
+                cones.arraySize++; // new element copies the last one's values — fine as a starting point
+            }
+
+            if (_coneRemoveBurner >= 0 && _coneRemoveBurner < burners.arraySize)
+            {
+                SerializedProperty cones = burners.GetArrayElementAtIndex(_coneRemoveBurner)
+                    .FindPropertyRelative("Cones");
+                if (_coneRemoveIndex >= 0 && _coneRemoveIndex < cones.arraySize)
+                    cones.DeleteArrayElementAtIndex(_coneRemoveIndex);
+            }
+
+            _serialized.ApplyModifiedProperties();
+            EditorUtility.SetDirty(_level);
+            _coneAddBurner = -1;
+            _coneRemoveBurner = -1;
+            _coneRemoveIndex = -1;
+            Repaint();
+        }
+
         // ── Asset management ──────────────────────────────────────────────────
 
         private const string LevelsFolder = "Assets/_Project/Levels";
@@ -1481,6 +1734,16 @@ namespace Ngj10.EditorTools
             Commit();
         }
 
+        private void AddBurner()
+        {
+            Undo.RecordObject(_level, "Добавить горелку");
+            var list = new List<BurnerDef>(_level.Burners ?? new BurnerDef[0]);
+            list.Add(new BurnerDef { Position = _panWorld, Cones = new[] { new ConeDef() } });
+            _level.Burners = list.ToArray();
+            SetSingleSelection(SelKind.Burner, list.Count - 1);
+            Commit();
+        }
+
         private void ConvertToCustomPoints(int index)
         {
             Undo.RecordObject(_level, "Превратить поток в путь");
@@ -1520,7 +1783,17 @@ namespace Ngj10.EditorTools
             Commit();
         }
 
-        /// <summary>Delete every selected stream/hazard (multi-selection aware).</summary>
+        private void DeleteBurner(int index)
+        {
+            Undo.RecordObject(_level, "Удалить горелку");
+            var list = new List<BurnerDef>(_level.Burners);
+            list.RemoveAt(index);
+            _level.Burners = list.ToArray();
+            SetSingleSelection(SelKind.None, -1);
+            Commit();
+        }
+
+        /// <summary>Delete every selected stream/hazard/burner (multi-selection aware).</summary>
         private void DeleteSelected()
         {
             Undo.RecordObject(_level, "Удалить выбранные");
@@ -1528,13 +1801,16 @@ namespace Ngj10.EditorTools
             // Collect indices per array and remove from the end so they stay valid.
             var streamIdx = new List<int>();
             var hazardIdx = new List<int>();
+            var burnerIdx = new List<int>();
             foreach (var (kind, index) in _multi)
             {
                 if (kind == SelKind.Stream) streamIdx.Add(index);
                 else if (kind == SelKind.Hazard) hazardIdx.Add(index);
+                else if (kind == SelKind.Burner) burnerIdx.Add(index);
             }
             streamIdx.Sort();
             hazardIdx.Sort();
+            burnerIdx.Sort();
 
             var streams = new List<StreamDef>(_level.Streams ?? new StreamDef[0]);
             for (int i = streamIdx.Count - 1; i >= 0; i--)
@@ -1545,6 +1821,11 @@ namespace Ngj10.EditorTools
             for (int i = hazardIdx.Count - 1; i >= 0; i--)
                 hazards.RemoveAt(hazardIdx[i]);
             _level.Hazards = hazards.ToArray();
+
+            var burners = new List<BurnerDef>(_level.Burners ?? new BurnerDef[0]);
+            for (int i = burnerIdx.Count - 1; i >= 0; i--)
+                burners.RemoveAt(burnerIdx[i]);
+            _level.Burners = burners.ToArray();
 
             SetSingleSelection(SelKind.None, -1);
             Commit();

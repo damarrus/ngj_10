@@ -37,6 +37,7 @@ namespace Ngj10.Gameplay
 
         public StreamDef[] Streams = Array.Empty<StreamDef>();
         public HazardDef[] Hazards = Array.Empty<HazardDef>();
+        public BurnerDef[] Burners = Array.Empty<BurnerDef>();
 
         /// <summary>The stream the player respawns into (index into Streams).</summary>
         public int StartStreamIndex;
@@ -125,5 +126,54 @@ namespace Ngj10.Gameplay
         public Vector2 PatrolTravel = new Vector2(0f, 3f);
         public float PatrolPeriod = 3f;
         public float Size = 1f;
+    }
+
+    /// <summary>How a burn cone moves over time.</summary>
+    public enum ConeMotion
+    {
+        /// <summary>Fixed direction, always on.</summary>
+        Static,
+        /// <summary>Sweeps around the burner anchor at RotateSpeed.</summary>
+        Rotate,
+        /// <summary>Blinks on for OnDuration, off for OffDuration.</summary>
+        Pulse,
+    }
+
+    /// <summary>
+    /// One burn cone radiating from a Burner anchor. The cone burns Icarus while
+    /// he sits inside the sector (within Length and HalfAngle of the direction).
+    /// </summary>
+    [Serializable]
+    public class ConeDef
+    {
+        /// <summary>Direction the cone points, degrees (0 = +X). For Rotate this is the start angle.</summary>
+        public float Angle;
+        /// <summary>Reach of the cone from the anchor, world units.</summary>
+        public float Length = 4f;
+        /// <summary>Half of the cone's opening, degrees (full spread = 2 * HalfAngle).</summary>
+        public float HalfAngle = 15f;
+
+        public ConeMotion Motion = ConeMotion.Static;
+
+        /// <summary>Rotate: sweep speed, degrees/second (sign sets direction).</summary>
+        public float RotateSpeed = 60f;
+
+        /// <summary>Pulse: seconds the cone burns each cycle.</summary>
+        public float OnDuration = 1.5f;
+        /// <summary>Pulse: seconds the cone is dark each cycle.</summary>
+        public float OffDuration = 1f;
+        /// <summary>Pulse: phase shift in seconds so several cones desync.</summary>
+        public float PhaseOffset;
+    }
+
+    /// <summary>
+    /// A burner: one anchor point emitting any number of burn cones. Place the
+    /// point in the editor, then add and tune cones individually.
+    /// </summary>
+    [Serializable]
+    public class BurnerDef
+    {
+        public Vector2 Position;
+        public ConeDef[] Cones = { new ConeDef() };
     }
 }
