@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Level
   m_EditorClassIdentifier: Ngj10::Ngj10.Gameplay.LevelData
   Mode: 1
-  CameraSize: 5
+  CameraSize: 7
   Start: {x: 69.02485, y: -16.641214}
   Goal: {x: 62.696297, y: 24.892912}
   GoalRadius: 1.5
@@ -78,7 +78,7 @@ MonoBehaviour:
     CatchRate: 0
     ExitBoost: 1
     Z: 0
-  - Position: {x: -3.9002552, y: 18.353071}
+  - Position: {x: 1.9402924, y: 19.24633}
     Rotation: 0
     CustomPoints:
     - {x: -0.13770995, y: -0.20008118}
@@ -1284,7 +1284,7 @@ MonoBehaviour:
     CatchRate: 0
     ExitBoost: 1
     Z: 0
-  - Position: {x: 87.90033, y: -6.7546496}
+  - Position: {x: 96.43069, y: -6.5490985}
     Rotation: 0
     CustomPoints: []
     CustomLoop: 0
@@ -1359,7 +1359,7 @@ MonoBehaviour:
     CatchRate: 10
     ExitBoost: 1
     Z: 1
-  - Position: {x: 66.07632, y: -6.9901986}
+  - Position: {x: 66.044044, y: -6.9901986}
     Rotation: 0
     CustomPoints:
     - {x: 10.283863, y: -3.3988595}

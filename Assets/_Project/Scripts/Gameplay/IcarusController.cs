@@ -41,10 +41,14 @@ namespace Ngj10.Gameplay
         [SerializeField] private float _centeringMaxSpeed = 3.6f; // cap on the centering pull
 
         [Header("Legacy model: wings-closed dive")]
-        [Tooltip("Downward pull while rising (v.y > 0). Low keeps the stream's launch inertia so he flies out.")]
-        [SerializeField] private float _legacyDiveRiseGravity = 7.85f; // 0.8*9.81 = original old
-        [Tooltip("Downward pull while falling (v.y < 0). High = snappy plummet.")]
-        [SerializeField] private float _legacyDiveFallGravity = 7.85f; // 0.8*9.81 = original old
+        [Tooltip("Length of the launch window after folding wings, seconds. Inside it the window-gravity is used so exit inertia coasts; after it, the after-gravity. 0 = no window (original old).")]
+        [SerializeField] private float _legacyLaunchGrace;             // 0 = off (original old)
+        [Tooltip("Gravity DURING the launch window. Low = the stream's exit inertia coasts (up, down or sideways).")]
+        [SerializeField] private float _legacyWindowGravity = 7.85f;   // 0.8*9.81 = original old
+        [Tooltip("Gravity AFTER the launch window. High = snappy plummet.")]
+        [SerializeField] private float _legacyAfterGravity = 7.85f;    // 0.8*9.81 = original old
+        [Tooltip("Seconds to ease gravity from window- to after-value once the window ends. 0 = instant switch (original old).")]
+        [SerializeField] private float _legacyFallBlend;               // 0 = hard switch
         [Tooltip("Max fall speed, u/s. 0 = uncapped (original old behaviour).")]
         [SerializeField] private float _legacyDiveTerminal;            // 0 = no cap
 
@@ -77,6 +81,7 @@ namespace Ngj10.Gameplay
         }
 
         private bool _waitingForInput;
+        private float _foldTime = float.NegativeInfinity; // when wings last folded (launch moment)
 
         /// <summary>Parked at spawn until the first hold — the level skips kill checks.</summary>
         public bool IsWaitingForInput => _waitingForInput;
@@ -188,9 +193,20 @@ namespace Ngj10.Gameplay
             }
             else
             {
-                // Ballistic dive: light gravity while rising keeps the stream's launch
-                // inertia (he flies out), heavier while falling makes the descent snappy.
-                float g = v.y > 0f ? _legacyDiveRiseGravity : _legacyDiveFallGravity;
+                // Ballistic dive: during the launch-grace window after folding, light
+                // gravity lets the stream's exit inertia coast in any direction (up,
+                // down or sideways); after it, heavier gravity makes the descent snappy.
+                // Flat low gravity through the window (clean inertia coast), then ease
+                // up to the after-gravity over the blend time (no acceleration jerk).
+                float since = Time.time - _foldTime;
+                float g;
+                if (since < _legacyLaunchGrace)
+                    g = _legacyWindowGravity;
+                else if (_legacyFallBlend > 0f)
+                    g = Mathf.SmoothStep(_legacyWindowGravity, _legacyAfterGravity,
+                        (since - _legacyLaunchGrace) / _legacyFallBlend);
+                else
+                    g = _legacyAfterGravity;
                 v.y -= g * dt;
                 if (_legacyDiveTerminal > 0f && v.y < -_legacyDiveTerminal)
                     v.y = -_legacyDiveTerminal;
@@ -373,8 +389,12 @@ namespace Ngj10.Gameplay
         {
             // Folding wings while carried: the stream's exit boost multiplies the
             // launch velocity — per-stream catapult feel.
-            if (!open && WingsOpen && CurrentStream != null)
-                Body.linearVelocity *= CurrentStream.ExitBoost;
+            if (!open && WingsOpen)
+            {
+                if (CurrentStream != null)
+                    Body.linearVelocity *= CurrentStream.ExitBoost;
+                _foldTime = Time.time; // start the launch-grace window from the fold
+            }
 
             WingsOpen = open;
             ApplyWingsVisual();
