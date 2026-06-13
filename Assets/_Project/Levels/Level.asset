@@ -1153,4 +1153,5 @@ MonoBehaviour:
     Grip: 4
     ExitBoost: 1
   Hazards: []
+  Burners: []
   StartStreamIndex: 0

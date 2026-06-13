@@ -3533,6 +3533,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Ngj10::Ngj10.Gameplay.GameConfig
   _initialVolume: 0.023
   _showStartScreen: 0
+  _burnHeatUpTime: 1
+  _burnCoolDownTime: 2
+  _burntColor: {r: 0.85, g: 0.12, b: 0.05, a: 1}
   _startLevel: {fileID: 11400000, guid: 9751134df7491504594aa981758b7ddd, type: 2}
   _startScreen: {fileID: 834991541}
   _controller: {fileID: 226200009}

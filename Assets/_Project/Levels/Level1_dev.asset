@@ -46,11 +46,14 @@ MonoBehaviour:
     Seed: 0
     Reverse: 0
     Speed: 10
+    SpeedEnd: 0
     Width: 3
     ActiveDuration: 0
     InactiveDuration: 0
     ReverseInterval: 0
     Turbulence: 0
+    Grip: 3
+    ExitBoost: 1
   - Position: {x: -1.2588873, y: 7.875614}
     Rotation: 0
     CustomPoints:
@@ -69,12 +72,15 @@ MonoBehaviour:
     Turns: 2
     Seed: 0
     Reverse: 0
-    Speed: 5
+    Speed: 10
+    SpeedEnd: 0
     Width: 4
     ActiveDuration: 0
     InactiveDuration: 0
     ReverseInterval: 0
     Turbulence: 0
+    Grip: 3
+    ExitBoost: 1
   - Position: {x: 9.076401, y: 14.05522}
     Rotation: 0
     CustomPoints:
@@ -92,14 +98,40 @@ MonoBehaviour:
     Seed: 0
     Reverse: 0
     Speed: 10
+    SpeedEnd: 0
     Width: 3
     ActiveDuration: 0
     InactiveDuration: 0
     ReverseInterval: 0
     Turbulence: 0
+    Grip: 3
+    ExitBoost: 1
   Hazards:
   - Position: {x: 0.4875402, y: 27.88476}
     PatrolTravel: {x: 0, y: 3}
     PatrolPeriod: 3
     Size: 3
+  - Position: {x: -8.282118, y: 23.716549}
+    PatrolTravel: {x: 0, y: 3}
+    PatrolPeriod: 3
+    Size: 1
+  Burners:
+  - Position: {x: 29.110662, y: 30.22302}
+    Cones:
+    - Angle: -125.984985
+      Length: 18.367723
+      HalfAngle: 10
+      Motion: 0
+      RotateSpeed: 60
+      OnDuration: 1.5
+      OffDuration: 1
+      PhaseOffset: 0
+    - Angle: -166.46217
+      Length: 19.371674
+      HalfAngle: 5
+      Motion: 0
+      RotateSpeed: 60
+      OnDuration: 1.5
+      OffDuration: 1
+      PhaseOffset: 0
   StartStreamIndex: 0

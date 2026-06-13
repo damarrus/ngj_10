@@ -289,6 +289,8 @@ namespace Ngj10.Gameplay
             CurrentStream = null;
             _waitingForInput = true;
             SetWings(false);
+            if (TryGetComponent(out BurnState burn))
+                burn.ResetHeat();
         }
 
         private void SetWings(bool open)

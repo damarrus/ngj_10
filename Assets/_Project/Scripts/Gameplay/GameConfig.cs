@@ -19,6 +19,14 @@ namespace Ngj10.Gameplay
         [Header("Flow")]
         [SerializeField] private bool _showStartScreen = true;
 
+        [Header("Burn (cone rays)")]
+        [Tooltip("Seconds under a ray to go from cold to fully burnt (death).")]
+        [SerializeField] private float _burnHeatUpTime = 1f;
+        [Tooltip("Seconds in the open to cool fully back down.")]
+        [SerializeField] private float _burnCoolDownTime = 2f;
+        [Tooltip("Colour body sprites tint toward at full heat.")]
+        [SerializeField] private Color _burntColor = new Color(0.85f, 0.12f, 0.05f);
+
         [Header("Level")]
         [Tooltip("Level to load on start. Overrides the LevelBuilder's own Data.")]
         [SerializeField] private LevelData _startLevel;
@@ -34,6 +42,12 @@ namespace Ngj10.Gameplay
         {
             // PlayerPrefs (player's last choice) wins over the configured default.
             AudioListener.volume = PlayerPrefs.GetFloat(VolumeKey, _initialVolume);
+
+            // Push the burn tuning onto the player's BurnState (the meter lives on
+            // the Icarus instance; here is the one place these numbers are authored).
+            var burn = FindAnyObjectByType<BurnState>();
+            if (burn != null)
+                burn.Configure(_burnHeatUpTime, _burnCoolDownTime, _burntColor);
 
             // Build the chosen level now, before anything starts it. GameConfig
             // runs at exec order -100, ahead of LevelBuilder's own Awake build —

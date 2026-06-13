@@ -46,6 +46,7 @@ namespace Ngj10.Gameplay
 
             var streams = BuildStreams();
             BuildHazards();
+            BuildBurners();
             PlaceGoal();
 
             StreamPath startStream = streams.Length > 0
@@ -141,6 +142,21 @@ namespace Ngj10.Gameplay
                 var oscillator = hazard.GetComponent<Oscillator>();
                 if (oscillator != null)
                     oscillator.Configure(def.PatrolTravel, def.PatrolPeriod);
+            }
+        }
+
+        // Burners are fully code-driven (no prefab art): create an anchor object
+        // and let the Burner build its cones from the def.
+        private void BuildBurners()
+        {
+            if (_data.Burners == null) return;
+            for (int i = 0; i < _data.Burners.Length; i++)
+            {
+                BurnerDef def = _data.Burners[i];
+                var go = new GameObject("Burner" + i);
+                go.transform.SetParent(transform, false);
+                go.transform.position = def.Position;
+                go.AddComponent<Burner>().Configure(def);
             }
         }
 
