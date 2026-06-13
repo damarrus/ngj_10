@@ -47,6 +47,7 @@ namespace Ngj10.Gameplay
             var streams = BuildStreams();
             BuildHazards();
             BuildBurners();
+            BuildZeuses(streams);
             PlaceGoal();
 
             StreamPath startStream = streams.Length > 0
@@ -157,6 +158,21 @@ namespace Ngj10.Gameplay
                 go.transform.SetParent(transform, false);
                 go.transform.position = def.Position;
                 go.AddComponent<Burner>().Configure(def);
+            }
+        }
+
+        // Zeus nodes are code-driven (no prefab art): create an anchor and let the
+        // Zeus resolve its target streams by index and build its bolt visuals.
+        private void BuildZeuses(StreamPath[] streams)
+        {
+            if (_data.Zeuses == null) return;
+            for (int i = 0; i < _data.Zeuses.Length; i++)
+            {
+                ZeusDef def = _data.Zeuses[i];
+                var go = new GameObject("Zeus" + i);
+                go.transform.SetParent(transform, false);
+                go.transform.position = def.Position;
+                go.AddComponent<Zeus>().Configure(def, streams);
             }
         }
 

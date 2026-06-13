@@ -38,6 +38,7 @@ namespace Ngj10.Gameplay
         public StreamDef[] Streams = Array.Empty<StreamDef>();
         public HazardDef[] Hazards = Array.Empty<HazardDef>();
         public BurnerDef[] Burners = Array.Empty<BurnerDef>();
+        public ZeusDef[] Zeuses = Array.Empty<ZeusDef>();
 
         /// <summary>The stream the player respawns into (index into Streams).</summary>
         public int StartStreamIndex;
@@ -175,5 +176,29 @@ namespace Ngj10.Gameplay
     {
         public Vector2 Position;
         public ConeDef[] Cones = { new ConeDef() };
+    }
+
+    /// <summary>
+    /// Zeus' lightning node: an anchor that periodically electrifies a chosen set
+    /// of streams. While a stream is charged, lightning runs along it and Icarus
+    /// caught inside its band has his wings shocked (folded and blocked briefly).
+    /// Place the node in the editor and pick which streams it strikes by index.
+    /// </summary>
+    [Serializable]
+    public class ZeusDef
+    {
+        public Vector2 Position;
+
+        /// <summary>Indices into LevelData.Streams this node strikes.</summary>
+        public int[] TargetStreams = Array.Empty<int>();
+
+        /// <summary>Seconds of one full cycle: charged then quiet.</summary>
+        public float FireInterval = 4f;
+
+        /// <summary>Seconds the targeted streams stay electrified each cycle.</summary>
+        public float ElectrifyDuration = 1.5f;
+
+        /// <summary>Phase shift in seconds so several nodes fire out of sync.</summary>
+        public float PhaseOffset;
     }
 }

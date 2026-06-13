@@ -72,12 +72,36 @@ namespace Ngj10.Gameplay
         /// <summary>Parked at spawn until the first hold — the level skips kill checks.</summary>
         public bool IsWaitingForInput => _waitingForInput;
 
+        // Wings forced folded and unresponsive to input while > 0 (Zeus shock).
+        private float _wingBlock;
+
+        /// <summary>True while a Zeus shock holds the wings folded.</summary>
+        public bool WingsBlocked => _wingBlock > 0f;
+
+        /// <summary>Force wings folded and ignore hold input for the given seconds.
+        /// Re-calling refreshes the window. Driven by ShockState.</summary>
+        public void BlockWings(float seconds)
+        {
+            _wingBlock = Mathf.Max(_wingBlock, seconds);
+            if (WingsOpen)
+                SetWings(false);
+        }
+
         private void Update()
         {
             if (Input.GetKeyDown(KeyCode.T))
             {
                 _flightModel = _flightModel == FlightModel.Field ? FlightModel.Legacy : FlightModel.Field;
                 Debug.Log("[Icarus] Flight model: " + _flightModel);
+            }
+
+            // Shock holds the wings folded and deaf to input until it expires.
+            if (_wingBlock > 0f)
+            {
+                _wingBlock -= Time.deltaTime;
+                if (WingsOpen)
+                    SetWings(false);
+                return;
             }
 
             bool held = Input.GetKey(KeyCode.Space) || Input.GetMouseButton(0);
@@ -288,9 +312,12 @@ namespace Ngj10.Gameplay
             Body.linearVelocity = Vector2.zero;
             CurrentStream = null;
             _waitingForInput = true;
+            _wingBlock = 0f;
             SetWings(false);
             if (TryGetComponent(out BurnState burn))
                 burn.ResetHeat();
+            if (TryGetComponent(out ShockState shock))
+                shock.ResetShock();
         }
 
         private void SetWings(bool open)

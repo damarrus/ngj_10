@@ -213,6 +213,7 @@ GameObject:
   - component: {fileID: 5704977019583997565}
   - component: {fileID: 8009924871915579744}
   - component: {fileID: 4146624592710423043}
+  - component: {fileID: 5915833208199016100}
   m_Layer: 0
   m_Name: Icarus
   m_TagString: Untagged
@@ -371,9 +372,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7a36760218be3a147b8a45b253a0de63, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Ngj10::Ngj10.Gameplay.BurnState
-  _heatUpTime: 1
-  _coolDownTime: 2
-  _burntColor: {r: 0.85, g: 0.12, b: 0.05, a: 1}
+--- !u!114 &5915833208199016100
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7289304769620728654}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6af1a71d02e2c5c469914be188d0e169, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Ngj10::Ngj10.Gameplay.ShockState
 --- !u!1 &8323791618147556402
 GameObject:
   m_ObjectHideFlags: 0
