@@ -28,7 +28,6 @@ namespace Ngj10.Gameplay
         private bool _lastReversed;
         private bool _lastActive = true;
         private Color _accent;
-        private LineRenderer _ribbonGlow;
 
         // Three wavy longitudinal lines (lanes across the width), animated per frame.
         private static readonly float[] WavyLanes = { -0.45f, 0f, 0.45f };
@@ -52,20 +51,12 @@ namespace Ngj10.Gameplay
         }
 
         /// <summary>
-        /// Prototype-style ribbon: a very soft band covering the capture zone
-        /// plus three thin wavy lines flowing along the path (animated in Update).
+        /// Prototype-style flow lines: three thin wavy lines flowing along the path
+        /// (animated in Update). The wide capsule capture-zone band is editor-only —
+        /// in game we show just direction (arrows) and the flow effects (wisps + lines).
         /// </summary>
         private void BuildRibbon()
         {
-            int count = Mathf.Max(8, Mathf.CeilToInt(_path.Length / 0.4f)) + 1;
-            var positions = new Vector3[count];
-            for (int i = 0; i < count; i++)
-            {
-                float d = (float)i / (count - 1) * _path.Length;
-                positions[i] = _path.SampleAtDistance(_path.Loop ? d % _path.Length : d).Point;
-            }
-            _ribbonGlow = CreateLine("RibbonBand", _path.Width * 1.2f, RibbonColor(0.03f), 0, positions);
-
             int wavyPoints = Mathf.Max(8, Mathf.CeilToInt(_path.Length / 0.7f)) + 1;
             _wavyDistances = new float[wavyPoints];
             for (int k = 0; k < wavyPoints; k++)
@@ -117,7 +108,6 @@ namespace Ngj10.Gameplay
             if (active != _lastActive)
             {
                 _lastActive = active;
-                SetLineAlpha(_ribbonGlow, 0.03f * activeMul);
                 for (int i = 0; i < _wavyLines.Length; i++)
                     SetLineAlpha(_wavyLines[i], (WavyLanes[i] == 0f ? 0.18f : 0.11f) * activeMul);
             }

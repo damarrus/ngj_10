@@ -23,12 +23,18 @@ namespace Ngj10.Gameplay
 
         private void Awake() => CaptureAnchor();
 
-        /// <summary>Set the follow mode and the lowest allowed camera-center Y. Re-anchors.</summary>
-        public void SetMode(LevelMode mode, float minCenterY)
+        /// <summary>Set the follow mode, the lowest allowed camera-center Y, and the world
+        /// anchor (the level's Start) that UpOnly/SingleScreen lock onto. Snaps the camera
+        /// to the anchor at once so the first frame is framed on the spawn, not the camera's
+        /// authored scene position.</summary>
+        public void SetMode(LevelMode mode, float minCenterY, Vector2 anchor)
         {
             _mode = mode;
             _minCenterY = minCenterY;
-            CaptureAnchor();
+            _lockedX = anchor.x;
+            _lockedY = Mathf.Max(anchor.y, minCenterY);
+            if (mode != LevelMode.Free)
+                transform.position = new Vector3(_lockedX, _lockedY, transform.position.z);
         }
 
         private void CaptureAnchor()

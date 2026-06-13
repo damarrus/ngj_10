@@ -20,6 +20,7 @@ namespace Ngj10.Gameplay
         [SerializeField] private float _grip = 3f;        // hold strength: centering pull + velocity convergence
         [SerializeField] private float _speedEnd;         // linear ramp target at the path end (0 = constant)
         [SerializeField] private float _exitBoost = 1f;   // velocity multiplier on wings-fold exit
+        [SerializeField] private float _z;                // Legacy-model capture priority (higher wins)
 
         public bool Loop => _loop;
         public float Speed => _speed;
@@ -27,6 +28,7 @@ namespace Ngj10.Gameplay
         public float Turbulence => _turbulence;
         public float Grip => _grip;
         public float ExitBoost => _exitBoost;
+        public float Z => _z;
         public float Length { get; private set; }
 
         /// <summary>Pulsing streams turn off periodically and drop the player.</summary>
@@ -153,7 +155,7 @@ namespace Ngj10.Gameplay
         /// <summary>Apply runtime parameters from level data (loop is set by the shape generator).</summary>
         public void Configure(float speed, float width, float activeDuration,
             float inactiveDuration, float reverseInterval, float turbulence, float grip = 3f,
-            float speedEnd = 0f, float exitBoost = 1f)
+            float speedEnd = 0f, float exitBoost = 1f, float z = 0f)
         {
             _speed = speed;
             _width = width;
@@ -164,6 +166,7 @@ namespace Ngj10.Gameplay
             _grip = grip;
             _speedEnd = speedEnd;
             _exitBoost = exitBoost;
+            _z = z;
         }
 
         private void BuildCache()
@@ -184,35 +187,9 @@ namespace Ngj10.Gameplay
                 Length += Vector2.Distance(_points[i], _points[(i + 1) % _points.Length]);
         }
 
-        /// <summary>Catmull-Rom subdivision so waypoint corners become smooth curves.</summary>
+        /// <summary>Catmull-Rom subdivision (shared with the Map Editor preview).</summary>
         private static Vector2[] Smooth(List<Vector2> raw, bool loop)
-        {
-            const int subdiv = 6;
-            if (raw.Count < 3) return raw.ToArray();
-
-            var pts = new List<Vector2>(raw.Count * subdiv);
-            int segCount = loop ? raw.Count : raw.Count - 1;
-            for (int i = 0; i < segCount; i++)
-            {
-                Vector2 p0 = raw[loop ? (i - 1 + raw.Count) % raw.Count : Mathf.Max(i - 1, 0)];
-                Vector2 p1 = raw[i];
-                Vector2 p2 = raw[(i + 1) % raw.Count];
-                Vector2 p3 = raw[loop ? (i + 2) % raw.Count : Mathf.Min(i + 2, raw.Count - 1)];
-                for (int s = 0; s < subdiv; s++)
-                    pts.Add(CatmullRom(p0, p1, p2, p3, (float)s / subdiv));
-            }
-            if (!loop) pts.Add(raw[raw.Count - 1]);
-            return pts.ToArray();
-        }
-
-        private static Vector2 CatmullRom(Vector2 p0, Vector2 p1, Vector2 p2, Vector2 p3, float t)
-        {
-            float t2 = t * t;
-            float t3 = t2 * t;
-            return 0.5f * ((2f * p1) + (-p0 + p2) * t
-                + (2f * p0 - 5f * p1 + 4f * p2 - p3) * t2
-                + (-p0 + 3f * p1 - 3f * p2 + p3) * t3);
-        }
+            => StreamShapeBuilder.Smooth(raw, loop).ToArray();
 
         private void OnDrawGizmos()
         {

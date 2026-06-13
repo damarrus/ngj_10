@@ -53,7 +53,7 @@ namespace Ngj10.Gameplay
             {
                 // Keep the bottom edge at or above the kill line: center >= killY + halfHeight.
                 float minCenterY = data.KillY + data.CameraSize;
-                _cameraFollow.SetMode(_mode, minCenterY);
+                _cameraFollow.SetMode(_mode, minCenterY, data.Start);
             }
             if (_mode == LevelMode.UpOnly)
                 BuildSideWalls(data);

@@ -25,7 +25,7 @@ namespace Ngj10.Gameplay
     public class IcarusController : MonoBehaviour
     {
         [Header("Flight model (T toggles in play)")]
-        [SerializeField] private FlightModel _flightModel = FlightModel.Field;
+        [SerializeField] private FlightModel _flightModel = FlightModel.Legacy;
 
         public FlightModel Model => _flightModel;
 
@@ -170,32 +170,53 @@ namespace Ngj10.Gameplay
                 return;
             }
 
-            // Keep the current stream until clearly outside its band.
+            Vector2 pos = Body.position;
+
+            // Hold the current stream until clearly outside its band, but a stream
+            // with strictly higher Z covering the player overrides the held one.
             if (CurrentStream != null)
             {
-                var sample = CurrentStream.SampleNearest(Body.position);
-                if (!CurrentStream.IsActive || sample.DistanceToPath > CurrentStream.Width * 0.7f)
-                    CurrentStream = null;
+                var sample = CurrentStream.SampleNearest(pos);
+                bool held = CurrentStream.IsActive &&
+                    sample.DistanceToPath <= CurrentStream.Width * 0.7f;
+                if (held)
+                {
+                    var stealer = BestCovering(pos, aboveZ: CurrentStream.Z);
+                    if (stealer != null) CurrentStream = stealer;
+                    return;
+                }
+                CurrentStream = null;
             }
 
-            if (CurrentStream != null) return;
+            // Free: capture the highest-Z stream covering the player.
+            CurrentStream = BestCovering(pos, aboveZ: float.NegativeInfinity);
+        }
 
-            // Capture the stream covering the player deepest.
+        /// <summary>
+        /// Highest-Z stream whose band covers <paramref name="pos"/> and whose Z exceeds
+        /// <paramref name="aboveZ"/>; ties on Z break toward the deepest coverage.
+        /// Null when nothing qualifies. With all streams at Z 0 this reduces to the old
+        /// "deepest stream wins" capture.
+        /// </summary>
+        private static StreamPath BestCovering(Vector2 pos, float aboveZ)
+        {
             StreamPath best = null;
+            float bestZ = aboveZ;
             float bestDepth = 0f;
-            Vector2 pos = Body.position;
             foreach (var stream in StreamPath.Streams)
             {
                 if (!stream.IsActive) continue;
                 var sample = stream.SampleNearest(pos);
                 float depth = stream.Width * 0.5f - sample.DistanceToPath;
-                if (depth > bestDepth)
+                if (depth <= 0f) continue; // outside the band
+                if (stream.Z > bestZ || (best != null && stream.Z == bestZ && depth > bestDepth))
                 {
+                    bestZ = stream.Z;
                     bestDepth = depth;
                     best = stream;
                 }
             }
-            CurrentStream = best;
+            return best;
         }
 
         /// <summary>
@@ -214,12 +235,27 @@ namespace Ngj10.Gameplay
             StreamPath.PathSample strongestSample = default;
 
             Vector2 pos = Body.position;
+
+            // Z = layer: only the highest-Z streams covering the player carry him;
+            // lower layers are ignored where a higher one overlaps. Streams on the
+            // same top layer still blend softly below. All-zero Z keeps every stream.
+            float topZ = float.NegativeInfinity;
             foreach (var stream in StreamPath.Streams)
             {
                 if (!stream.IsActive) continue;
                 var sample = stream.SampleNearest(pos);
                 float half = stream.Width * 0.5f;
                 if (half <= 0f || sample.DistanceToPath >= half) continue;
+                if (stream.Z > topZ) topZ = stream.Z;
+            }
+
+            foreach (var stream in StreamPath.Streams)
+            {
+                if (!stream.IsActive) continue;
+                var sample = stream.SampleNearest(pos);
+                float half = stream.Width * 0.5f;
+                if (half <= 0f || sample.DistanceToPath >= half) continue;
+                if (stream.Z < topZ) continue; // covered by a higher layer
 
                 float linear = 1f - sample.DistanceToPath / half;
                 float weight = linear * linear * (3f - 2f * linear); // smoothstep edge->axis

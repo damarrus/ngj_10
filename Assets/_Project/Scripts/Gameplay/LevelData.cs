@@ -80,6 +80,12 @@ namespace Ngj10.Gameplay
         public int Seed;
         public bool Reverse;
 
+        /// <summary>Uniform multiplier on the generated shape — resize the whole figure
+        /// without changing its proportions. Size/Size2 define the form, Scale the overall
+        /// size. 1 = as authored. Only affects the shape generator (circles use CircleRadius,
+        /// hand-drawn paths use their explicit points).</summary>
+        public float Scale = 1f;
+
         // StreamPath runtime parameters.
         public float Speed = 5f;
 
@@ -101,6 +107,11 @@ namespace Ngj10.Gameplay
         /// moment he folds his wings while carried by this stream. 1 = plain
         /// momentum, 1.5 = catapult feel, &lt;1 = sticky exit.</summary>
         public float ExitBoost = 1f;
+
+        /// <summary>Capture priority for the Legacy (rails) model: when several streams
+        /// cover the player at once, the one with the highest Z captures him. Ties break
+        /// toward the deepest coverage. No effect on the Field model. Default 0.</summary>
+        public float Z;
 
         /// <summary>Stream colour is derived from Speed, not authored by hand.</summary>
         public Color VisualColor => SpeedToColor(Speed);

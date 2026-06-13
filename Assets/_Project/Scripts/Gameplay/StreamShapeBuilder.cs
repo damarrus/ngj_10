@@ -21,9 +21,12 @@ namespace Ngj10.Gameplay
             if (def.UsesCustomPoints)
             {
                 loop = def.CustomLoop;
-                return new List<Vector2>(def.CustomPoints);
+                var custom = new List<Vector2>(def.CustomPoints);
+                if (def.Reverse) custom.Reverse(); // direction follows point order (matches runtime)
+                return custom;
             }
-            var pts = Build(def.Shape, def.Size, def.Size2, def.Count, def.Turns, def.Seed, out loop);
+            var pts = Build(def.Shape, def.Size, def.Size2, def.Count, def.Turns, def.Seed,
+                def.Scale, out loop);
             if (def.Reverse) pts.Reverse();
             return pts;
         }
@@ -44,7 +47,7 @@ namespace Ngj10.Gameplay
         }
 
         public static List<Vector2> Build(StreamShape shape, float size, float size2,
-            int count, float turns, int seed, out bool loop)
+            int count, float turns, int seed, float scale, out bool loop)
         {
             loop = false;
             var pts = new List<Vector2>();
@@ -208,7 +211,45 @@ namespace Ngj10.Gameplay
                     }
                     break;
             }
+
+            if (scale != 1f)
+                for (int i = 0; i < pts.Count; i++)
+                    pts[i] *= scale;
             return pts;
+        }
+
+        /// <summary>
+        /// Catmull-Rom subdivision so waypoint corners become smooth curves. Shared
+        /// by the runtime (StreamPath) and the Map Editor preview so both show the
+        /// exact same path. Fewer than 3 points pass through unchanged.
+        /// </summary>
+        public static List<Vector2> Smooth(IReadOnlyList<Vector2> raw, bool loop, int subdiv = 6)
+        {
+            if (raw.Count < 3)
+                return new List<Vector2>(raw);
+
+            var pts = new List<Vector2>(raw.Count * subdiv);
+            int segCount = loop ? raw.Count : raw.Count - 1;
+            for (int i = 0; i < segCount; i++)
+            {
+                Vector2 p0 = raw[loop ? (i - 1 + raw.Count) % raw.Count : Mathf.Max(i - 1, 0)];
+                Vector2 p1 = raw[i];
+                Vector2 p2 = raw[(i + 1) % raw.Count];
+                Vector2 p3 = raw[loop ? (i + 2) % raw.Count : Mathf.Min(i + 2, raw.Count - 1)];
+                for (int s = 0; s < subdiv; s++)
+                    pts.Add(CatmullRom(p0, p1, p2, p3, (float)s / subdiv));
+            }
+            if (!loop) pts.Add(raw[raw.Count - 1]);
+            return pts;
+        }
+
+        private static Vector2 CatmullRom(Vector2 p0, Vector2 p1, Vector2 p2, Vector2 p3, float t)
+        {
+            float t2 = t * t;
+            float t3 = t2 * t;
+            return 0.5f * ((2f * p1) + (-p0 + p2) * t
+                + (2f * p0 - 5f * p1 + 4f * p2 - p3) * t2
+                + (-p0 + 3f * p1 - 3f * p2 + p3) * t3);
         }
 
         private static void Sample(List<Vector2> pts, int steps, System.Func<float, Vector2> f)
