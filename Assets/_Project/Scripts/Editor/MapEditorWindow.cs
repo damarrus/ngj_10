@@ -25,7 +25,7 @@ namespace Ngj10.EditorTools
         private Vector2 _panWorld = Vector2.zero; // world point at canvas center
         private float _pixelsPerUnit = 24f;
 
-        private enum SelKind { None, Stream, Hazard, Burner, Start, Goal, KillLine }
+        private enum SelKind { None, Stream, Hazard, Burner, Zeus, Start, Goal, KillLine }
         private SelKind _selKind = SelKind.None; // primary (last clicked) — drives the inspector
         private int _selIndex = -1;
 
@@ -147,7 +147,8 @@ namespace Ngj10.EditorTools
             {
                 bool any = false;
                 foreach (var (kind, _) in _multi)
-                    if (kind == SelKind.Stream || kind == SelKind.Hazard || kind == SelKind.Burner)
+                    if (kind == SelKind.Stream || kind == SelKind.Hazard
+                        || kind == SelKind.Burner || kind == SelKind.Zeus)
                         any = true;
                 if (any)
                 {
@@ -166,7 +167,8 @@ namespace Ngj10.EditorTools
 
             bool canDelete = false;
             foreach (var (kind, _) in _multi)
-                if (kind == SelKind.Stream || kind == SelKind.Hazard || kind == SelKind.Burner)
+                if (kind == SelKind.Stream || kind == SelKind.Hazard
+                    || kind == SelKind.Burner || kind == SelKind.Zeus)
                     canDelete = true;
             if (!canDelete)
                 return;
@@ -188,7 +190,7 @@ namespace Ngj10.EditorTools
 
         // JSON snapshot of the copied element — cheap deep copy that survives
         // selection changes and array mutations.
-        private enum ClipKind { None, Stream, Hazard, Burner }
+        private enum ClipKind { None, Stream, Hazard, Burner, Zeus }
         private ClipKind _clipKind;
         private string _clipJson;
 
@@ -207,7 +209,7 @@ namespace Ngj10.EditorTools
                 return;
 
             bool hasSelection = _selKind == SelKind.Stream || _selKind == SelKind.Hazard
-                || _selKind == SelKind.Burner;
+                || _selKind == SelKind.Burner || _selKind == SelKind.Zeus;
             if ((isCopy || isDuplicate) && !hasSelection)
                 return;
             if (isPaste && _clipKind == ClipKind.None)
@@ -242,6 +244,7 @@ namespace Ngj10.EditorTools
             public List<StreamDef> Streams = new List<StreamDef>();
             public List<HazardDef> Hazards = new List<HazardDef>();
             public List<BurnerDef> Burners = new List<BurnerDef>();
+            public List<ZeusDef> Zeuses = new List<ZeusDef>();
         }
 
         private void CopySelected()
@@ -255,8 +258,11 @@ namespace Ngj10.EditorTools
                     clip.Hazards.Add(_level.Hazards[index]);
                 else if (kind == SelKind.Burner)
                     clip.Burners.Add(_level.Burners[index]);
+                else if (kind == SelKind.Zeus)
+                    clip.Zeuses.Add(_level.Zeuses[index]);
             }
-            if (clip.Streams.Count == 0 && clip.Hazards.Count == 0 && clip.Burners.Count == 0)
+            if (clip.Streams.Count == 0 && clip.Hazards.Count == 0
+                && clip.Burners.Count == 0 && clip.Zeuses.Count == 0)
                 return;
             _clipKind = ClipKind.Stream; // any non-None marks the clipboard as filled
             _clipJson = JsonUtility.ToJson(clip);
@@ -308,6 +314,17 @@ namespace Ngj10.EditorTools
                 _selIndex = burners.Count - 1;
             }
             _level.Burners = burners.ToArray();
+
+            var zeuses = new List<ZeusDef>(_level.Zeuses ?? new ZeusDef[0]);
+            foreach (var def in clip.Zeuses)
+            {
+                def.Position += offset;
+                zeuses.Add(def);
+                _multi.Add((SelKind.Zeus, zeuses.Count - 1));
+                _selKind = SelKind.Zeus;
+                _selIndex = zeuses.Count - 1;
+            }
+            _level.Zeuses = zeuses.ToArray();
 
             _clipJson = JsonUtility.ToJson(clip); // positions already offset for the next paste
             Commit();
@@ -361,6 +378,8 @@ namespace Ngj10.EditorTools
                 if (GUI.Button(new Rect(x, row2.y, 90f, RowHeight), "+ Препятствие", EditorStyles.toolbarButton)) AddHazard();
                 x += 92f;
                 if (GUI.Button(new Rect(x, row2.y, 90f, RowHeight), "+ Горелка", EditorStyles.toolbarButton)) AddBurner();
+                x += 92f;
+                if (GUI.Button(new Rect(x, row2.y, 90f, RowHeight), "+ Зевс", EditorStyles.toolbarButton)) AddZeus();
             }
         }
 
@@ -377,6 +396,7 @@ namespace Ngj10.EditorTools
             DrawStreams();
             DrawHazards();
             DrawBurners();
+            DrawZeuses();
             DrawStartGoal();
 
             GUI.EndClip();
@@ -712,6 +732,70 @@ namespace Ngj10.EditorTools
             }
         }
 
+        private void DrawZeuses()
+        {
+            if (_level.Zeuses == null) return;
+            for (int i = 0; i < _level.Zeuses.Length; i++)
+            {
+                ZeusDef def = _level.Zeuses[i];
+                bool selected = IsSelected(SelKind.Zeus, i);
+                Vector2 s = WorldToScreen(def.Position);
+                var color = new Color(1f, 0.92f, 0.2f, selected ? 1f : 0.85f);
+
+                // A dotted bolt line from the anchor to each target area, and the
+                // area's ellipse footprint.
+                if (def.Areas != null)
+                {
+                    foreach (ZeusAreaDef area in def.Areas)
+                    {
+                        if (area == null) continue;
+                        Vector2 c = WorldToScreen(def.Position + area.Offset);
+                        Handles.color = new Color(1f, 0.95f, 0.35f, selected ? 0.9f : 0.5f);
+                        Handles.DrawDottedLine(s, c, 4f);
+                        DrawEllipse(c, area.RadiusX * _pixelsPerUnit, area.RadiusY * _pixelsPerUnit,
+                            new Color(1f, 0.92f, 0.2f, selected ? 0.85f : 0.45f));
+
+                        // On-canvas edit handles for the selected Zeus: centre (move),
+                        // right edge (Radius X), top edge (Radius Y).
+                        if (selected)
+                        {
+                            Vector2 hx = WorldToScreen(def.Position + area.Offset + new Vector2(area.RadiusX, 0f));
+                            Vector2 hy = WorldToScreen(def.Position + area.Offset + new Vector2(0f, area.RadiusY));
+                            DrawHandleDot(c, false, new Color(1f, 0.85f, 0.2f, 1f));
+                            DrawHandleDot(hx, false, new Color(0.4f, 0.85f, 1f, 1f));
+                            DrawHandleDot(hy, false, new Color(0.6f, 1f, 0.5f, 1f));
+                        }
+                    }
+                }
+
+                if (selected)
+                {
+                    Handles.color = Color.white;
+                    Handles.DrawWireDisc(s, Vector3.forward, 7f);
+                }
+                // Anchor: a small ring plus the handle dot.
+                Handles.color = color;
+                Handles.DrawWireDisc(s, Vector3.forward, 5f);
+                DrawHandleDot(s, selected, color);
+                GUI.Label(new Rect(s.x + 8f, s.y - 8f, 90f, 16f), "Зевс" + i);
+            }
+        }
+
+        /// <summary>Outline an axis-aligned ellipse in screen space.</summary>
+        private static void DrawEllipse(Vector2 center, float rx, float ry, Color color)
+        {
+            const int Segments = 32;
+            Handles.color = color;
+            Vector3 prev = center + new Vector2(rx, 0f);
+            for (int i = 1; i <= Segments; i++)
+            {
+                float a = i / (float)Segments * Mathf.PI * 2f;
+                Vector3 p = center + new Vector2(Mathf.Cos(a) * rx, Mathf.Sin(a) * ry);
+                Handles.DrawLine(prev, p);
+                prev = p;
+            }
+        }
+
         private Vector2 ConeEnd(Vector2 originWorld, float angleRad, float length)
         {
             var tip = originWorld + new Vector2(Mathf.Cos(angleRad), Mathf.Sin(angleRad)) * length;
@@ -827,6 +911,10 @@ namespace Ngj10.EditorTools
         private int _dragPointIndex = -1;
         private int _dragConeIndex = -1; // tip handle of a cone on the single-selected burner
 
+        private enum AreaHandle { None, Center, RadiusX, RadiusY }
+        private int _dragAreaIndex = -1;            // area handle on the single-selected Zeus
+        private AreaHandle _dragAreaHandle = AreaHandle.None;
+
         // Set on plain MouseDown over an already-selected element: if the press
         // ends without a drag, the selection collapses to just that element
         // (Explorer-style), otherwise the whole group was dragged.
@@ -876,6 +964,10 @@ namespace Ngj10.EditorTools
                         {
                             _dragging = true; // dragging a cone tip = rotate + lengthen
                         }
+                        else if (!additive && TryPickAreaHandle(local, out _dragAreaIndex, out _dragAreaHandle))
+                        {
+                            _dragging = true; // dragging a Zeus area handle = move / resize
+                        }
                         else if (!additive && TryPickPoint(local, out _dragPointIndex))
                         {
                             _dragging = true; // dragging a waypoint
@@ -897,6 +989,13 @@ namespace Ngj10.EditorTools
                     {
                         _draggedThisPress = true;
                         DragConeTip(e.mousePosition - rect.position);
+                        Repaint();
+                        e.Use();
+                    }
+                    else if (e.button == 0 && _dragging && _dragAreaHandle != AreaHandle.None)
+                    {
+                        _draggedThisPress = true;
+                        DragAreaHandle(e.mousePosition - rect.position);
                         Repaint();
                         e.Use();
                     }
@@ -934,6 +1033,8 @@ namespace Ngj10.EditorTools
                     _dragging = false;
                     _dragPointIndex = -1;
                     _dragConeIndex = -1;
+                    _dragAreaIndex = -1;
+                    _dragAreaHandle = AreaHandle.None;
                     break;
             }
         }
@@ -964,6 +1065,9 @@ namespace Ngj10.EditorTools
             if (_level.Burners != null)
                 for (int i = 0; i < _level.Burners.Length; i++)
                     Consider(_level.Burners[i].Position, SelKind.Burner, i);
+            if (_level.Zeuses != null)
+                for (int i = 0; i < _level.Zeuses.Length; i++)
+                    Consider(_level.Zeuses[i].Position, SelKind.Zeus, i);
 
             // A point element (start/goal/hazard) right under the cursor wins. Otherwise
             // fall through to streams, which pick on the whole path (any point along the
@@ -1133,6 +1237,66 @@ namespace Ngj10.EditorTools
             return origin + new Vector2(Mathf.Cos(rad), Mathf.Sin(rad)) * cone.Length;
         }
 
+        private static Vector2 AreaCenterWorld(ZeusDef zeus, ZeusAreaDef area)
+            => zeus.Position + area.Offset;
+
+        /// <summary>Hit-test the move/resize handles of each area on the single-selected Zeus.</summary>
+        private bool TryPickAreaHandle(Vector2 screenInCanvas, out int areaIndex, out AreaHandle handle)
+        {
+            areaIndex = -1;
+            handle = AreaHandle.None;
+            if (_multi.Count != 1 || _selKind != SelKind.Zeus) return false;
+            ZeusDef zeus = _level.Zeuses[_selIndex];
+            if (zeus.Areas == null) return false;
+
+            float best = 14f; // generous hitbox, same feel as the cone tip
+            AreaHandle hit = AreaHandle.None;
+            int hitIdx = -1;
+
+            void Consider(Vector2 world, AreaHandle h, int idx)
+            {
+                float d = Vector2.Distance(WorldToScreen(world), screenInCanvas);
+                if (d < best) { best = d; hit = h; hitIdx = idx; }
+            }
+
+            for (int i = 0; i < zeus.Areas.Length; i++)
+            {
+                ZeusAreaDef area = zeus.Areas[i];
+                Vector2 center = AreaCenterWorld(zeus, area);
+                Consider(center, AreaHandle.Center, i);
+                Consider(center + new Vector2(area.RadiusX, 0f), AreaHandle.RadiusX, i);
+                Consider(center + new Vector2(0f, area.RadiusY), AreaHandle.RadiusY, i);
+            }
+
+            handle = hit;
+            areaIndex = hitIdx;
+            return handle != AreaHandle.None;
+        }
+
+        /// <summary>Drag a Zeus area handle: centre moves the area, edge handles resize it.</summary>
+        private void DragAreaHandle(Vector2 screenInCanvas)
+        {
+            ZeusDef zeus = _level.Zeuses[_selIndex];
+            ZeusAreaDef area = zeus.Areas[_dragAreaIndex];
+            Vector2 world = ScreenToWorld(screenInCanvas);
+
+            Undo.RecordObject(_level, "Настроить область");
+            switch (_dragAreaHandle)
+            {
+                case AreaHandle.Center:
+                    area.Offset = world - zeus.Position;
+                    break;
+                case AreaHandle.RadiusX:
+                    area.RadiusX = Mathf.Max(0.1f, Mathf.Abs(world.x - AreaCenterWorld(zeus, area).x));
+                    break;
+                case AreaHandle.RadiusY:
+                    area.RadiusY = Mathf.Max(0.1f, Mathf.Abs(world.y - AreaCenterWorld(zeus, area).y));
+                    break;
+            }
+            EditorUtility.SetDirty(_level);
+            RebuildSerialized(); // keep the inspector's SerializedObject in sync with the live edit
+        }
+
         private void DragSelected(Vector2 screenDelta)
         {
             Vector2 worldDelta = new Vector2(screenDelta.x, -screenDelta.y) / _pixelsPerUnit;
@@ -1145,6 +1309,7 @@ namespace Ngj10.EditorTools
                     case SelKind.Goal: _level.Goal += worldDelta; break;
                     case SelKind.Hazard: _level.Hazards[index].Position += worldDelta; break;
                     case SelKind.Burner: _level.Burners[index].Position += worldDelta; break;
+                    case SelKind.Zeus: _level.Zeuses[index].Position += worldDelta; break;
                     case SelKind.Stream: _level.Streams[index].Position += worldDelta; break;
                     case SelKind.KillLine: _level.KillY += worldDelta.y; break;
                 }
@@ -1157,7 +1322,7 @@ namespace Ngj10.EditorTools
         // Deferred inspector action: button handlers must not mutate the array or
         // exit early mid-layout (it desyncs the GUIClip/ScrollView stack). They set
         // this instead; it runs after the layout groups are closed.
-        private enum PendingAction { None, ConvertToPoints, ClearPoints, DeleteStream, DeleteHazard, DeleteBurner, DeleteSelected }
+        private enum PendingAction { None, ConvertToPoints, ClearPoints, DeleteStream, DeleteHazard, DeleteBurner, DeleteZeus, DeleteSelected }
         private PendingAction _pending;
         private int _pendingIndex;
 
@@ -1180,6 +1345,7 @@ namespace Ngj10.EditorTools
                     case SelKind.Stream: DrawStreamInspector(); break;
                     case SelKind.Hazard: DrawHazardInspector(); break;
                     case SelKind.Burner: DrawBurnerInspector(); break;
+                    case SelKind.Zeus: DrawZeusInspector(); break;
                     default: DrawLevelInspector(); break;
                 }
             }
@@ -1196,6 +1362,7 @@ namespace Ngj10.EditorTools
 
             RunPendingAction();
             RunPendingConeEdits();
+            RunPendingAreaEdits();
         }
 
         private void RunPendingAction()
@@ -1207,6 +1374,7 @@ namespace Ngj10.EditorTools
                 case PendingAction.DeleteStream: DeleteStream(_pendingIndex); break;
                 case PendingAction.DeleteHazard: DeleteHazard(_pendingIndex); break;
                 case PendingAction.DeleteBurner: DeleteBurner(_pendingIndex); break;
+                case PendingAction.DeleteZeus: DeleteZeus(_pendingIndex); break;
                 case PendingAction.DeleteSelected: DeleteSelected(); break;
             }
             _pending = PendingAction.None;
@@ -1215,16 +1383,17 @@ namespace Ngj10.EditorTools
         private void DrawMultiInspector()
         {
             var streamIdx = new List<int>();
-            int hazards = 0, burners = 0, other = 0;
+            int hazards = 0, burners = 0, zeuses = 0, other = 0;
             foreach (var (kind, index) in _multi)
             {
                 if (kind == SelKind.Stream) streamIdx.Add(index);
                 else if (kind == SelKind.Hazard) hazards++;
                 else if (kind == SelKind.Burner) burners++;
+                else if (kind == SelKind.Zeus) zeuses++;
                 else other++;
             }
             EditorGUILayout.LabelField($"Выбрано: {_multi.Count}", EditorStyles.boldLabel);
-            EditorGUILayout.LabelField($"потоков {streamIdx.Count}, препятствий {hazards}, горелок {burners}" +
+            EditorGUILayout.LabelField($"потоков {streamIdx.Count}, препятствий {hazards}, горелок {burners}, Зевсов {zeuses}" +
                 (other > 0 ? ", старт/цель" : ""));
             EditorGUILayout.HelpBox(
                 "Тащи — двигать всю группу. Ctrl+C/Ctrl+V — копировать группу. " +
@@ -1278,7 +1447,8 @@ namespace Ngj10.EditorTools
                     _level.Streams[i].Reverse = !_level.Streams[i].Reverse;
                 EditorUtility.SetDirty(_level);
             }
-            if ((streamIdx.Count > 0 || hazards > 0) && GUILayout.Button("Удалить выбранные"))
+            if ((streamIdx.Count > 0 || hazards > 0 || burners > 0 || zeuses > 0)
+                && GUILayout.Button("Удалить выбранные"))
                 _pending = PendingAction.DeleteSelected;
         }
 
@@ -1514,6 +1684,10 @@ namespace Ngj10.EditorTools
         private int _coneAddBurner = -1;
         private int _coneRemoveBurner = -1, _coneRemoveIndex = -1;
 
+        // Same deferred pattern for Zeus area-list edits.
+        private int _areaAddZeus = -1;
+        private int _areaRemoveZeus = -1, _areaRemoveIndex = -1;
+
         private void DrawBurnerInspector()
         {
             EditorGUILayout.LabelField("Горелка " + _selIndex, EditorStyles.boldLabel);
@@ -1588,6 +1762,66 @@ namespace Ngj10.EditorTools
             }
         }
 
+        private void DrawZeusInspector()
+        {
+            EditorGUILayout.LabelField("Зевс " + _selIndex, EditorStyles.boldLabel);
+            SerializedProperty zeuses = _serialized.FindProperty("Zeuses");
+            if (_selIndex < 0 || _selIndex >= zeuses.arraySize)
+            {
+                EditorGUILayout.LabelField("(Зевс не выбран)");
+                return;
+            }
+            SerializedProperty z = zeuses.GetArrayElementAtIndex(_selIndex);
+
+            EditorGUILayout.PropertyField(z.FindPropertyRelative("Position"),
+                new GUIContent("Позиция", "Точка, из которой вылетают молнии."));
+
+            EditorGUILayout.Space();
+            SerializedProperty areas = z.FindPropertyRelative("Areas");
+            EditorGUILayout.LabelField($"Области ({areas.arraySize})", EditorStyles.boldLabel);
+
+            for (int i = 0; i < areas.arraySize; i++)
+            {
+                SerializedProperty area = areas.GetArrayElementAtIndex(i);
+                EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+
+                EditorGUILayout.BeginHorizontal();
+                EditorGUILayout.LabelField("Область " + i, EditorStyles.miniBoldLabel);
+                if (GUILayout.Button("Удалить", GUILayout.Width(70f)))
+                {
+                    _areaRemoveZeus = _selIndex;
+                    _areaRemoveIndex = i;
+                }
+                EditorGUILayout.EndHorizontal();
+
+                EditorGUILayout.PropertyField(area.FindPropertyRelative("Offset"),
+                    new GUIContent("Смещение", "Центр области относительно точки Зевса."));
+                EditorGUILayout.PropertyField(area.FindPropertyRelative("RadiusX"),
+                    new GUIContent("Радиус X", "Горизонтальный радиус эллипса. Равные радиусы = круг."));
+                EditorGUILayout.PropertyField(area.FindPropertyRelative("RadiusY"),
+                    new GUIContent("Радиус Y", "Вертикальный радиус эллипса."));
+                EditorGUILayout.PropertyField(area.FindPropertyRelative("Period"),
+                    new GUIContent("Период, сек", "Сколько секунд между ударами по этой области."));
+                EditorGUILayout.PropertyField(area.FindPropertyRelative("StartDelay"),
+                    new GUIContent("Задержка старта, сек", "Пауза перед самым первым ударом."));
+                EditorGUILayout.PropertyField(area.FindPropertyRelative("FlightTime"),
+                    new GUIContent("Время полёта, сек", "Сколько молния летит от Зевса до области."));
+
+                EditorGUILayout.EndVertical();
+            }
+
+            EditorGUILayout.Space();
+            if (GUILayout.Button("+ Область"))
+                _areaAddZeus = _selIndex;
+
+            EditorGUILayout.Space();
+            if (GUILayout.Button("Удалить Зевса"))
+            {
+                _pending = PendingAction.DeleteZeus;
+                _pendingIndex = _selIndex;
+            }
+        }
+
         /// <summary>Apply deferred cone add/remove after the layout pass closes.</summary>
         private void RunPendingConeEdits()
         {
@@ -1617,6 +1851,38 @@ namespace Ngj10.EditorTools
             _coneAddBurner = -1;
             _coneRemoveBurner = -1;
             _coneRemoveIndex = -1;
+            Repaint();
+        }
+
+        /// <summary>Apply deferred Zeus area add/remove after the layout pass closes.</summary>
+        private void RunPendingAreaEdits()
+        {
+            if (_areaAddZeus < 0 && _areaRemoveZeus < 0)
+                return;
+
+            _serialized.Update();
+            SerializedProperty zeuses = _serialized.FindProperty("Zeuses");
+
+            if (_areaAddZeus >= 0 && _areaAddZeus < zeuses.arraySize)
+            {
+                SerializedProperty areas = zeuses.GetArrayElementAtIndex(_areaAddZeus)
+                    .FindPropertyRelative("Areas");
+                areas.arraySize++; // new element copies the last one's values — fine as a starting point
+            }
+
+            if (_areaRemoveZeus >= 0 && _areaRemoveZeus < zeuses.arraySize)
+            {
+                SerializedProperty areas = zeuses.GetArrayElementAtIndex(_areaRemoveZeus)
+                    .FindPropertyRelative("Areas");
+                if (_areaRemoveIndex >= 0 && _areaRemoveIndex < areas.arraySize)
+                    areas.DeleteArrayElementAtIndex(_areaRemoveIndex);
+            }
+
+            _serialized.ApplyModifiedProperties();
+            EditorUtility.SetDirty(_level);
+            _areaAddZeus = -1;
+            _areaRemoveZeus = -1;
+            _areaRemoveIndex = -1;
             Repaint();
         }
 
@@ -1766,6 +2032,16 @@ namespace Ngj10.EditorTools
             Commit();
         }
 
+        private void AddZeus()
+        {
+            Undo.RecordObject(_level, "Добавить Зевса");
+            var list = new List<ZeusDef>(_level.Zeuses ?? new ZeusDef[0]);
+            list.Add(new ZeusDef { Position = _panWorld });
+            _level.Zeuses = list.ToArray();
+            SetSingleSelection(SelKind.Zeus, list.Count - 1);
+            Commit();
+        }
+
         private void ConvertToCustomPoints(int index)
         {
             Undo.RecordObject(_level, "Превратить поток в путь");
@@ -1817,7 +2093,17 @@ namespace Ngj10.EditorTools
             Commit();
         }
 
-        /// <summary>Delete every selected stream/hazard/burner (multi-selection aware).</summary>
+        private void DeleteZeus(int index)
+        {
+            Undo.RecordObject(_level, "Удалить Зевса");
+            var list = new List<ZeusDef>(_level.Zeuses);
+            list.RemoveAt(index);
+            _level.Zeuses = list.ToArray();
+            SetSingleSelection(SelKind.None, -1);
+            Commit();
+        }
+
+        /// <summary>Delete every selected stream/hazard/burner/zeus (multi-selection aware).</summary>
         private void DeleteSelected()
         {
             Undo.RecordObject(_level, "Удалить выбранные");
@@ -1826,15 +2112,18 @@ namespace Ngj10.EditorTools
             var streamIdx = new List<int>();
             var hazardIdx = new List<int>();
             var burnerIdx = new List<int>();
+            var zeusIdx = new List<int>();
             foreach (var (kind, index) in _multi)
             {
                 if (kind == SelKind.Stream) streamIdx.Add(index);
                 else if (kind == SelKind.Hazard) hazardIdx.Add(index);
                 else if (kind == SelKind.Burner) burnerIdx.Add(index);
+                else if (kind == SelKind.Zeus) zeusIdx.Add(index);
             }
             streamIdx.Sort();
             hazardIdx.Sort();
             burnerIdx.Sort();
+            zeusIdx.Sort();
 
             var streams = new List<StreamDef>(_level.Streams ?? new StreamDef[0]);
             for (int i = streamIdx.Count - 1; i >= 0; i--)
@@ -1850,6 +2139,11 @@ namespace Ngj10.EditorTools
             for (int i = burnerIdx.Count - 1; i >= 0; i--)
                 burners.RemoveAt(burnerIdx[i]);
             _level.Burners = burners.ToArray();
+
+            var zeuses = new List<ZeusDef>(_level.Zeuses ?? new ZeusDef[0]);
+            for (int i = zeusIdx.Count - 1; i >= 0; i--)
+                zeuses.RemoveAt(zeusIdx[i]);
+            _level.Zeuses = zeuses.ToArray();
 
             SetSingleSelection(SelKind.None, -1);
             Commit();
