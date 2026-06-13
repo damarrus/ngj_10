@@ -86,7 +86,7 @@ namespace Ngj10.Gameplay
                 {
                     var generator = stream.GetComponent<StreamShapeGenerator>();
                     generator.Configure(def.Shape, def.Size, def.Size2, def.Count,
-                        def.Turns, def.Seed, def.Reverse);
+                        def.Turns, def.Seed, def.Reverse, def.Scale);
                     generator.Generate();
                 }
 
@@ -96,7 +96,7 @@ namespace Ngj10.Gameplay
 
                 stream.Configure(def.Speed, def.Width, def.ActiveDuration,
                     def.InactiveDuration, def.ReverseInterval, def.Turbulence, def.Grip,
-                    def.SpeedEnd, def.ExitBoost);
+                    def.SpeedEnd, def.ExitBoost, def.Z);
 
                 var visual = stream.GetComponent<StreamFlowVisual>();
                 if (visual != null)

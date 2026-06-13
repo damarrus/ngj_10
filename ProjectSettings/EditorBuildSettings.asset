@@ -11,5 +11,8 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/_Project/Scenes/Game.unity
     guid: 8e90fa0b947a368448670674afac5476
+  - enabled: 0
+    path: Assets/_Project/Scenes/Icarus.unity
+    guid: 135c97d2f781b3445a6d979803e5ab6a
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 2bcd2660ca9b64942af0de543d8d7100, type: 3}

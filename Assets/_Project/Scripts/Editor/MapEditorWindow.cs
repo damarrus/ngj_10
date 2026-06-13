@@ -517,28 +517,37 @@ namespace Ngj10.EditorTools
                 // capture zone. Faint fill colour, drawn under the centre line.
                 DrawWidthBand(world, loop, def.Width, c);
 
-                var screen = new Vector3[wpCount];
-                for (int p = 0; p < wpCount; p++)
-                    screen[p] = WorldToScreen(world[p]);
+                // Rounded centre line: subdivide the raw points with the same Catmull-Rom
+                // the runtime uses, so corners read as smooth curves. Only the line is
+                // subdivided — the band/arrows stay on the raw points, so this adds light
+                // AA line calls (no disc-per-point fill, which is what hurt the canvas).
+                List<Vector2> smooth = StreamShapeBuilder.Smooth(pts, loop, 3);
+                int sCount = smooth.Count + (loop ? 1 : 0);
+                var sWorld = new Vector2[sCount];
+                var sScreen = new Vector3[sCount];
+                for (int p = 0; p < smooth.Count; p++)
+                {
+                    sWorld[p] = def.Position + Rotate(smooth[p], def.Rotation);
+                    sScreen[p] = WorldToScreen(sWorld[p]);
+                }
+                if (loop) { sWorld[smooth.Count] = sWorld[0]; sScreen[smooth.Count] = sScreen[0]; }
+
                 if (selected)
                 {
                     // White underlay so the selection reads instantly.
                     Handles.color = Color.white;
-                    Handles.DrawAAPolyLine(7f, screen);
+                    Handles.DrawAAPolyLine(7f, sScreen);
                 }
 
                 // Centre line segment-by-segment, coloured by flow direction
                 // (up = green, down = red, sideways = yellow).
                 float lineWidth = selected ? 4f : 2f;
-                int lineSegs = loop ? pts.Count : pts.Count - 1;
+                int lineSegs = loop ? smooth.Count : smooth.Count - 1;
                 for (int p = 0; p < lineSegs; p++)
                 {
-                    Vector2 wa = world[p];
-                    Vector2 wb = world[(p + 1) % pts.Count];
-                    Vector2 dir = (wb - wa).normalized;
-                    if (def.Reverse) dir = -dir;
+                    Vector2 dir = (sWorld[p + 1] - sWorld[p]).normalized;
                     Handles.color = DirectionColor(dir);
-                    Handles.DrawAAPolyLine(lineWidth, WorldToScreen(wa), WorldToScreen(wb));
+                    Handles.DrawAAPolyLine(lineWidth, sScreen[p], sScreen[p + 1]);
                 }
 
                 // Direction arrows along the path; arrow length scales with the local
@@ -616,7 +625,6 @@ namespace Ngj10.EditorTools
                 Vector2 a = world[p];
                 Vector2 b = world[(p + 1) % world.Length];
                 Vector2 dir = (b - a).normalized;
-                if (def.Reverse) dir = -dir;
 
                 float t = segs > 1 ? (float)p / (segs - 1) : 0f;
                 float speed = def.SpeedEnd > 0f ? Mathf.Lerp(def.Speed, def.SpeedEnd, t) : def.Speed;
@@ -1426,6 +1434,9 @@ namespace Ngj10.EditorTools
                 GroupFloatRow(streamIdx, "Импульс выхода",
                     "Множитель скорости при складывании крыльев в потоке (1 = без буста).",
                     d => d.ExitBoost, (d, v) => d.ExitBoost = v, 0.1f, 0.1f);
+                GroupFloatRow(streamIdx, "Z (приоритет)",
+                    "Слой захвата: больше Z — несёт он, нижние игнорятся (OLD и NEW).",
+                    d => d.Z, (d, v) => d.Z = v, 1f, float.NegativeInfinity);
             }
 
             EditorGUILayout.Space();
@@ -1532,6 +1543,11 @@ namespace Ngj10.EditorTools
                     "Радиус кругового потока. Число точек кольца растёт вместе с радиусом.", 0.5f, 0.5f);
                 EditorGUILayout.PropertyField(s.FindPropertyRelative("Reverse"),
                     new GUIContent("Реверс", "Развернуть направление течения по кольцу."));
+                if (GUILayout.Button("Превратить в рисованный путь"))
+                {
+                    _pending = PendingAction.ConvertToPoints;
+                    _pendingIndex = _selIndex;
+                }
             }
             else if (def.UsesCustomPoints)
             {
@@ -1557,6 +1573,8 @@ namespace Ngj10.EditorTools
                     new GUIContent("Размер", "Главный размер формы: длина / радиус / ширина."));
                 EditorGUILayout.PropertyField(s.FindPropertyRelative("Size2"),
                     new GUIContent("Размер 2", "Вторичный размер: высота / амплитуда / внутренний радиус."));
+                EditorGUILayout.PropertyField(s.FindPropertyRelative("Scale"),
+                    new GUIContent("Масштаб", "Равномерно масштабирует всю фигуру, не меняя пропорций. Размер/Размер2 задают форму, Масштаб — общий размер. 1 = как есть."));
                 EditorGUILayout.PropertyField(s.FindPropertyRelative("Count"),
                     new GUIContent("Количество", "Число повторов: периоды / ступени / лепестки / витки."));
                 EditorGUILayout.PropertyField(s.FindPropertyRelative("Turns"),
@@ -1595,6 +1613,10 @@ namespace Ngj10.EditorTools
             FloatRow(s.FindPropertyRelative("ExitBoost"), "Импульс выхода",
                 "Множитель скорости в момент складывания крыльев внутри потока. " +
                 "1 = чистый импульс потока, 1.5 = катапульта, меньше 1 = вязкий выход.", 0.1f, 0.1f);
+            FloatRow(s.FindPropertyRelative("Z"), "Z (приоритет)",
+                "Слой захвата. Когда несколько потоков накрывают Икара, несёт тот, у кого Z " +
+                "больше; нижние слои игнорятся. OLD: захватывает один верхний (равные Z — глубже). " +
+                "NEW: блендятся только потоки верхнего слоя.", 1f, float.NegativeInfinity);
 
             EditorGUILayout.Space();
             if (GUILayout.Button("⇄ Развернуть стрелки"))
@@ -2024,9 +2046,11 @@ namespace Ngj10.EditorTools
         {
             Undo.RecordObject(_level, "Превратить поток в путь");
             StreamDef def = _level.Streams[index];
-            List<Vector2> pts = StreamShapeBuilder.Build(def.Shape, def.Size, def.Size2,
-                def.Count, def.Turns, def.Seed, out bool loop);
-            if (def.Reverse) pts.Reverse();
+            // Build(def) routes circle -> ring and bakes Reverse into point order,
+            // so circles convert too and the flow direction survives the conversion.
+            List<Vector2> pts = StreamShapeBuilder.Build(def, out bool loop);
+            def.IsCircle = false;   // a baked ring is now just an editable closed path
+            def.Reverse = false;    // Build already baked Reverse into the point order
             def.CustomPoints = pts.ToArray();
             def.CustomLoop = loop;
             Commit();

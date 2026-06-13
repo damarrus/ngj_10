@@ -278,7 +278,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c0366a4d24d2eb348addd1f06fd756fe, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Ngj10::Ngj10.Gameplay.IcarusController
-  _flightModel: 0
+  _flightModel: 1
   _gravity: 17.5
   _openFallTerminal: 2.4
   _openDragX: 1.6
