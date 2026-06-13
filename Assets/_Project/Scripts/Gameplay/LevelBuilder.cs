@@ -96,7 +96,7 @@ namespace Ngj10.Gameplay
 
                 stream.Configure(def.Speed, def.Width, def.ActiveDuration,
                     def.InactiveDuration, def.ReverseInterval, def.Turbulence, def.Grip,
-                    def.SpeedEnd, def.ExitBoost, def.Z);
+                    def.SpeedEnd, def.ExitBoost, def.Z, def.CatchRate);
 
                 var visual = stream.GetComponent<StreamFlowVisual>();
                 if (visual != null)

@@ -39,6 +39,15 @@ namespace Ngj10.Gameplay
 
         [Header("Stream field")]
         [SerializeField] private float _centeringMaxSpeed = 3.6f; // cap on the centering pull
+
+        [Header("Legacy model: wings-closed dive")]
+        [Tooltip("Downward pull while rising (v.y > 0). Low keeps the stream's launch inertia so he flies out.")]
+        [SerializeField] private float _legacyDiveRiseGravity = 7.85f; // 0.8*9.81 = original old
+        [Tooltip("Downward pull while falling (v.y < 0). High = snappy plummet.")]
+        [SerializeField] private float _legacyDiveFallGravity = 7.85f; // 0.8*9.81 = original old
+        [Tooltip("Max fall speed, u/s. 0 = uncapped (original old behaviour).")]
+        [SerializeField] private float _legacyDiveTerminal;            // 0 = no cap
+
         [SerializeField] private SpriteRenderer _wingsVisual;
 
         public bool WingsOpen { get; private set; } = true;
@@ -168,7 +177,7 @@ namespace Ngj10.Gameplay
                     var perp = new Vector2(-sample.Tangent.y, sample.Tangent.x);
                     desired += perp * (CurrentStream.Turbulence * Mathf.Sin(Time.time * 3.7f));
                 }
-                float blend = 1f - Mathf.Exp(-CurrentStream.Grip * 2f * dt);
+                float blend = 1f - Mathf.Exp(-CurrentStream.CatchRate * 2f * dt);
                 v = Vector2.Lerp(v, desired, blend);
             }
             else if (WingsOpen)
@@ -179,8 +188,12 @@ namespace Ngj10.Gameplay
             }
             else
             {
-                // Ballistic dive, no drag, no terminal.
-                v.y -= 0.8f * 9.81f * dt;
+                // Ballistic dive: light gravity while rising keeps the stream's launch
+                // inertia (he flies out), heavier while falling makes the descent snappy.
+                float g = v.y > 0f ? _legacyDiveRiseGravity : _legacyDiveFallGravity;
+                v.y -= g * dt;
+                if (_legacyDiveTerminal > 0f && v.y < -_legacyDiveTerminal)
+                    v.y = -_legacyDiveTerminal;
             }
 
             Body.linearVelocity = v;
@@ -318,8 +331,8 @@ namespace Ngj10.Gameplay
                     target += perp * (strongest.Turbulence * Mathf.Sin(Time.time * 3.7f));
                 }
 
-                // Grip 3 reproduces the prototype's catch rate of 10.
-                float catchRate = strongest.Grip * 3.33f;
+                // CatchRate 3 reproduces the prototype's catch rate of 10.
+                float catchRate = strongest.CatchRate * 3.33f;
                 float blend = 1f - Mathf.Exp(-catchRate * Mathf.Min(influence, 1f) * dt);
                 v = Vector2.Lerp(v, target, blend);
 

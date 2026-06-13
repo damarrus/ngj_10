@@ -99,10 +99,15 @@ namespace Ngj10.Gameplay
         public float ReverseInterval;
         public float Turbulence;
 
-        /// <summary>How tightly the stream holds Icarus: pull toward the centerline
-        /// and how fast his velocity converges to the flow. 3 = default feel,
-        /// 6-10 = rails that survive sharp bends at high speed, 1 = loose river.</summary>
+        /// <summary>Centering pull toward the path axis. 3 = default, 6-10 = rails that
+        /// keep Icarus glued to the line through sharp bends, 1 = loose river that lets
+        /// him drift off the axis.</summary>
         public float Grip = 3f;
+
+        /// <summary>How fast Icarus's velocity converges to the flow speed/direction,
+        /// independent of the axis pull. Default 10 = near-instant snap (~0.15s to flow
+        /// speed). 0 = follow Grip (legacy). Lower = sluggish, momentum lingers.</summary>
+        public float CatchRate = 10f;
 
         /// <summary>Exit impulse multiplier: applied to the player's velocity the
         /// moment he folds his wings while carried by this stream. 1 = plain

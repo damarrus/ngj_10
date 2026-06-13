@@ -47,6 +47,7 @@ MonoBehaviour:
     ReverseInterval: 0
     Turbulence: 3
     Grip: 3
+    CatchRate: 0
     ExitBoost: 1
     Z: 0
   - Position: {x: -17.972874, y: 13.20134}
@@ -74,6 +75,7 @@ MonoBehaviour:
     ReverseInterval: 0
     Turbulence: 2
     Grip: 3
+    CatchRate: 0
     ExitBoost: 1
     Z: 0
   - Position: {x: -3.9002552, y: 18.353071}
@@ -106,6 +108,7 @@ MonoBehaviour:
     ReverseInterval: 0
     Turbulence: 0
     Grip: 4
+    CatchRate: 0
     ExitBoost: 1
     Z: 0
   - Position: {x: 3.7257726, y: 34.23053}
@@ -134,6 +137,7 @@ MonoBehaviour:
     ReverseInterval: 0
     Turbulence: 0
     Grip: 5
+    CatchRate: 0
     ExitBoost: 1
     Z: 0
   - Position: {x: 4.2432013, y: 42.154293}
@@ -161,6 +165,7 @@ MonoBehaviour:
     ReverseInterval: 0
     Turbulence: 3
     Grip: 3
+    CatchRate: 0
     ExitBoost: 1
     Z: 0
   - Position: {x: 2.4492297, y: 43.66923}
@@ -188,6 +193,7 @@ MonoBehaviour:
     ReverseInterval: 0
     Turbulence: 3
     Grip: 3
+    CatchRate: 0
     ExitBoost: 1
     Z: 0
   - Position: {x: 0.8845198, y: 52.367496}
@@ -219,6 +225,7 @@ MonoBehaviour:
     ReverseInterval: 0
     Turbulence: 3
     Grip: 3
+    CatchRate: 0
     ExitBoost: 1
     Z: 0
   - Position: {x: -4.7871904, y: 30.819504}
@@ -246,6 +253,7 @@ MonoBehaviour:
     ReverseInterval: 0
     Turbulence: 3
     Grip: 3
+    CatchRate: 0
     ExitBoost: 1
     Z: 0
   - Position: {x: 8.079382, y: 39.2553}
@@ -283,6 +291,7 @@ MonoBehaviour:
     ReverseInterval: 0
     Turbulence: 3
     Grip: 5
+    CatchRate: 0
     ExitBoost: 1
     Z: 0
   - Position: {x: -8.648685, y: 38.806187}
@@ -320,6 +329,7 @@ MonoBehaviour:
     ReverseInterval: 0
     Turbulence: 3
     Grip: 5
+    CatchRate: 0
     ExitBoost: 1
     Z: 0
   - Position: {x: 3.8581393, y: 80.47142}
@@ -369,6 +379,7 @@ MonoBehaviour:
     ReverseInterval: 0
     Turbulence: 0
     Grip: 5
+    CatchRate: 0
     ExitBoost: 1
     Z: 0
   - Position: {x: -6.4798326, y: 73.96536}
@@ -406,6 +417,7 @@ MonoBehaviour:
     ReverseInterval: 0
     Turbulence: 3
     Grip: 2
+    CatchRate: 0
     ExitBoost: 1
     Z: 0
   - Position: {x: 8.2851, y: -12.281797}
@@ -432,6 +444,7 @@ MonoBehaviour:
     ReverseInterval: 0
     Turbulence: 3
     Grip: 4
+    CatchRate: 0
     ExitBoost: 1
     Z: 0
   - Position: {x: 5.7870917, y: -11.006141}
@@ -458,6 +471,7 @@ MonoBehaviour:
     ReverseInterval: 0
     Turbulence: 3
     Grip: 4
+    CatchRate: 0
     ExitBoost: 1.2
     Z: 0
   - Position: {x: -5.800847, y: -13.382045}
@@ -484,6 +498,7 @@ MonoBehaviour:
     ReverseInterval: 0
     Turbulence: 3
     Grip: 4
+    CatchRate: 0
     ExitBoost: 1
     Z: 0
   - Position: {x: -5.5213184, y: -11.203741}
@@ -510,6 +525,7 @@ MonoBehaviour:
     ReverseInterval: 0
     Turbulence: 3
     Grip: 7
+    CatchRate: 0
     ExitBoost: 1
     Z: 0
   - Position: {x: 10.041318, y: -11.584675}
@@ -536,6 +552,7 @@ MonoBehaviour:
     ReverseInterval: 0
     Turbulence: 3
     Grip: 4
+    CatchRate: 0
     ExitBoost: 1
     Z: 0
   - Position: {x: 2.1624892, y: -11.56937}
@@ -562,6 +579,7 @@ MonoBehaviour:
     ReverseInterval: 0
     Turbulence: 3
     Grip: 4
+    CatchRate: 0
     ExitBoost: 1
     Z: 0
   - Position: {x: 1.2640884, y: -10.751935}
@@ -588,6 +606,7 @@ MonoBehaviour:
     ReverseInterval: 0
     Turbulence: 3
     Grip: 4
+    CatchRate: 0
     ExitBoost: 1
     Z: 0
   - Position: {x: 3.9865208, y: -10.670174}
@@ -614,6 +633,7 @@ MonoBehaviour:
     ReverseInterval: 0
     Turbulence: 3
     Grip: 4
+    CatchRate: 0
     ExitBoost: 1
     Z: 0
   - Position: {x: 20.169611, y: -9.027506}
@@ -640,6 +660,7 @@ MonoBehaviour:
     ReverseInterval: 0
     Turbulence: 3
     Grip: 4
+    CatchRate: 0
     ExitBoost: 1
     Z: 0
   - Position: {x: 4.632132, y: -12.422374}
@@ -666,6 +687,7 @@ MonoBehaviour:
     ReverseInterval: 0
     Turbulence: 3
     Grip: 4
+    CatchRate: 0
     ExitBoost: 1
     Z: 0
   - Position: {x: 12.00762, y: -12.689821}
@@ -692,6 +714,7 @@ MonoBehaviour:
     ReverseInterval: 0
     Turbulence: 3
     Grip: 4
+    CatchRate: 0
     ExitBoost: 1
     Z: 0
   - Position: {x: 6.0224237, y: -14.202965}
@@ -718,6 +741,7 @@ MonoBehaviour:
     ReverseInterval: 0
     Turbulence: 3
     Grip: 4
+    CatchRate: 0
     ExitBoost: 1
     Z: 0
   - Position: {x: 8.634722, y: -10.585469}
@@ -744,6 +768,7 @@ MonoBehaviour:
     ReverseInterval: 0
     Turbulence: 3
     Grip: 4
+    CatchRate: 0
     ExitBoost: 1
     Z: 0
   - Position: {x: 6.697019, y: -9.567957}
@@ -770,6 +795,7 @@ MonoBehaviour:
     ReverseInterval: 0
     Turbulence: 3
     Grip: 4
+    CatchRate: 0
     ExitBoost: 1
     Z: 0
   - Position: {x: 22.460367, y: -11.148723}
@@ -796,6 +822,7 @@ MonoBehaviour:
     ReverseInterval: 0
     Turbulence: 3
     Grip: 4
+    CatchRate: 0
     ExitBoost: 1
     Z: 0
   - Position: {x: 14.265424, y: -15.876546}
@@ -822,6 +849,7 @@ MonoBehaviour:
     ReverseInterval: 0
     Turbulence: 3
     Grip: 4
+    CatchRate: 0
     ExitBoost: 1
     Z: 0
   - Position: {x: 3.8497295, y: 3.3793445}
@@ -848,6 +876,7 @@ MonoBehaviour:
     ReverseInterval: 0
     Turbulence: 3
     Grip: 4
+    CatchRate: 0
     ExitBoost: 1
     Z: 0
   - Position: {x: -5.5747766, y: 2.845777}
@@ -874,6 +903,7 @@ MonoBehaviour:
     ReverseInterval: 0
     Turbulence: 3
     Grip: 7
+    CatchRate: 0
     ExitBoost: 1
     Z: 0
   - Position: {x: -5.937638, y: 0.66747606}
@@ -900,6 +930,7 @@ MonoBehaviour:
     ReverseInterval: 0
     Turbulence: 3
     Grip: 4
+    CatchRate: 0
     ExitBoost: 1
     Z: 0
   - Position: {x: 1.1272967, y: 3.297583}
@@ -926,6 +957,7 @@ MonoBehaviour:
     ReverseInterval: 0
     Turbulence: 3
     Grip: 4
+    CatchRate: 0
     ExitBoost: 1
     Z: 0
   - Position: {x: 5.660934, y: 3.0221105}
@@ -952,6 +984,7 @@ MonoBehaviour:
     ReverseInterval: 0
     Turbulence: 3
     Grip: 4
+    CatchRate: 0
     ExitBoost: 1.2
     Z: 0
   - Position: {x: 4.4953413, y: 1.6271462}
@@ -978,6 +1011,7 @@ MonoBehaviour:
     ReverseInterval: 0
     Turbulence: 3
     Grip: 4
+    CatchRate: 0
     ExitBoost: 1
     Z: 0
   - Position: {x: 6.5602283, y: 4.481561}
@@ -1004,6 +1038,7 @@ MonoBehaviour:
     ReverseInterval: 0
     Turbulence: 3
     Grip: 4
+    CatchRate: 0
     ExitBoost: 1
     Z: 0
   - Position: {x: 8.4173, y: 3.3834186}
@@ -1030,6 +1065,7 @@ MonoBehaviour:
     ReverseInterval: 0
     Turbulence: 3
     Grip: 4
+    CatchRate: 0
     ExitBoost: 1
     Z: 0
   - Position: {x: 14.107365, y: -1.8482914}
@@ -1056,6 +1092,7 @@ MonoBehaviour:
     ReverseInterval: 0
     Turbulence: 3
     Grip: 4
+    CatchRate: 0
     ExitBoost: 1
     Z: 0
   - Position: {x: 5.885633, y: -0.1534442}
@@ -1082,6 +1119,7 @@ MonoBehaviour:
     ReverseInterval: 0
     Turbulence: 3
     Grip: 4
+    CatchRate: 0
     ExitBoost: 1
     Z: 0
   - Position: {x: 8.134622, y: 1.7677214}
@@ -1108,6 +1146,7 @@ MonoBehaviour:
     ReverseInterval: 0
     Turbulence: 3
     Grip: 4
+    CatchRate: 0
     ExitBoost: 1
     Z: 0
   - Position: {x: 9.081052, y: 3.274611}
@@ -1134,6 +1173,7 @@ MonoBehaviour:
     ReverseInterval: 0
     Turbulence: 3
     Grip: 4
+    CatchRate: 0
     ExitBoost: 1
     Z: 0
   - Position: {x: 11.870829, y: 1.3596982}
@@ -1160,6 +1200,7 @@ MonoBehaviour:
     ReverseInterval: 0
     Turbulence: 3
     Grip: 4
+    CatchRate: 0
     ExitBoost: 1
     Z: 0
   - Position: {x: 20.03282, y: 5.022012}
@@ -1186,6 +1227,7 @@ MonoBehaviour:
     ReverseInterval: 0
     Turbulence: 3
     Grip: 4
+    CatchRate: 0
     ExitBoost: 1
     Z: 0
   - Position: {x: 22.510239, y: 3.0449271}
@@ -1212,6 +1254,7 @@ MonoBehaviour:
     ReverseInterval: 0
     Turbulence: 3
     Grip: 4
+    CatchRate: 0
     ExitBoost: 1
     Z: 0
   - Position: {x: 2.7094986, y: 0.31530505}
@@ -1238,6 +1281,7 @@ MonoBehaviour:
     ReverseInterval: 0
     Turbulence: 3
     Grip: 4
+    CatchRate: 0
     ExitBoost: 1
     Z: 0
   - Position: {x: 87.90033, y: -6.7546496}
@@ -1262,9 +1306,10 @@ MonoBehaviour:
     ReverseInterval: 0
     Turbulence: 2
     Grip: 4
+    CatchRate: 0
     ExitBoost: 1
     Z: 2
-  - Position: {x: 64.28843, y: -7.5195417}
+  - Position: {x: 64.30775, y: -7.5195417}
     Rotation: 110
     CustomPoints: []
     CustomLoop: 0
@@ -1286,6 +1331,7 @@ MonoBehaviour:
     ReverseInterval: 0
     Turbulence: 2
     Grip: 3
+    CatchRate: 10
     ExitBoost: 1
     Z: 0
   - Position: {x: 69.338974, y: -5.6782203}
@@ -1310,6 +1356,7 @@ MonoBehaviour:
     ReverseInterval: 0
     Turbulence: 2
     Grip: 3
+    CatchRate: 10
     ExitBoost: 1
     Z: 1
   - Position: {x: 66.07632, y: -6.9901986}
@@ -1336,6 +1383,7 @@ MonoBehaviour:
     ReverseInterval: 0
     Turbulence: 2
     Grip: 3
+    CatchRate: 10
     ExitBoost: 1
     Z: 0
   - Position: {x: 76.10848, y: -6.5372853}
@@ -1360,6 +1408,7 @@ MonoBehaviour:
     ReverseInterval: 0
     Turbulence: 2
     Grip: 3
+    CatchRate: 10
     ExitBoost: 1
     Z: 1
   - Position: {x: 69.67278, y: -0.14973247}
@@ -1386,6 +1435,7 @@ MonoBehaviour:
     ReverseInterval: 0
     Turbulence: 0
     Grip: 3
+    CatchRate: 10
     ExitBoost: 1
     Z: 1
   - Position: {x: 60.036358, y: 9.336672}
@@ -1412,6 +1462,7 @@ MonoBehaviour:
     ReverseInterval: 0
     Turbulence: 0
     Grip: 3
+    CatchRate: 10
     ExitBoost: 1
     Z: 0
   - Position: {x: 56.742844, y: 8.200505}
@@ -1438,13 +1489,14 @@ MonoBehaviour:
     ReverseInterval: 0
     Turbulence: 0
     Grip: 3
+    CatchRate: 10
     ExitBoost: 1
     Z: 0
-  - Position: {x: 67.942276, y: -8.619759}
+  - Position: {x: 67.91411, y: -8.619759}
     Rotation: 0
     CustomPoints:
     - {x: 1.2133229, y: -8.392304}
-    - {x: 1.26418, y: -4.0553775}
+    - {x: 1.3148456, y: -3.8273826}
     CustomLoop: 0
     IsCircle: 0
     CircleRadius: 4
@@ -1464,6 +1516,7 @@ MonoBehaviour:
     ReverseInterval: 0
     Turbulence: 0
     Grip: 3
+    CatchRate: 10
     ExitBoost: 1
     Z: 0
   - Position: {x: 63.450363, y: 3.3379214}
@@ -1491,6 +1544,7 @@ MonoBehaviour:
     ReverseInterval: 0
     Turbulence: 0
     Grip: 3
+    CatchRate: 10
     ExitBoost: 1
     Z: 1
   - Position: {x: 64.31326, y: 3.5959077}
@@ -1515,6 +1569,7 @@ MonoBehaviour:
     ReverseInterval: 0
     Turbulence: 0
     Grip: 3
+    CatchRate: 10
     ExitBoost: 1
     Z: 0
   - Position: {x: 65.5815, y: 11.244247}
@@ -1541,6 +1596,7 @@ MonoBehaviour:
     ReverseInterval: 0
     Turbulence: 0
     Grip: 3
+    CatchRate: 10
     ExitBoost: 1
     Z: 2
   - Position: {x: 71.86732, y: 7.0434217}
@@ -1568,6 +1624,7 @@ MonoBehaviour:
     ReverseInterval: 0
     Turbulence: 0
     Grip: 3
+    CatchRate: 10
     ExitBoost: 1
     Z: 1
   - Position: {x: 66.33624, y: 20.76743}
@@ -1592,6 +1649,7 @@ MonoBehaviour:
     ReverseInterval: 0
     Turbulence: 0
     Grip: 3
+    CatchRate: 10
     ExitBoost: 1
     Z: 0
   - Position: {x: 73.568886, y: 12.010204}
@@ -1619,6 +1677,7 @@ MonoBehaviour:
     ReverseInterval: 0
     Turbulence: 0
     Grip: 3
+    CatchRate: 10
     ExitBoost: 1
     Z: 2
   - Position: {x: 64.20159, y: 12.91786}
@@ -1643,6 +1702,7 @@ MonoBehaviour:
     ReverseInterval: 0
     Turbulence: 2
     Grip: 3
+    CatchRate: 10
     ExitBoost: 1
     Z: 1
   Hazards: []
@@ -1657,4 +1717,5 @@ MonoBehaviour:
       OnDuration: 1.5
       OffDuration: 1
       PhaseOffset: 0
+  Zeuses: []
   StartStreamIndex: 0

@@ -17,7 +17,8 @@ namespace Ngj10.Gameplay
         [SerializeField] private float _inactiveDuration; // pulse: seconds off
         [SerializeField] private float _reverseInterval;  // flips flow direction every N seconds (0 = never)
         [SerializeField] private float _turbulence;       // perpendicular wobble amplitude
-        [SerializeField] private float _grip = 3f;        // hold strength: centering pull + velocity convergence
+        [SerializeField] private float _grip = 3f;        // centering pull toward the path axis
+        [SerializeField] private float _catchRate;        // velocity-convergence speed (0 = follow grip)
         [SerializeField] private float _speedEnd;         // linear ramp target at the path end (0 = constant)
         [SerializeField] private float _exitBoost = 1f;   // velocity multiplier on wings-fold exit
         [SerializeField] private float _z;                // Legacy-model capture priority (higher wins)
@@ -27,6 +28,11 @@ namespace Ngj10.Gameplay
         public float Width => _width;
         public float Turbulence => _turbulence;
         public float Grip => _grip;
+
+        /// <summary>How fast Icarus's velocity converges to the flow. 0 = use Grip
+        /// (legacy: the two were one dial), otherwise tuned independently of the axis pull.</summary>
+        public float CatchRate => _catchRate > 0f ? _catchRate : _grip;
+
         public float ExitBoost => _exitBoost;
         public float Z => _z;
         public float Length { get; private set; }
@@ -155,7 +161,7 @@ namespace Ngj10.Gameplay
         /// <summary>Apply runtime parameters from level data (loop is set by the shape generator).</summary>
         public void Configure(float speed, float width, float activeDuration,
             float inactiveDuration, float reverseInterval, float turbulence, float grip = 3f,
-            float speedEnd = 0f, float exitBoost = 1f, float z = 0f)
+            float speedEnd = 0f, float exitBoost = 1f, float z = 0f, float catchRate = 0f)
         {
             _speed = speed;
             _width = width;
@@ -167,6 +173,7 @@ namespace Ngj10.Gameplay
             _speedEnd = speedEnd;
             _exitBoost = exitBoost;
             _z = z;
+            _catchRate = catchRate;
         }
 
         private void BuildCache()
