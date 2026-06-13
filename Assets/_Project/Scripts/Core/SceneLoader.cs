@@ -14,8 +14,6 @@ namespace Ngj10.Core
             SceneManager.LoadScene(sceneName);
         }
 
-        public static void LoadGame() => Load(SceneNames.Game);
-
         public static void ReloadCurrent()
         {
             Load(SceneManager.GetActiveScene().name);

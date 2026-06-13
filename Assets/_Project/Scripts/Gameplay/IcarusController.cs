@@ -97,11 +97,14 @@ namespace Ngj10.Gameplay
 
         private void Update()
         {
+#if UNITY_EDITOR
+            // Debug-only flight-model switch — not exposed in builds.
             if (Input.GetKeyDown(KeyCode.T))
             {
                 _flightModel = _flightModel == FlightModel.Field ? FlightModel.Legacy : FlightModel.Field;
                 Debug.Log("[Icarus] Flight model: " + _flightModel);
             }
+#endif
 
             // World frozen (title screen / menu freezes via Time.timeScale = 0): the
             // player isn't flying yet, so menu clicks must not drive the wings or fire
