@@ -22,18 +22,21 @@ namespace Ngj10.Gameplay
             SetAlpha(0f);
         }
 
-        /// <summary>Fade to fully opaque.</summary>
-        public IEnumerator FadeOut() => FadeTo(1f);
+        /// <summary>Fade to fully opaque. Optional duration overrides the default.</summary>
+        public IEnumerator FadeOut(float duration = -1f) => FadeTo(1f, duration);
 
-        /// <summary>Fade back to fully transparent.</summary>
-        public IEnumerator FadeIn() => FadeTo(0f);
+        /// <summary>Fade back to fully transparent. Optional duration overrides the default.</summary>
+        public IEnumerator FadeIn(float duration = -1f) => FadeTo(0f, duration);
 
-        private IEnumerator FadeTo(float target)
+        private IEnumerator FadeTo(float target, float duration)
         {
+            if (duration < 0f)
+                duration = _fadeDuration;
+
             float start = _image.color.a;
-            for (float t = 0f; t < _fadeDuration; t += Time.unscaledDeltaTime)
+            for (float t = 0f; t < duration; t += Time.unscaledDeltaTime)
             {
-                SetAlpha(Mathf.Lerp(start, target, t / _fadeDuration));
+                SetAlpha(Mathf.Lerp(start, target, t / duration));
                 yield return null;
             }
             SetAlpha(target);

@@ -41,6 +41,14 @@ namespace Ngj10.Gameplay
         [SerializeField] private float _centeringMaxSpeed = 3.6f; // cap on the centering pull
         [SerializeField] private SpriteRenderer _wingsVisual;
 
+        [Header("Facing")]
+        [Tooltip("Body sprite points along +X at 0°; offset corrects other rest orientations.")]
+        [SerializeField] private float _facingAngleOffset = 0f;
+        [Tooltip("Below this speed (u/s) keep the last heading — no spin at near-zero velocity.")]
+        [SerializeField] private float _facingMinSpeed = 0.15f;
+        [Tooltip("Heading turn rate (deg/s). 0 = snap instantly to velocity.")]
+        [SerializeField] private float _facingTurnSpeed = 540f;
+
         public bool WingsOpen { get; private set; } = true;
 
         /// <summary>Strongest stream currently influencing him (null when free).</summary>
@@ -95,6 +103,12 @@ namespace Ngj10.Gameplay
                 Debug.Log("[Icarus] Flight model: " + _flightModel);
             }
 
+            // World frozen (title screen / menu freezes via Time.timeScale = 0): the
+            // player isn't flying yet, so menu clicks must not drive the wings or fire
+            // the flap SFX. No gameplay pause exists, so timeScale 0 == menu up.
+            if (Time.timeScale == 0f)
+                return;
+
             // Shock holds the wings folded and deaf to input until it expires.
             if (_wingBlock > 0f)
             {
@@ -127,6 +141,24 @@ namespace Ngj10.Gameplay
                 FixedUpdateField();
             else
                 FixedUpdateLegacy();
+
+            FaceVelocity();
+        }
+
+        /// <summary>Rotate the body to point along the velocity vector. Below
+        /// <see cref="_facingMinSpeed"/> the heading is held so he doesn't spin at rest.</summary>
+        private void FaceVelocity()
+        {
+            Vector2 v = Body.linearVelocity;
+            if (v.sqrMagnitude < _facingMinSpeed * _facingMinSpeed)
+                return;
+
+            float target = Mathf.Atan2(v.y, v.x) * Mathf.Rad2Deg + _facingAngleOffset;
+            float current = Body.rotation;
+            float next = _facingTurnSpeed > 0f
+                ? Mathf.MoveTowardsAngle(current, target, _facingTurnSpeed * Time.fixedDeltaTime)
+                : target;
+            Body.MoveRotation(next);
         }
 
         private void FixedUpdateField()
@@ -349,14 +381,33 @@ namespace Ngj10.Gameplay
             CurrentStream = null;
             _waitingForInput = true;
             _wingBlock = 0f;
-            SetWings(false);
+            // Fold silently: a respawn/park is not a player wing gesture, so it must
+            // not fire the wing SFX (would chirp behind the title and on every death
+            // respawn). The trail is cleared so the teleport draws no streak — that
+            // line was the "Icarus flew in from somewhere" artifact.
+            SetWings(false, silent: true);
+            ClearTrail();
             if (TryGetComponent(out BurnState burn))
                 burn.ResetHeat();
             if (TryGetComponent(out ShockState shock))
                 shock.ResetShock();
         }
 
-        private void SetWings(bool open)
+        private TrailRenderer _trail;
+        private bool _trailResolved;
+
+        private void ClearTrail()
+        {
+            if (!_trailResolved)
+            {
+                _trail = GetComponentInChildren<TrailRenderer>(true);
+                _trailResolved = true;
+            }
+            if (_trail != null)
+                _trail.Clear();
+        }
+
+        private void SetWings(bool open, bool silent = false)
         {
             // Folding wings while carried: the stream's exit boost multiplies the
             // launch velocity — per-stream catapult feel.
@@ -365,7 +416,8 @@ namespace Ngj10.Gameplay
 
             WingsOpen = open;
             ApplyWingsVisual();
-            WingsToggled?.Invoke(open);
+            if (!silent)
+                WingsToggled?.Invoke(open);
         }
 
         private void ApplyWingsVisual()

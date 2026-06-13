@@ -19,10 +19,11 @@ namespace Ngj10.Core.Achievements
         private static AchievementManager _instance;
 
         /// <summary>
-        /// Persistent instance. Boot creates the full stack explicitly; this lazy
-        /// fallback also spawns it (engine + toast + list UI on one GameObject)
-        /// the first time it's needed when Game is started directly (no Boot) —
-        /// common in the Editor. Always non-null.
+        /// Persistent instance. Lazy fallback spawns the engine plus the unlock toast
+        /// on one GameObject the first time it's needed — covers starting any scene
+        /// directly without a Boot scene (common in the Editor). The in-menu browser
+        /// (<see cref="AchievementsMenuView"/>) lives on the title panel, not here, so
+        /// it isn't part of this stack. Always non-null.
         /// </summary>
         public static AchievementManager Instance
         {
@@ -33,7 +34,6 @@ namespace Ngj10.Core.Achievements
                     var go = new GameObject("Achievements");
                     go.AddComponent<AchievementManager>(); // Awake sets _instance
                     go.AddComponent<AchievementToast>();
-                    go.AddComponent<AchievementListUI>();
                 }
 
                 return _instance;
@@ -42,6 +42,15 @@ namespace Ngj10.Core.Achievements
 
         private const string ProgressPrefix = "ach.progress.";
         private const string UnlockedPrefix = "ach.unlocked.";
+
+        [Tooltip("TEMP off for visual testing: when false, progress/unlocks live only in " +
+                 "memory (reset every run) and nothing is read from or written to PlayerPrefs.")]
+        [SerializeField] private bool _persist = false;
+
+        // In-memory store used while _persist is off — wiped on every domain reload /
+        // play, so the toast and grid can be retriggered fresh each test run.
+        private readonly Dictionary<string, int> _memProgress = new Dictionary<string, int>();
+        private readonly HashSet<string> _memUnlocked = new HashSet<string>();
 
         /// <summary>Raised once, the moment an achievement unlocks.</summary>
         public event Action<AchievementDefinition> OnUnlocked;
@@ -149,11 +158,31 @@ namespace Ngj10.Core.Achievements
 
         // --- Queries (for UI) ------------------------------------------------
 
-        public bool IsUnlocked(string id) => PlayerPrefs.GetInt(UnlockedPrefix + id, 0) == 1;
+        public bool IsUnlocked(string id) => _persist
+            ? PlayerPrefs.GetInt(UnlockedPrefix + id, 0) == 1
+            : _memUnlocked.Contains(id);
 
-        public int GetProgress(string id) => PlayerPrefs.GetInt(ProgressPrefix + id, 0);
+        public int GetProgress(string id) => _persist
+            ? PlayerPrefs.GetInt(ProgressPrefix + id, 0)
+            : (_memProgress.TryGetValue(id, out var v) ? v : 0);
 
         public bool TryGet(string id, out AchievementDefinition def) => _byId.TryGetValue(id, out def);
+
+        /// <summary>How many achievements are currently unlocked. The leaderboard
+        /// reports this as one of the ranked fields.</summary>
+        public int UnlockedCount
+        {
+            get
+            {
+                int count = 0;
+                foreach (var id in _byId.Keys)
+                {
+                    if (IsUnlocked(id))
+                        count++;
+                }
+                return count;
+            }
+        }
 
         /// <summary>Wipe all achievement save data. Handy for testing.</summary>
         public void ResetAll()
@@ -164,6 +193,8 @@ namespace Ngj10.Core.Achievements
                 PlayerPrefs.DeleteKey(ProgressPrefix + id);
             }
             PlayerPrefs.Save();
+            _memProgress.Clear();
+            _memUnlocked.Clear();
         }
 
         // --- Internals -------------------------------------------------------
@@ -175,16 +206,30 @@ namespace Ngj10.Core.Achievements
                 return;
             }
 
-            PlayerPrefs.SetInt(UnlockedPrefix + def.Id, 1);
-            PlayerPrefs.Save();
+            if (_persist)
+            {
+                PlayerPrefs.SetInt(UnlockedPrefix + def.Id, 1);
+                PlayerPrefs.Save();
+            }
+            else
+            {
+                _memUnlocked.Add(def.Id);
+            }
             Debug.Log($"[Achievements] Unlocked '{def.Id}' — {def.Title}");
             OnUnlocked?.Invoke(def);
         }
 
         private void SetProgress(string id, int value)
         {
-            PlayerPrefs.SetInt(ProgressPrefix + id, value);
-            PlayerPrefs.Save();
+            if (_persist)
+            {
+                PlayerPrefs.SetInt(ProgressPrefix + id, value);
+                PlayerPrefs.Save();
+            }
+            else
+            {
+                _memProgress[id] = value;
+            }
         }
     }
 }

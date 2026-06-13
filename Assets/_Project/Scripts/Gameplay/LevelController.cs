@@ -13,6 +13,10 @@ namespace Ngj10.Gameplay
         [SerializeField] private IcarusController _player;
         [SerializeField] private DeathSequence _deathSequence;
         [SerializeField] private ScreenFader _screenFader;
+        [Tooltip("In-game control hint, revealed out of black on start/respawn and auto-hidden once flying.")]
+        [SerializeField] private GameplayControlsHint _controlsHint;
+        [Tooltip("ESC/R key hints — shown only in-game (off on the start screen). Starts inactive; Begin() shows it.")]
+        [SerializeField] private GameObject _menuKeys;
         [SerializeField] private StreamPath _startStream;
         [SerializeField] private Transform _goal;
         [SerializeField] private float _goalRadius = 1.5f;
@@ -29,6 +33,11 @@ namespace Ngj10.Gameplay
         [SerializeField] private float _edgeMargin = 0.3f;
 
         public float TimeScale => _timeScale;
+
+        /// <summary>Raised when a run ends — on death (out of bounds / R restart) and
+        /// on reaching the sun. The leaderboard reporter listens to snapshot the run's
+        /// height/time/achievements; the level stays free of leaderboard knowledge.</summary>
+        public event System.Action RunFinished;
 
         // Energetic track the level crossfades to on Begin(). Authored on GameConfig
         // (the one place game settings live) and pushed in at startup.
@@ -94,6 +103,14 @@ namespace Ngj10.Gameplay
 
         /// <summary>Start the level: set the time scale and spawn the player. Called by the
         /// StartScreen on the Start button, or automatically from Start() when no start screen.</summary>
+        /// <summary>
+        /// Park the player at the spawn point with wings folded and physics idle,
+        /// without starting the clock or the game music. Called by GameConfig when a
+        /// start screen is up, so the hero waits at spawn instead of flying/streaming
+        /// a trail behind the title. The level clock starts later in Begin().
+        /// </summary>
+        public void Park() => Respawn();
+
         public void Begin()
         {
             Time.timeScale = _timeScale;
@@ -102,6 +119,14 @@ namespace Ngj10.Gameplay
             // beat keeps going instead of restarting.
             AudioManager.Instance.CrossfadeTo(_gameMusic);
             Respawn();
+            // Reveal the control hint as the screen lifts out of black; it auto-hides
+            // once the player takes the first hold (see GameplayControlsHint).
+            if (_controlsHint != null)
+                _controlsHint.Reveal();
+            // ESC/R key hints belong to the game, not the start screen — reveal them
+            // only now that the level is running.
+            if (_menuKeys != null)
+                _menuKeys.SetActive(true);
         }
 
         private void OnDestroy()
@@ -114,10 +139,30 @@ namespace Ngj10.Gameplay
 
         private void Update()
         {
+            // ESC/R are live only once the level is running (Begin shows _menuKeys);
+            // on the start screen they do nothing — same gate as the visible hints.
+            bool inGame = _menuKeys == null || _menuKeys.activeSelf;
+
+            // ESC returns to the menu (scene reload — GameConfig shows the start
+            // screen again) from anywhere in the level.
+            if (inGame && Input.GetKeyDown(KeyCode.Escape))
+            {
+                ReturnToMenu();
+                return;
+            }
+
             if (_won)
             {
                 if (Input.anyKeyDown)
                     Restart();
+                return;
+            }
+
+            // R restarts the run via the death path (shrink + fade + respawn), so
+            // the retry plays the same animation as dying.
+            if (inGame && Input.GetKeyDown(KeyCode.R))
+            {
+                RestartRun();
                 return;
             }
 
@@ -137,10 +182,26 @@ namespace Ngj10.Gameplay
                 Win();
         }
 
+        /// <summary>Return to the start screen (scene reload). Driven by the ESC key
+        /// and the ESC button — one path for both.</summary>
+        public void ReturnToMenu() => Core.SceneLoader.ReloadCurrent();
+
+        /// <summary>Restart the run via the death path (shrink + fade + respawn).
+        /// Driven by the R key and the R button. No-op while already dying.</summary>
+        public void RestartRun()
+        {
+            if (_dying || _won)
+                return;
+            Core.Achievements.AchievementManager.Instance.Unlock("restart_press"); // Single
+            Die();
+        }
+
         private void Win()
         {
             _won = true;
             Time.timeScale = 0f;
+            Core.Achievements.AchievementManager.Instance.Unlock("reach_sun");
+            RunFinished?.Invoke();
             if (_winPanel != null)
                 _winPanel.SetActive(true);
         }
@@ -186,6 +247,12 @@ namespace Ngj10.Gameplay
             if (_dying)
                 return;
             _dying = true;
+            var ach = Core.Achievements.AchievementManager.Instance;
+            ach.Report("first_death"); // Single: first death of any kind
+            ach.Report("death_10");    // Counter: total deaths across runs
+            // Snapshot the run for the leaderboard before the respawn routine zeroes
+            // RunStats — listeners read height/time/achievements off the just-ended run.
+            RunFinished?.Invoke();
             StartCoroutine(DieRoutine());
         }
 
@@ -205,6 +272,10 @@ namespace Ngj10.Gameplay
             if (_deathSequence != null)
                 _deathSequence.Restore();
             Respawn();
+
+            // Out of black again at the start stream — show the hint as on level start.
+            if (_controlsHint != null)
+                _controlsHint.Reveal();
 
             if (_screenFader != null)
                 yield return _screenFader.FadeIn();
