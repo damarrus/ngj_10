@@ -22,6 +22,7 @@ namespace Ngj10.Gameplay
         NoisePath,
         RoundedRect,
         Heart,
+        Vee,
     }
 
     /// <summary>

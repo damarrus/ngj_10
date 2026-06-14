@@ -218,6 +218,21 @@ namespace Ngj10.Gameplay
                         pts.Add(new Vector2(x, y) * (L / 32f));
                     }
                     break;
+
+                case StreamShape.Vee:
+                {
+                    // Funnel/V: wide near-flat arms that plunge to a sharp narrow bottom
+                    // at the centre. Width L, depth A. Sub-linear power = pointy bottom.
+                    int steps = 28;
+                    for (int i = 0; i <= steps; i++)
+                    {
+                        float t = (float)i / steps;          // 0..1 across the width
+                        float u = 2f * t - 1f;               // -1..1, 0 at centre
+                        float dip = 1f - Mathf.Pow(Mathf.Abs(u), 0.5f); // 1 at centre, 0 at ends
+                        pts.Add(new Vector2((t - 0.5f) * L, -A * dip));
+                    }
+                    break;
+                }
             }
             return pts;
         }

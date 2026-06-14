@@ -187,6 +187,11 @@ namespace Ngj10.Gameplay
                 }
                 float blend = 1f - Mathf.Exp(-CurrentStream.CatchRate * 2f * dt);
                 v = Vector2.Lerp(v, desired, blend);
+
+                // Reached the path end with the endpoint-reverse mechanic on: flip the flow
+                // and reset speed to base Speed in the new direction (then re-accelerate).
+                if (CurrentStream.TryEndpointReverse(sample.DistanceAlong))
+                    v = sample.Tangent * (CurrentStream.Speed * CurrentStream.DirectionSign);
             }
             else if (WingsOpen)
             {
@@ -356,6 +361,10 @@ namespace Ngj10.Gameplay
                 v = Vector2.Lerp(v, target, blend);
 
                 CurrentStream = influence > 0.08f ? strongest : null;
+
+                // Endpoint-reverse mechanic: flip at the path end, reset to base Speed.
+                if (strongest.TryEndpointReverse(strongestSample.DistanceAlong))
+                    v = strongestSample.Tangent * (strongest.Speed * strongest.DirectionSign);
             }
             else
             {

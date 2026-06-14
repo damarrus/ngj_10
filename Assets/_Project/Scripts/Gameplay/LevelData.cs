@@ -97,6 +97,11 @@ namespace Ngj10.Gameplay
         public float Width = 3f;
         public float ActiveDuration;
         public float InactiveDuration;
+
+        /// <summary>Pulse phase offset, seconds — shifts this stream's on/off cycle so
+        /// several pulsing streams blink out of sync (like a Burner cone's PhaseOffset).</summary>
+        public float PulsePhase;
+
         public float ReverseInterval;
         public float Turbulence;
 
@@ -119,6 +124,11 @@ namespace Ngj10.Gameplay
         /// cover the player at once, the one with the highest Z captures him. Ties break
         /// toward the deepest coverage. No effect on the Field model. Default 0.</summary>
         public float Z;
+
+        /// <summary>When on, reaching the far end of the path (e.g. a spiral's centre)
+        /// flips the flow direction and resets the player's speed to base Speed — so he
+        /// ping-pongs in/out, re-accelerating each pass. Open paths only.</summary>
+        public bool EndpointReverse;
 
         /// <summary>Stream colour is derived from Speed, not authored by hand.</summary>
         public Color VisualColor => SpeedToColor(Speed);
