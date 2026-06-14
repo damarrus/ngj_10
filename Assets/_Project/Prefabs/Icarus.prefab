@@ -44,10 +44,25 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e36f1fdaf5af2d448ac9d337ccc851e6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Ngj10::Ngj10.Gameplay.WingsVisual
-  _sprite: {fileID: 619916606650120430, guid: 34672cba23ab59745a23c6200149fa3a, type: 3}
-  _feathersPerWing: 6
-  _spreadRate: 12
-  _tiltPerSpeed: 2.8
+  _bodyIdle: {fileID: 0}
+  _bodySpread: {fileID: 0}
+  _bodyTucked: {fileID: 0}
+  _headForward: {fileID: 0}
+  _headUp: {fileID: 0}
+  _legsFly: {fileID: 0}
+  _legsStand: {fileID: 5434749889312121994, guid: fae3d5829ab8e91488021a2c52b50643, type: 3}
+  _headOffsetX: -0.012
+  _headOffsetY: 1.384
+  _legsOffsetX: -0.05
+  _legsOffsetY: -0.613
+  _transitionDuration: 0.1
+  _haloSprite: {fileID: 0}
+  _haloAlpha: 0.16
+  _scale: 0.16
+  _orderHalo: 6
+  _orderHead: 8
+  _orderLegs: 9
+  _orderBody: 10
 --- !u!1 &4792083091551047442
 GameObject:
   m_ObjectHideFlags: 0
@@ -286,7 +301,15 @@ MonoBehaviour:
   _closedFallTerminal: 13.6
   _closedDragX: 0.25
   _centeringMaxSpeed: 3.6
+  _legacyLaunchGrace: 0
+  _legacyWindowGravity: 7.85
+  _legacyAfterGravity: 7.85
+  _legacyFallBlend: 0
+  _legacyDiveTerminal: 0
   _wingsVisual: {fileID: 0}
+  _facingAngleOffset: 0
+  _facingMinSpeed: 0.15
+  _facingTurnSpeed: 540
 --- !u!58 &5704977019583997565
 CircleCollider2D:
   m_ObjectHideFlags: 0
