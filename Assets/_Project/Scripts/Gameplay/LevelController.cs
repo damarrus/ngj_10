@@ -1,4 +1,5 @@
 using System.Collections;
+using Ngj10.Core;
 using UnityEngine;
 
 namespace Ngj10.Gameplay
@@ -12,6 +13,10 @@ namespace Ngj10.Gameplay
         [SerializeField] private IcarusController _player;
         [SerializeField] private DeathSequence _deathSequence;
         [SerializeField] private ScreenFader _screenFader;
+        [Tooltip("In-game control hint, revealed out of black on start/respawn and auto-hidden once flying.")]
+        [SerializeField] private GameplayControlsHint _controlsHint;
+        [Tooltip("ESC/R key hints — shown only in-game (off on the start screen). Starts inactive; Begin() shows it.")]
+        [SerializeField] private GameObject _menuKeys;
         [SerializeField] private StreamPath _startStream;
         [SerializeField] private Transform _goal;
         [SerializeField] private float _goalRadius = 1.5f;
@@ -28,6 +33,18 @@ namespace Ngj10.Gameplay
         [SerializeField] private float _edgeMargin = 0.3f;
 
         public float TimeScale => _timeScale;
+
+        /// <summary>Raised when a run ends — on death (out of bounds / R restart) and
+        /// on reaching the sun. The leaderboard reporter listens to snapshot the run's
+        /// height/time/achievements; the level stays free of leaderboard knowledge.</summary>
+        public event System.Action RunFinished;
+
+        // Energetic track the level crossfades to on Begin(). Authored on GameConfig
+        // (the one place game settings live) and pushed in at startup.
+        private AudioClip _gameMusic;
+
+        /// <summary>Set the track played while the level runs. Called by GameConfig at startup.</summary>
+        public void SetGameMusic(AudioClip clip) => _gameMusic = clip;
 
         private void OnEnable() => Hazard.PlayerHit += Die;
 
@@ -50,11 +67,9 @@ namespace Ngj10.Gameplay
             if (_camera != null)
                 _camera.orthographicSize = data.CameraSize;
             if (_cameraFollow != null)
-            {
-                // Keep the bottom edge at or above the kill line: center >= killY + halfHeight.
-                float minCenterY = data.KillY + data.CameraSize;
-                _cameraFollow.SetMode(_mode, minCenterY, data.Start);
-            }
+                // No bottom clamp: the camera follows Icarus all the way down so the kill
+                // line below stays off-screen, not pinned above it.
+                _cameraFollow.SetMode(_mode, float.MinValue, data.Start);
             if (_mode == LevelMode.UpOnly)
                 BuildSideWalls(data);
         }
@@ -91,10 +106,80 @@ namespace Ngj10.Gameplay
 
         /// <summary>Start the level: set the time scale and spawn the player. Called by the
         /// StartScreen on the Start button, or automatically from Start() when no start screen.</summary>
+        /// <summary>
+        /// Park the player at the spawn point with wings folded and physics idle,
+        /// without starting the clock or the game music. Called by GameConfig when a
+        /// start screen is up, so the hero waits at spawn instead of flying/streaming
+        /// a trail behind the title. The level clock starts later in Begin().
+        /// </summary>
+        public void Park() => Respawn();
+
+        /// <summary>Reframe the camera for the title screen (zoom + offset, Icarus posed
+        /// for the art) while the menu is up. Called by GameConfig alongside Park() with
+        /// the menu-camera tuning. Begin() leaves it.</summary>
+        public void EnterMenuFraming(float orthoSize, float offsetX, float offsetY)
+        {
+            if (_cameraFollow != null)
+                _cameraFollow.EnterMenu(_spawnPoint, orthoSize, offsetX, offsetY);
+            SetMenuPose(true);
+        }
+
+        private void SetMenuPose(bool on)
+        {
+            if (_player != null)
+            {
+                var wings = _player.GetComponentInChildren<WingsVisual>(true);
+                if (wings != null)
+                    wings.SetMenuPose(on);
+            }
+        }
+
+        /// <summary>Start the level immediately — snap out of the menu framing and go live.
+        /// Used when no start screen drives the start (auto-start), or as the tail of the
+        /// animated <see cref="BeginWithTransition"/>.</summary>
         public void Begin()
         {
+            if (_cameraFollow != null)
+                _cameraFollow.ExitMenu();
+            GoLive();
+        }
+
+        /// <summary>Animated start from the title screen: glide the camera from the menu
+        /// framing back to gameplay over <paramref name="cameraDuration"/> seconds (the
+        /// level stays frozen meanwhile), then go live and hand control back. The music
+        /// crossfade starts up front so it eases in under the glide.</summary>
+        public IEnumerator BeginWithTransition(float cameraDuration)
+        {
+            // Start the menu→game music crossfade now so it rides the whole glide.
+            AudioManager.Instance.CrossfadeTo(_gameMusic);
+
+            if (_cameraFollow != null)
+                yield return _cameraFollow.AnimateExitMenu(cameraDuration);
+
+            GoLive();
+        }
+
+        // The level goes live: gameplay pose, normal time, player at spawn waiting for
+        // the first hold, and the in-game hints fading in. Shared by the instant and the
+        // animated start. The music crossfade is idempotent — a no-op if already playing.
+        private void GoLive()
+        {
+            SetMenuPose(false);
             Time.timeScale = _timeScale;
+            AudioManager.Instance.CrossfadeTo(_gameMusic);
             Respawn();
+            // Don't let the START click/Space (still held as we go live) count as the first
+            // flap — Icarus would launch on his own. Flight waits for a fresh press.
+            if (_player != null)
+                _player.IgnoreCurrentHold();
+            // Reveal the control hint as the level goes live; it auto-hides once the
+            // player takes the first hold (see GameplayControlsHint).
+            if (_controlsHint != null)
+                _controlsHint.Reveal();
+            // ESC/R key hints belong to the game, not the start screen — reveal them
+            // only now that the level is running.
+            if (_menuKeys != null)
+                _menuKeys.SetActive(true);
         }
 
         private void OnDestroy()
@@ -107,10 +192,30 @@ namespace Ngj10.Gameplay
 
         private void Update()
         {
+            // ESC/R are live only once the level is running (Begin shows _menuKeys);
+            // on the start screen they do nothing — same gate as the visible hints.
+            bool inGame = _menuKeys == null || _menuKeys.activeSelf;
+
+            // ESC returns to the menu (scene reload — GameConfig shows the start
+            // screen again) from anywhere in the level.
+            if (inGame && Input.GetKeyDown(KeyCode.Escape))
+            {
+                ReturnToMenu();
+                return;
+            }
+
             if (_won)
             {
                 if (Input.anyKeyDown)
                     Restart();
+                return;
+            }
+
+            // R restarts the run via the death path (shrink + fade + respawn), so
+            // the retry plays the same animation as dying.
+            if (inGame && Input.GetKeyDown(KeyCode.R))
+            {
+                RestartRun();
                 return;
             }
 
@@ -130,10 +235,26 @@ namespace Ngj10.Gameplay
                 Win();
         }
 
+        /// <summary>Return to the start screen (scene reload). Driven by the ESC key
+        /// and the ESC button — one path for both.</summary>
+        public void ReturnToMenu() => Core.SceneLoader.ReloadCurrent();
+
+        /// <summary>Restart the run via the death path (shrink + fade + respawn).
+        /// Driven by the R key and the R button. No-op while already dying.</summary>
+        public void RestartRun()
+        {
+            if (_dying || _won)
+                return;
+            Core.Achievements.AchievementManager.Instance.Unlock("restart_press"); // Single
+            Die();
+        }
+
         private void Win()
         {
             _won = true;
             Time.timeScale = 0f;
+            Core.Achievements.AchievementManager.Instance.Unlock("reach_sun");
+            RunFinished?.Invoke();
             if (_winPanel != null)
                 _winPanel.SetActive(true);
         }
@@ -179,6 +300,12 @@ namespace Ngj10.Gameplay
             if (_dying)
                 return;
             _dying = true;
+            var ach = Core.Achievements.AchievementManager.Instance;
+            ach.Report("first_death"); // Single: first death of any kind
+            ach.Report("death_10");    // Counter: total deaths across runs
+            // Snapshot the run for the leaderboard before the respawn routine zeroes
+            // RunStats — listeners read height/time/achievements off the just-ended run.
+            RunFinished?.Invoke();
             StartCoroutine(DieRoutine());
         }
 
@@ -198,6 +325,10 @@ namespace Ngj10.Gameplay
             if (_deathSequence != null)
                 _deathSequence.Restore();
             Respawn();
+
+            // Out of black again at the start stream — show the hint as on level start.
+            if (_controlsHint != null)
+                _controlsHint.Reveal();
 
             if (_screenFader != null)
                 yield return _screenFader.FadeIn();

@@ -57,7 +57,7 @@ MonoBehaviour:
   - Position: {x: -1.2588873, y: 7.875614}
     Rotation: 0
     CustomPoints:
-    - {x: 0.49920464, y: -1.8969768}
+    - {x: -1.0499908, y: -5.142908}
     - {x: -1.3537306, y: 6.775468}
     - {x: 1.4541181, y: 11.157183}
     - {x: 7.1999426, y: 9.596752}
@@ -72,7 +72,7 @@ MonoBehaviour:
     Turns: 2
     Seed: 0
     Reverse: 0
-    Speed: 10
+    Speed: 5
     SpeedEnd: 0
     Width: 4
     ActiveDuration: 0
@@ -111,10 +111,6 @@ MonoBehaviour:
     PatrolTravel: {x: 0, y: 3}
     PatrolPeriod: 3
     Size: 3
-  - Position: {x: -8.282118, y: 23.716549}
-    PatrolTravel: {x: 0, y: 3}
-    PatrolPeriod: 3
-    Size: 1
   Burners:
   - Position: {x: 29.110662, y: 30.22302}
     Cones:
@@ -134,4 +130,19 @@ MonoBehaviour:
       OnDuration: 1.5
       OffDuration: 1
       PhaseOffset: 0
+  Zeuses:
+  - Position: {x: -6.5426145, y: 29.081821}
+    Areas:
+    - Offset: {x: 10.401738, y: -7.082041}
+      RadiusX: 4.2787304
+      RadiusY: 2
+      Period: 2
+      StartDelay: 0
+      FlightTime: 0.6
+    - Offset: {x: 4.42627, y: -18.00018}
+      RadiusX: 4.2787304
+      RadiusY: 4.4262714
+      Period: 2
+      StartDelay: 1
+      FlightTime: 0.6
   StartStreamIndex: 0

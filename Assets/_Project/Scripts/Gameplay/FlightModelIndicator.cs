@@ -13,7 +13,13 @@ namespace Ngj10.Gameplay
 
         private void Start()
         {
+#if !UNITY_EDITOR
+            // Debug HUD label — visible only in the editor, hidden in builds.
+            gameObject.SetActive(false);
+            return;
+#else
             _player = FindAnyObjectByType<IcarusController>();
+#endif
         }
 
         private void Update()

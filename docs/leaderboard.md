@@ -1,7 +1,38 @@
 # Лидерборд — устройство и решения
 
-Топ-100 на экране конца игры. Бэкенд — **Supabase** (Postgres + PostgREST).
+Топ-100. Бэкенд — **Supabase** (Postgres + PostgREST).
 Клиент — чистый `UnityWebRequest`, без SDK (важно для размера WebGL-билда).
+
+## Icarus: что ранжируем (3 поля)
+
+Игра пишет на каждой смерти и на достижении солнца. Три ранжируемых поля:
+
+1. **Максимальная высота** (`max_height`, целые метры, округление вверх `CeilToInt`)
+   — берётся из `RunStats.MaxHeightMeters` (пик над точкой спавна за ран).
+2. **Время до пика** (`time_to_max`, миллисекунды `int`) — `RunStats.TimeToMaxMs`,
+   считается от старта рана (первый взлёт) до момента, когда был поставлен пик.
+3. **Число выполненных ачивок** (`achievements`, `int`) — `AchievementManager.UnlockedCount`.
+
+**Правила записи (клиент, в `LeaderboardReporter` — не серверный триггер):**
+- Высота больше прежней → пишем высоту И её время (даже если время хуже).
+- Та же высота, время меньше → обновляем только время.
+- Ачивок больше → обновляем число.
+- Персональный best держим целиком в PlayerPrefs (`lb.best.height/time/ach`),
+  потому что upsert перетирает всю строку — шлём накопленный полный best.
+
+**Сортировка:** `max_height` ↓, при равенстве `time_to_max` ↑, затем `achievements` ↓,
+затем `name` ↑. Большинство долетает до верха уровня → равная высота → гонка по времени.
+
+**Поток на конец рана:** смерть (`Die()` — выход за границы / R) или победа (`Win()` —
+солнце) → `LevelController.RunFinished` → `LeaderboardReporter` снимает 3 поля с RunStats +
+AchievementManager, сравнивает с best, делает условный upsert. Один путь, без дублей.
+
+`LeaderboardReporter` висит на объекте **Icarus** (рядом с `AchievementReporter` —
+тот же bridge-паттерн: уровень и клиент лидерборда не знают друг о друге). Ссылки
+`_level`/`_stats` заведены в инспекторе.
+
+> UI пока НЕ сделан — заготовлен только код. `FetchTop` уже возвращает все 4 поля
+> (`name` + 3 ранжируемых) в `ScoreEntry`.
 
 ## Принятые решения (почему так)
 
@@ -25,19 +56,37 @@
 
 ```sql
 create table public.scores (
-  uid        text primary key,
-  name       text not null,
-  score      int  not null,
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
+  uid          text primary key,
+  name         text not null,
+  score        int  not null,          -- legacy single-number board; Icarus mirrors max_height сюда
+  max_height   int  not null default 0, -- целые метры (округл. вверх) — первичный сорт desc
+  time_to_max  int  not null default 0, -- миллисекунды до пика — тай-брейк asc
+  achievements int  not null default 0, -- число выполненных ачивок — второй тай-брейк desc
+  created_at   timestamptz not null default now(),
+  updated_at   timestamptz not null default now()
 );
-create index scores_score_idx on public.scores (score desc);
+create index scores_rank_idx
+  on public.scores (max_height desc, time_to_max asc, achievements desc, name asc);
 
 alter table public.scores enable row level security;
 create policy "anon read"   on public.scores for select to anon using (true);
 create policy "anon insert" on public.scores for insert to anon with check (true);
 create policy "anon update" on public.scores for update to anon using (true) with check (true);
 ```
+
+Если таблица `scores` уже была (старый одно-числовой борд) — миграция вместо create:
+
+```sql
+alter table public.scores
+  add column max_height   int not null default 0,
+  add column time_to_max  int not null default 0,
+  add column achievements int not null default 0;
+create index scores_rank_idx
+  on public.scores (max_height desc, time_to_max asc, achievements desc, name asc);
+```
+
+`score` оставлен — Icarus-клиент мирорит в него `max_height`, чтобы старый борд Game-сцены
+(читает `ScoreEntry.score`) не сломался.
 
 4. Settings → API → скопировать **Project URL** + **anon public** ключ (НЕ
    service_role — тот секретный, в билд нельзя).
@@ -59,30 +108,33 @@ WebGL-билде) править ЛЮБУЮ строку, не только св
   Table). Лежит в `Assets/_Project/Resources/LeaderboardConfig.asset`, грузится
   `Resources.Load`. anon key публичен by design (гейтит RLS) — в билде норм.
 - **Core/Leaderboard/LeaderboardClient.cs** — lazy-singleton MonoBehaviour (хост
-  корутин). `SubmitScore(score, onDone)` (upsert), `FetchTop(limit, onResult, onError)`,
-  `IsAvailable`. Всё best-effort: ошибка → callback провала → UI прячет борд.
-- **Gameplay/LeaderboardView.cs** — ЛОГИКА (не строит UI). `[SerializeField]` ссылки
-  на scene-объекты (panel, content, rowPrefab, nameInput, renameButton). На
-  `GameHud.GameOverShown(int)` → submit → fetch → спавн строк из rowPrefab.
-- **Gameplay/LeaderboardRow.cs** — строка (rank/name/score TMP), метод `Set`.
-
-UI собран **на сцене вручную** (см. `docs/ui-conventions.md` — почему не кодом).
-`LeaderboardView`/`Row` висят на Canvas / row-шаблоне, ссылки заведены в инспекторе.
+  корутин). `SubmitRun(maxHeight, timeToMaxMs, achievements, onDone)` (Icarus-upsert),
+  `SubmitScore(score, onDone)` (legacy одно-число), `FetchTop(limit, onResult, onError)`,
+  `IsAvailable`. `ScoreEntry` = `name` + `score` (legacy) + `max_height/time_to_max/achievements`.
+  Всё best-effort: ошибка → callback провала → UI прячет борд.
+- **Gameplay/LeaderboardReporter.cs** — мост Icarus-рана к клиенту. Слушает
+  `LevelController.RunFinished`, снимает высоту/время/ачивки, ведёт условный best в
+  PlayerPrefs, делает upsert. Висит на объекте **Icarus**, ссылки `_level`/`_stats`
+  в инспекторе. (Аналог `AchievementReporter`.)
+- **Gameplay/LeaderboardView.cs** / **LeaderboardRow.cs** — UI старого Game-борда
+  (читает `ScoreEntry.score`). Для Icarus UI пока НЕ переиспользован — будет отдельно.
 
 ### REST-детали
 
-- Fetch топа: `GET {url}/rest/v1/scores?select=name,score&order=score.desc&limit=100`.
+- Fetch топа: `GET {url}/rest/v1/scores?select=name,score,max_height,time_to_max,achievements`
+  `&order=max_height.desc,time_to_max.asc,achievements.desc,name.asc&limit=100`.
 - Submit (upsert): `POST {url}/rest/v1/scores?on_conflict=uid`, заголовок
-  `Prefer: resolution=merge-duplicates`, тело `{uid,name,score}`.
+  `Prefer: resolution=merge-duplicates`, тело `{uid,name,score,max_height,time_to_max,achievements}`.
 - Заголовки на каждый запрос: `apikey: <anonKey>`, `Authorization: Bearer <anonKey>`.
 - **JsonUtility не парсит top-level массив** — ответ-массив оборачивать
   `{"items": <array>}` и парсить wrapper-класс с полем `items`.
 
-## Поток на game-over
+## Поток на конец рана (Icarus)
 
-`BalloonGameController.EndRound` → `GameHud.ShowGameOver(score)` поднимает
-`GameOverShown(score)` → `LeaderboardView` ловит → submit скор → fetch топ-100 →
-рисует строки. Один путь, без дублей обработки.
+`LevelController.Die()` (смерть) / `Win()` (солнце) → событие `RunFinished` →
+`LeaderboardReporter` снимает 3 поля с `RunStats` + `AchievementManager`, сравнивает с
+PlayerPrefs-best, условный upsert. `RunFinished` поднимается ДО респавна — пока RunStats
+держит значения завершившегося рана. Один путь, без дублей.
 
 ## Хвосты / TODO
 

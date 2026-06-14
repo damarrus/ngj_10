@@ -71,6 +71,7 @@ namespace Ngj10.Gameplay
                 _shockedThisFrame = false;
                 _timer = _blockDuration;
                 _icarus.BlockWings(_blockDuration);
+                Core.Achievements.AchievementManager.Instance.Unlock("shock"); // Single
             }
             else if (_timer > 0f)
             {
