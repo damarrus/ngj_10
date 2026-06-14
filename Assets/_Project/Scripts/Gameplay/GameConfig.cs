@@ -31,6 +31,11 @@ namespace Ngj10.Gameplay
         [Tooltip("Volume of the spread one-shot. Fires often — keep it low.")]
         [Range(0f, 1f)]
         [SerializeField] private float _wingSpreadVolume = 0.5f;
+        [Tooltip("Spread one-shot timing offset, seconds. Positive = delay before playing. " +
+                 "Negative = start the clip that far in (skip a quiet lead-in so it hits earlier).")]
+        [SerializeField] private float _wingSpreadDelay = -0.2f;
+        [Tooltip("Cap the spread one-shot to this many seconds (0 = play the whole clip).")]
+        [SerializeField] private float _wingSpreadMaxLength;
         [Tooltip("Volume of the fold one-shot. Fires often — keep it low.")]
         [Range(0f, 1f)]
         [SerializeField] private float _wingFoldVolume = 0.4f;
@@ -51,6 +56,8 @@ namespace Ngj10.Gameplay
         [SerializeField] private float _windFadeInSeconds = 0.6f;
         [Tooltip("Seconds to ease the wind volume down (toward silence after folding).")]
         [SerializeField] private float _windFadeOutSeconds = 0.5f;
+        [Tooltip("Seconds to wait after the wings open before the wind starts rising.")]
+        [SerializeField] private float _windStartDelay;
 
         [Header("Flow")]
         [SerializeField] private bool _showStartScreen = true;
@@ -109,8 +116,8 @@ namespace Ngj10.Gameplay
             var wingSfx = FindAnyObjectByType<WingSfx>();
             if (wingSfx != null)
                 wingSfx.Configure(
-                    _wingSpreadClip, _wingFoldClip, _wingSpreadVolume, _wingFoldVolume,
-                    _windClip, _windMaxVolume, _windFullSpeed, _windFadeInSeconds, _windFadeOutSeconds);
+                    _wingSpreadClip, _wingFoldClip, _wingSpreadVolume, _wingFoldVolume, _wingSpreadDelay, _wingSpreadMaxLength,
+                    _windClip, _windMaxVolume, _windFullSpeed, _windFadeInSeconds, _windFadeOutSeconds, _windStartDelay);
 
             // Build the chosen level now, before anything starts it. GameConfig
             // runs at exec order -100, ahead of LevelBuilder's own Awake build —
