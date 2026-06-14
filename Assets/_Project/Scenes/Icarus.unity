@@ -2007,7 +2007,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5002585224547848222, guid: 05f539e52fa7cc8479b3df8e4e7d974e, type: 3}
       propertyPath: _legacyWindowGravity
-      value: 5
+      value: 5.85
       objectReference: {fileID: 0}
     - target: {fileID: 7289304769620728654, guid: 05f539e52fa7cc8479b3df8e4e7d974e, type: 3}
       propertyPath: m_Name
