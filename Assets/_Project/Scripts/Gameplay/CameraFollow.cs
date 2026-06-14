@@ -14,9 +14,12 @@ namespace Ngj10.Gameplay
         [SerializeField] private Vector3 _offset = new Vector3(0f, 0f, -10f);
         [SerializeField] private LevelMode _mode = LevelMode.Free;
 
-        // Anchor captured at level start so UpOnly/SingleScreen keep their framing.
+        // Anchor (level Start) that UpOnly/SingleScreen lock onto. Authored by the
+        // controller via SetMode; CaptureAnchor is only a standalone fallback when no
+        // controller wires it. Tracked so the late Awake fallback can't clobber it.
         private float _lockedX;
         private float _lockedY;
+        private bool _anchorSet;
 
         // Lowest allowed camera-center Y, so the bottom edge never drops below the
         // kill line. Set by the controller; float.MinValue = no clamp.
@@ -120,12 +123,19 @@ namespace Ngj10.Gameplay
             _minCenterY = minCenterY;
             _lockedX = anchor.x;
             _lockedY = Mathf.Max(anchor.y, minCenterY);
+            _anchorSet = true;
             if (mode != LevelMode.Free)
                 transform.position = new Vector3(_lockedX, _lockedY, transform.position.z);
         }
 
+        // Standalone fallback only: capture the authored scene position as the anchor
+        // when no controller called SetMode. Guarded so it never clobbers a real anchor
+        // — GameConfig (exec order -100) reframes the camera for the menu before this
+        // Awake runs, so an unguarded capture would lock onto the menu-offset position.
         private void CaptureAnchor()
         {
+            if (_anchorSet)
+                return;
             _lockedX = transform.position.x;
             _lockedY = transform.position.y;
         }
