@@ -15,9 +15,9 @@ MonoBehaviour:
   Mode: 1
   CameraSize: 6.8
   Start: {x: 68.971886, y: -37}
-  Goal: {x: 77.72115, y: 67.843124}
+  Goal: {x: 77.89567, y: 59.434166}
   GoalRadius: 3
-  KillY: -39.09543
+  KillY: -39.332222
   TimeScale: 1
   Streams:
   - Position: {x: 69.52814, y: -5.5122128}
@@ -128,7 +128,7 @@ MonoBehaviour:
     Grip: 3
     CatchRate: 10
     ExitBoost: 1
-    Z: 1
+    Z: 2
     EndpointReverse: 0
   - Position: {x: 68.10964, y: -10.394915}
     Rotation: 0.34255219
@@ -158,33 +158,6 @@ MonoBehaviour:
     CatchRate: 10
     ExitBoost: 1
     Z: 6
-    EndpointReverse: 0
-  - Position: {x: 62.2967, y: 41.7726}
-    Rotation: 0
-    CustomPoints: []
-    CustomLoop: 0
-    IsCircle: 0
-    CircleRadius: 4
-    Shape: 4
-    Size: 35
-    Size2: 1.5
-    Count: 5
-    Turns: 2
-    Seed: 0
-    Reverse: 1
-    Scale: 0.5
-    Speed: 7
-    SpeedEnd: 0
-    Width: 2
-    ActiveDuration: 0
-    InactiveDuration: 0
-    PulsePhase: 0
-    ReverseInterval: 0
-    Turbulence: 0
-    Grip: 3
-    CatchRate: 10
-    ExitBoost: 1
-    Z: 0
     EndpointReverse: 0
   - Position: {x: 71.52307, y: 22.070704}
     Rotation: 210.82678
@@ -440,7 +413,7 @@ MonoBehaviour:
     ExitBoost: 1
     Z: 0
     EndpointReverse: 0
-  - Position: {x: 68.624954, y: 26.092842}
+  - Position: {x: 68.61009, y: 26.092842}
     Rotation: 22.539467
     CustomPoints:
     - {x: -0.04944469, y: -2.5792212}
@@ -766,7 +739,7 @@ MonoBehaviour:
     ExitBoost: 1
     Z: 1
     EndpointReverse: 0
-  - Position: {x: 59.002693, y: 12.957285}
+  - Position: {x: 58.932392, y: 13.285357}
     Rotation: 95.58673
     CustomPoints: []
     CustomLoop: 0
@@ -793,7 +766,7 @@ MonoBehaviour:
     ExitBoost: 1
     Z: 0
     EndpointReverse: 0
-  - Position: {x: 73.66265, y: 22.820395}
+  - Position: {x: 73.66265, y: 22.746084}
     Rotation: 0
     CustomPoints:
     - {x: 0, y: 0}
@@ -824,7 +797,7 @@ MonoBehaviour:
     - {x: -4.490429, y: 0.4204924}
     - {x: -4.6179323, y: 0.14833824}
     - {x: -4.735898, y: -0.09032294}
-    - {x: -4.844324, y: -0.29549113}
+    - {x: -4.8294616, y: -0.36980304}
     - {x: -4.9269543, y: -0.5248828}
     - {x: -4.9837885, y: -0.7784978}
     - {x: -5.105465, y: -1.0083493}
@@ -887,7 +860,7 @@ MonoBehaviour:
     Scale: 1
     Speed: 7
     SpeedEnd: 0
-    Width: 1
+    Width: 1.73
     ActiveDuration: 0
     InactiveDuration: 0
     PulsePhase: 0
@@ -898,7 +871,7 @@ MonoBehaviour:
     ExitBoost: 1
     Z: 1
     EndpointReverse: 0
-  - Position: {x: 66.40149, y: 13.068611}
+  - Position: {x: 66.50147, y: 13.108606}
     Rotation: 0
     CustomPoints:
     - {x: 0, y: 0}
@@ -940,7 +913,7 @@ MonoBehaviour:
     Scale: 1
     Speed: 7
     SpeedEnd: 0
-    Width: 1.5
+    Width: 1.8
     ActiveDuration: 0
     InactiveDuration: 0
     PulsePhase: 0
@@ -1226,9 +1199,9 @@ MonoBehaviour:
     Grip: 4
     CatchRate: 0
     ExitBoost: 1
-    Z: 0
+    Z: 1
     EndpointReverse: 0
-  - Position: {x: 64.37569, y: -24.19305}
+  - Position: {x: 64.37569, y: -24.17295}
     Rotation: 0
     CustomPoints:
     - {x: 0, y: 0}
@@ -1343,36 +1316,7 @@ MonoBehaviour:
     ExitBoost: 1
     Z: 0
     EndpointReverse: 0
-  - Position: {x: 61.283318, y: 37.89173}
-    Rotation: -37.462826
-    CustomPoints:
-    - {x: -1.1298727, y: -6.3191595}
-    - {x: -0.20478778, y: -2.1530645}
-    CustomLoop: 0
-    IsCircle: 0
-    CircleRadius: 4
-    Shape: 0
-    Size: 8
-    Size2: 3
-    Count: 3
-    Turns: 2
-    Seed: 0
-    Reverse: 0
-    Scale: 0.7
-    Speed: 7
-    SpeedEnd: 20
-    Width: 2
-    ActiveDuration: 0
-    InactiveDuration: 0
-    PulsePhase: 0
-    ReverseInterval: 0
-    Turbulence: 2
-    Grip: 3
-    CatchRate: 10
-    ExitBoost: 1
-    Z: 2
-    EndpointReverse: 0
-  - Position: {x: 77.438614, y: 53.262875}
+  - Position: {x: 77.56919, y: 44.383846}
     Rotation: 0
     CustomPoints: []
     CustomLoop: 0
@@ -1399,7 +1343,7 @@ MonoBehaviour:
     ExitBoost: 1
     Z: 1
     EndpointReverse: 0
-  - Position: {x: 72.43942, y: 50.086716}
+  - Position: {x: 72.57, y: 41.207687}
     Rotation: 0
     CustomPoints: []
     CustomLoop: 0
@@ -1426,7 +1370,7 @@ MonoBehaviour:
     ExitBoost: 1
     Z: 1
     EndpointReverse: 0
-  - Position: {x: 67.27655, y: 53.348866}
+  - Position: {x: 67.29168, y: 44.440968}
     Rotation: 0
     CustomPoints: []
     CustomLoop: 0
@@ -1453,7 +1397,7 @@ MonoBehaviour:
     ExitBoost: 1
     Z: 1
     EndpointReverse: 0
-  - Position: {x: 62.607147, y: 50.06288}
+  - Position: {x: 62.737717, y: 41.183853}
     Rotation: 0
     CustomPoints: []
     CustomLoop: 0
@@ -1480,7 +1424,7 @@ MonoBehaviour:
     ExitBoost: 1
     Z: 1
     EndpointReverse: 0
-  - Position: {x: 56.532284, y: 51.479965}
+  - Position: {x: 56.662853, y: 42.627537}
     Rotation: 39.97116
     CustomPoints:
     - {x: -1.0861944, y: -5.25819}
@@ -1509,7 +1453,7 @@ MonoBehaviour:
     ExitBoost: 1
     Z: 2
     EndpointReverse: 0
-  - Position: {x: 56.64113, y: 61.597507}
+  - Position: {x: 56.64037, y: 52.82354}
     Rotation: 39.97116
     CustomPoints:
     - {x: -1.0861944, y: -5.25819}
@@ -1538,8 +1482,8 @@ MonoBehaviour:
     ExitBoost: 1
     Z: 2
     EndpointReverse: 0
-  - Position: {x: 78.36209, y: 62.89161}
-    Rotation: -493.94662
+  - Position: {x: 77.857506, y: 54.42435}
+    Rotation: -488.61987
     CustomPoints: []
     CustomLoop: 0
     IsCircle: 0
@@ -1554,7 +1498,7 @@ MonoBehaviour:
     Scale: 0.7
     Speed: 7
     SpeedEnd: 13
-    Width: 2
+    Width: 3
     ActiveDuration: 0
     InactiveDuration: 0
     PulsePhase: 0
@@ -1565,8 +1509,8 @@ MonoBehaviour:
     ExitBoost: 1
     Z: 0
     EndpointReverse: 0
-  - Position: {x: 64.600945, y: 57.52236}
-    Rotation: -733.62604
+  - Position: {x: 63.71748, y: 47.931713}
+    Rotation: -699.5475
     CustomPoints: []
     CustomLoop: 0
     IsCircle: 0
@@ -1621,7 +1565,7 @@ MonoBehaviour:
     ExitBoost: 1
     Z: 2
     EndpointReverse: 0
-  - Position: {x: 77.872856, y: 47.992023}
+  - Position: {x: 78.00343, y: 39.112995}
     Rotation: 0
     CustomPoints: []
     CustomLoop: 0
@@ -1648,7 +1592,7 @@ MonoBehaviour:
     ExitBoost: 1
     Z: 1
     EndpointReverse: 0
-  - Position: {x: 67.72402, y: 47.985577}
+  - Position: {x: 67.8546, y: 39.10655}
     Rotation: 0
     CustomPoints: []
     CustomLoop: 0
@@ -1675,34 +1619,7 @@ MonoBehaviour:
     ExitBoost: 1
     Z: 1
     EndpointReverse: 0
-  - Position: {x: 62.396984, y: 39.345543}
-    Rotation: 0
-    CustomPoints: []
-    CustomLoop: 0
-    IsCircle: 0
-    CircleRadius: 4
-    Shape: 4
-    Size: 35
-    Size2: 1.5
-    Count: 5
-    Turns: 2
-    Seed: 0
-    Reverse: 1
-    Scale: 0.5
-    Speed: 7
-    SpeedEnd: 0
-    Width: 2
-    ActiveDuration: 0
-    InactiveDuration: 0
-    PulsePhase: 0
-    ReverseInterval: 0
-    Turbulence: 0
-    Grip: 3
-    CatchRate: 10
-    ExitBoost: 1
-    Z: 0
-    EndpointReverse: 0
-  - Position: {x: 65.08269, y: -33.628956}
+  - Position: {x: 64.77473, y: -33.587894}
     Rotation: -281.3988
     CustomPoints: []
     CustomLoop: 0
@@ -1783,7 +1700,7 @@ MonoBehaviour:
     ExitBoost: 1
     Z: 0
     EndpointReverse: 0
-  - Position: {x: 72.24661, y: -30.15723}
+  - Position: {x: 72.22608, y: -30.15723}
     Rotation: -769.2193
     CustomPoints: []
     CustomLoop: 0
@@ -1976,7 +1893,7 @@ MonoBehaviour:
     ExitBoost: 1
     Z: 1
     EndpointReverse: 0
-  - Position: {x: 74.97694, y: 50.10141}
+  - Position: {x: 75.10751, y: 41.22238}
     Rotation: 22.539467
     CustomPoints:
     - {x: 3.8558588, y: -4.719103}
@@ -2005,36 +1922,7 @@ MonoBehaviour:
     ExitBoost: 1
     Z: 1
     EndpointReverse: 0
-  - Position: {x: 74.61974, y: 55.29646}
-    Rotation: -29.382439
-    CustomPoints:
-    - {x: 3.8558588, y: -4.719103}
-    - {x: 1.5554409, y: -3.7692251}
-    CustomLoop: 0
-    IsCircle: 0
-    CircleRadius: 4
-    Shape: 0
-    Size: 8
-    Size2: 3
-    Count: 3
-    Turns: 2
-    Seed: 0
-    Reverse: 0
-    Scale: 0.7
-    Speed: 7
-    SpeedEnd: 7
-    Width: 1.5
-    ActiveDuration: 0
-    InactiveDuration: 0
-    PulsePhase: 0
-    ReverseInterval: 0
-    Turbulence: 0
-    Grip: 3
-    CatchRate: 10
-    ExitBoost: 1
-    Z: 1
-    EndpointReverse: 0
-  - Position: {x: 69.50479, y: 52.13024}
+  - Position: {x: 69.63537, y: 43.251213}
     Rotation: 22.539467
     CustomPoints:
     - {x: 3.8558588, y: -4.719103}
@@ -2063,7 +1951,7 @@ MonoBehaviour:
     ExitBoost: 1
     Z: 1
     EndpointReverse: 0
-  - Position: {x: 64.83348, y: 50.00793}
+  - Position: {x: 64.96406, y: 41.128902}
     Rotation: 22.539467
     CustomPoints:
     - {x: 3.8558588, y: -4.719103}
@@ -2092,7 +1980,7 @@ MonoBehaviour:
     ExitBoost: 1
     Z: 1
     EndpointReverse: 0
-  - Position: {x: 64.36741, y: 55.469765}
+  - Position: {x: 64.497986, y: 46.590736}
     Rotation: 22.539467
     CustomPoints:
     - {x: 3.8558588, y: -4.719103}
@@ -2121,7 +2009,7 @@ MonoBehaviour:
     ExitBoost: 1
     Z: 1
     EndpointReverse: 0
-  - Position: {x: 59.71135, y: 52.1165}
+  - Position: {x: 59.84192, y: 43.237473}
     Rotation: 22.539467
     CustomPoints:
     - {x: 3.8558588, y: -4.719103}
@@ -2150,7 +2038,7 @@ MonoBehaviour:
     ExitBoost: 1
     Z: 1
     EndpointReverse: 0
-  - Position: {x: 73.54463, y: 45.77844}
+  - Position: {x: 73.67521, y: 36.89941}
     Rotation: -515.39484
     CustomPoints: []
     CustomLoop: 0
@@ -2177,7 +2065,7 @@ MonoBehaviour:
     ExitBoost: 1
     Z: 0
     EndpointReverse: 0
-  - Position: {x: 64.640015, y: 45.721195}
+  - Position: {x: 64.77059, y: 36.842167}
     Rotation: -529.1145
     CustomPoints: []
     CustomLoop: 0
@@ -2204,7 +2092,7 @@ MonoBehaviour:
     ExitBoost: 1
     Z: 0
     EndpointReverse: 0
-  - Position: {x: 57.9799, y: 55.66326}
+  - Position: {x: 58.11047, y: 46.76179}
     Rotation: -741.5055
     CustomPoints: []
     CustomLoop: 0
@@ -2231,35 +2119,8 @@ MonoBehaviour:
     ExitBoost: 1
     Z: 0
     EndpointReverse: 0
-  - Position: {x: 62.257046, y: -37.925926}
-    Rotation: -576.5169
-    CustomPoints: []
-    CustomLoop: 0
-    IsCircle: 0
-    CircleRadius: 4
-    Shape: 9
-    Size: 5
-    Size2: 1
-    Count: 3
-    Turns: 2
-    Seed: 0
-    Reverse: 0
-    Scale: 0.7
-    Speed: 11
-    SpeedEnd: 11
-    Width: 2
-    ActiveDuration: 0
-    InactiveDuration: 0
-    PulsePhase: 0
-    ReverseInterval: 0
-    Turbulence: 2
-    Grip: 3
-    CatchRate: 10
-    ExitBoost: 1
-    Z: 0
-    EndpointReverse: 0
-  - Position: {x: 77.99568, y: -35.617596}
-    Rotation: -502.3971
+  - Position: {x: 75.12035, y: -36.215427}
+    Rotation: -516.9934
     CustomPoints: []
     CustomLoop: 0
     IsCircle: 0
@@ -2285,11 +2146,11 @@ MonoBehaviour:
     ExitBoost: 1
     Z: 0
     EndpointReverse: 0
-  - Position: {x: 75.75593, y: 56.117924}
+  - Position: {x: 75.86024, y: 47.238895}
     Rotation: 39.97116
     CustomPoints:
     - {x: -1.0861944, y: -5.25819}
-    - {x: -0.49990928, y: -4.205962}
+    - {x: -0.40251923, y: -4.253326}
     CustomLoop: 0
     IsCircle: 0
     CircleRadius: 4
@@ -2314,10 +2175,307 @@ MonoBehaviour:
     ExitBoost: 1
     Z: 2
     EndpointReverse: 0
+  - Position: {x: 66.23072, y: -37.97546}
+    Rotation: -561.3027
+    CustomPoints: []
+    CustomLoop: 0
+    IsCircle: 0
+    CircleRadius: 4
+    Shape: 9
+    Size: 5
+    Size2: 1
+    Count: 3
+    Turns: 2
+    Seed: 0
+    Reverse: 0
+    Scale: 0.7
+    Speed: 11
+    SpeedEnd: 11
+    Width: 2
+    ActiveDuration: 0
+    InactiveDuration: 0
+    PulsePhase: 0
+    ReverseInterval: 0
+    Turbulence: 2
+    Grip: 3
+    CatchRate: 10
+    ExitBoost: 1
+    Z: 0
+    EndpointReverse: 0
+  - Position: {x: 79.97696, y: -32.710697}
+    Rotation: -489.15735
+    CustomPoints: []
+    CustomLoop: 0
+    IsCircle: 0
+    CircleRadius: 4
+    Shape: 9
+    Size: 5
+    Size2: 1
+    Count: 3
+    Turns: 2
+    Seed: 0
+    Reverse: 1
+    Scale: 1
+    Speed: 11
+    SpeedEnd: 11
+    Width: 2.3
+    ActiveDuration: 0
+    InactiveDuration: 0
+    PulsePhase: 0
+    ReverseInterval: 0
+    Turbulence: 2
+    Grip: 3
+    CatchRate: 10
+    ExitBoost: 1
+    Z: 0
+    EndpointReverse: 0
+  - Position: {x: 61.116344, y: -36.240723}
+    Rotation: -588.13824
+    CustomPoints: []
+    CustomLoop: 0
+    IsCircle: 0
+    CircleRadius: 4
+    Shape: 9
+    Size: 5
+    Size2: 1
+    Count: 3
+    Turns: 2
+    Seed: 0
+    Reverse: 0
+    Scale: 1
+    Speed: 11
+    SpeedEnd: 11
+    Width: 2.3
+    ActiveDuration: 0
+    InactiveDuration: 0
+    PulsePhase: 0
+    ReverseInterval: 0
+    Turbulence: 2
+    Grip: 3
+    CatchRate: 10
+    ExitBoost: 1
+    Z: 0
+    EndpointReverse: 0
+  - Position: {x: 71.4883, y: -32.088367}
+    Rotation: -769.2193
+    CustomPoints: []
+    CustomLoop: 0
+    IsCircle: 0
+    CircleRadius: 4
+    Shape: 9
+    Size: 5
+    Size2: 1
+    Count: 3
+    Turns: 2
+    Seed: 0
+    Reverse: 0
+    Scale: 0.3
+    Speed: 7
+    SpeedEnd: 0
+    Width: 2
+    ActiveDuration: 0
+    InactiveDuration: 0
+    PulsePhase: 0
+    ReverseInterval: 0
+    Turbulence: 2
+    Grip: 3
+    CatchRate: 10
+    ExitBoost: 1
+    Z: 0
+    EndpointReverse: 0
+  - Position: {x: 66.6444, y: -33.11617}
+    Rotation: -996.1285
+    CustomPoints: []
+    CustomLoop: 0
+    IsCircle: 0
+    CircleRadius: 4
+    Shape: 9
+    Size: 5
+    Size2: 1
+    Count: 3
+    Turns: 2
+    Seed: 0
+    Reverse: 1
+    Scale: 0.3
+    Speed: 7
+    SpeedEnd: 0
+    Width: 2
+    ActiveDuration: 0
+    InactiveDuration: 0
+    PulsePhase: 0
+    ReverseInterval: 0
+    Turbulence: 2
+    Grip: 3
+    CatchRate: 10
+    ExitBoost: 1
+    Z: 0
+    EndpointReverse: 0
+  - Position: {x: 79.97922, y: -13.4348755}
+    Rotation: -492.7349
+    CustomPoints: []
+    CustomLoop: 0
+    IsCircle: 0
+    CircleRadius: 4
+    Shape: 9
+    Size: 5
+    Size2: 1
+    Count: 3
+    Turns: 2
+    Seed: 0
+    Reverse: 1
+    Scale: 0.7
+    Speed: 11
+    SpeedEnd: 11
+    Width: 2
+    ActiveDuration: 0
+    InactiveDuration: 0
+    PulsePhase: 0
+    ReverseInterval: 0
+    Turbulence: 2
+    Grip: 3
+    CatchRate: 10
+    ExitBoost: 1
+    Z: 0
+    EndpointReverse: 0
+  - Position: {x: 76.466255, y: -11.80074}
+    Rotation: -209.89279
+    CustomPoints: []
+    CustomLoop: 0
+    IsCircle: 0
+    CircleRadius: 4
+    Shape: 9
+    Size: 6
+    Size2: 2
+    Count: 3
+    Turns: 2
+    Seed: 0
+    Reverse: 1
+    Scale: 0.5
+    Speed: 7
+    SpeedEnd: 0
+    Width: 2
+    ActiveDuration: 0
+    InactiveDuration: 0
+    PulsePhase: 0
+    ReverseInterval: 0
+    Turbulence: 2
+    Grip: 3
+    CatchRate: 10
+    ExitBoost: 1
+    Z: 0
+    EndpointReverse: 0
+  - Position: {x: 69.298935, y: -5.7605047}
+    Rotation: 0
+    CustomPoints: []
+    CustomLoop: 0
+    IsCircle: 0
+    CircleRadius: 4
+    Shape: 6
+    Size: 3
+    Size2: 15
+    Count: 2
+    Turns: 1
+    Seed: 0
+    Reverse: 0
+    Scale: 0.12
+    Speed: 7
+    SpeedEnd: 0
+    Width: 1
+    ActiveDuration: 0
+    InactiveDuration: 0
+    PulsePhase: 0
+    ReverseInterval: 0
+    Turbulence: 0
+    Grip: 3
+    CatchRate: 10
+    ExitBoost: 1
+    Z: 0
+    EndpointReverse: 0
+  - Position: {x: 73.87408, y: -12.976502}
+    Rotation: -92.359116
+    CustomPoints: []
+    CustomLoop: 0
+    IsCircle: 0
+    CircleRadius: 4
+    Shape: 9
+    Size: 6
+    Size2: 2
+    Count: 3
+    Turns: 2
+    Seed: 0
+    Reverse: 1
+    Scale: 0.7
+    Speed: 7
+    SpeedEnd: 0
+    Width: 2
+    ActiveDuration: 0
+    InactiveDuration: 0
+    PulsePhase: 0
+    ReverseInterval: 0
+    Turbulence: 2
+    Grip: 3
+    CatchRate: 10
+    ExitBoost: 1
+    Z: 0
+    EndpointReverse: 0
+  - Position: {x: 63.860394, y: 15.693603}
+    Rotation: -75.150764
+    CustomPoints: []
+    CustomLoop: 0
+    IsCircle: 0
+    CircleRadius: 4
+    Shape: 9
+    Size: 4
+    Size2: 1
+    Count: 3
+    Turns: 2
+    Seed: 0
+    Reverse: 0
+    Scale: 0.7
+    Speed: 7
+    SpeedEnd: 0
+    Width: 2
+    ActiveDuration: 0
+    InactiveDuration: 0
+    PulsePhase: 0
+    ReverseInterval: 0
+    Turbulence: 2
+    Grip: 3
+    CatchRate: 10
+    ExitBoost: 1
+    Z: 0
+    EndpointReverse: 0
+  - Position: {x: 69.40823, y: 48.341644}
+    Rotation: -1125.567
+    CustomPoints: []
+    CustomLoop: 0
+    IsCircle: 0
+    CircleRadius: 4
+    Shape: 9
+    Size: 6
+    Size2: 1
+    Count: 3
+    Turns: 2
+    Seed: 0
+    Reverse: 1
+    Scale: 0.7
+    Speed: 8
+    SpeedEnd: 0
+    Width: 2
+    ActiveDuration: 0
+    InactiveDuration: 0
+    PulsePhase: 0
+    ReverseInterval: 0
+    Turbulence: 2
+    Grip: 3
+    CatchRate: 10
+    ExitBoost: 1
+    Z: 0
+    EndpointReverse: 0
   Hazards: []
   Burners: []
   Zeuses:
-  - Position: {x: 59.13128, y: 30.097862}
+  - Position: {x: 59.202774, y: 30.14774}
     Areas:
     - Offset: {x: 10.001492, y: -2.9343815}
       RadiusX: 3.1912308
