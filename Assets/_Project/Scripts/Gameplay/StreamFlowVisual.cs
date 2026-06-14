@@ -26,8 +26,13 @@ namespace Ngj10.Gameplay
         private float[] _offsets;
         private float _travelled;
         private bool _lastReversed;
-        private bool _lastActive = true;
         private Color _accent;
+
+        // Master fade applied on top of the per-element alphas: 0 hides the whole
+        // visual (menu screen), 1 shows it. The menu→game transition eases it 0→1
+        // so the streams appear out of the fade with the rest of the level.
+        private float _visibility = 1f;
+        public void SetVisibility(float v) => _visibility = Mathf.Clamp01(v);
 
         // Three wavy longitudinal lines (lanes across the width), animated per frame.
         private static readonly float[] WavyLanes = { -0.45f, 0f, 0.45f };
@@ -102,15 +107,12 @@ namespace Ngj10.Gameplay
 
         private void Update()
         {
-            // Pulsing streams dim to a ghost while off.
+            // Pulsing streams dim to a ghost while off. Fold in the master visibility
+            // so the menu hide / transition fade scales every element together.
             bool active = _path.IsActive;
-            float activeMul = active ? 1f : 0.15f;
-            if (active != _lastActive)
-            {
-                _lastActive = active;
-                for (int i = 0; i < _wavyLines.Length; i++)
-                    SetLineAlpha(_wavyLines[i], (WavyLanes[i] == 0f ? 0.18f : 0.11f) * activeMul);
-            }
+            float activeMul = (active ? 1f : 0.15f) * _visibility;
+            for (int i = 0; i < _wavyLines.Length; i++)
+                SetLineAlpha(_wavyLines[i], (WavyLanes[i] == 0f ? 0.18f : 0.11f) * activeMul);
 
             AnimateWavyLines();
 

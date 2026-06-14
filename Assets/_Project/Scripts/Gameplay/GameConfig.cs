@@ -35,6 +35,11 @@ namespace Ngj10.Gameplay
         [Range(0f, 1f)]
         [SerializeField] private float _wingFoldVolume = 0.4f;
 
+        [Header("Achievement SFX")]
+        [Tooltip("Volume of the achievement-unlock toast sound.")]
+        [Range(0f, 1f)]
+        [SerializeField] private float _achievementVolume = 0.8f;
+
         [Tooltip("Looping wind bed, audible only while the wings are open. Volume scales with speed.")]
         [SerializeField] private AudioClip _windClip;
         [Tooltip("Wind volume at (and above) full speed — the loudest the wind gets.")]
@@ -84,6 +89,7 @@ namespace Ngj10.Gameplay
         [SerializeField] private LevelBuilder _builder;
 
         public float InitialVolume => _initialVolume;
+        public float AchievementVolume => _achievementVolume;
 
         private void Awake()
         {

@@ -18,9 +18,19 @@ namespace Ngj10.Gameplay
         private IcarusController _icarus;
 
         private bool _running;
+        private bool _stopped; // frozen on win — the timer holds at the sun-touch value
+        private bool _halted;  // run over on death — measuring stops, timer reads 0
         private Vector2 _lastPos;
         private float _spawnY;
         private float _runStartTime;
+
+        /// <summary>Milliseconds elapsed since the run began (first flight). Counts up
+        /// while flying, freezes when <see cref="Stop"/> is called (the win), and resets
+        /// to 0 with the next run (respawn after death/restart).</summary>
+        public int RunMs { get; private set; }
+
+        /// <summary>True once the player has taken flight this run (the timer is live).</summary>
+        public bool IsRunning => _running;
 
         /// <summary>Distance travelled this run so far, in metres.</summary>
         public float PathMeters { get; private set; }
@@ -45,13 +55,25 @@ namespace Ngj10.Gameplay
 
         private void FixedUpdate()
         {
-            // Parked at spawn: no run in progress. The first frame after the player
-            // takes flight begins a fresh run with zeroed totals.
+            // Parked at spawn (respawn after death/restart): no run in progress, and both
+            // the win-freeze and the death-halt are cleared so the next flight starts a
+            // fresh, live timer.
             if (_icarus.IsWaitingForInput)
             {
                 _running = false;
+                _stopped = false;
+                _halted = false;
                 return;
             }
+
+            // Halted on death: the run is over: stop measuring. The timer was already
+            // zeroed by ResetTimer so the death fade shows 00:00:000, not a ticking clock.
+            if (_halted)
+                return;
+
+            // Frozen on win: hold all totals (incl. the timer) at the sun-touch value.
+            if (_stopped)
+                return;
 
             if (!_running)
             {
@@ -60,10 +82,13 @@ namespace Ngj10.Gameplay
                 MaxHeightMeters = 0f;
                 MaxSpeed = 0f;
                 TimeToMaxMs = 0;
+                RunMs = 0;
                 _runStartTime = Time.time;
                 _lastPos = _icarus.Body.position;
                 _spawnY = _lastPos.y;
             }
+
+            RunMs = Mathf.RoundToInt((Time.time - _runStartTime) * 1000f);
 
             Vector2 pos = _icarus.Body.position;
             PathMeters += Vector2.Distance(pos, _lastPos);
@@ -81,6 +106,31 @@ namespace Ngj10.Gameplay
                 MaxSpeed = speed;
 
             Updated?.Invoke(PathMeters, MaxHeightMeters);
+        }
+
+        /// <summary>Freeze the run timer at its current value (called the instant the sun
+        /// is touched). The next respawn clears the freeze.</summary>
+        public void Stop() => _stopped = true;
+
+        /// <summary>Zero the timer and stop measuring (called on death). The clock reads
+        /// 00:00:000 through the death fade instead of ticking on. Other run totals keep
+        /// their death-moment values for the leaderboard submit; the next respawn resets
+        /// everything for a fresh run.</summary>
+        public void ResetTimer()
+        {
+            RunMs = 0;
+            _halted = true;
+        }
+
+        /// <summary>Format milliseconds as "mm:ss:mmm" (minutes:seconds:milliseconds).</summary>
+        public static string FormatMs(int ms)
+        {
+            if (ms < 0)
+                ms = 0;
+            int minutes = ms / 60000;
+            int seconds = ms / 1000 % 60;
+            int millis = ms % 1000;
+            return $"{minutes:00}:{seconds:00}:{millis:000}";
         }
     }
 }
