@@ -80,16 +80,21 @@ namespace Ngj10.Gameplay
         /// </summary>
         private void BuildSideWalls(LevelData data)
         {
-            float halfW = data.CameraSize * (_camera != null ? _camera.aspect : 16f / 9f);
-            float centerX = _camera != null ? _camera.transform.position.x : data.Start.x;
+            // Anchor on Start.x (the authored corridor centre) so the runtime walls line
+            // up exactly with what the Map Editor draws — not on the camera object, whose
+            // X may not have been moved yet. Aspect 16/9 to match the editor preview.
+            float halfW = data.CameraSize * (16f / 9f);
+            float centerX = data.Start.x;
 
+            // Thick walls so a fast player can't tunnel through; inner face sits at halfW.
+            const float thickness = 10f;
             for (int side = -1; side <= 1; side += 2)
             {
                 var wall = new GameObject(side < 0 ? "WallLeft" : "WallRight");
                 wall.transform.SetParent(transform, false);
-                wall.transform.position = new Vector3(centerX + side * (halfW + 0.5f), 0f, 0f);
+                wall.transform.position = new Vector3(centerX + side * (halfW + thickness * 0.5f), 0f, 0f);
                 var col = wall.AddComponent<BoxCollider2D>();
-                col.size = new Vector2(1f, 4000f);
+                col.size = new Vector2(thickness, 4000f);
             }
         }
 

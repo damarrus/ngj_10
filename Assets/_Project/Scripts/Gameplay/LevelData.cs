@@ -14,7 +14,8 @@ namespace Ngj10.Gameplay
     {
         /// <summary>Camera follows freely; only the kill line below is deadly.</summary>
         Free,
-        /// <summary>Camera follows upward only (X locked); left/right screen edges are deadly.</summary>
+        /// <summary>Camera follows upward only (X locked); left/right screen edges are solid
+        /// physical walls — the player bumps into them, they do not kill.</summary>
         UpOnly,
         /// <summary>Camera is static; all four screen edges are deadly (one screen of play).</summary>
         SingleScreen,
@@ -81,10 +82,10 @@ namespace Ngj10.Gameplay
         public int Seed;
         public bool Reverse;
 
-        /// <summary>Uniform multiplier on the generated shape — resize the whole figure
-        /// without changing its proportions. Size/Size2 define the form, Scale the overall
-        /// size. 1 = as authored. Only affects the shape generator (circles use CircleRadius,
-        /// hand-drawn paths use their explicit points).</summary>
+        /// <summary>Uniform multiplier on the whole trajectory — every stream type
+        /// (circle, hand-drawn, shape). Scales the geometry, not the Width. 1 = as authored.
+        /// Runtime applies it as the stream's transform.localScale; the editor/bake multiplies
+        /// the points.</summary>
         public float Scale = 1f;
 
         // StreamPath runtime parameters.
@@ -96,13 +97,23 @@ namespace Ngj10.Gameplay
         public float Width = 3f;
         public float ActiveDuration;
         public float InactiveDuration;
+
+        /// <summary>Pulse phase offset, seconds — shifts this stream's on/off cycle so
+        /// several pulsing streams blink out of sync (like a Burner cone's PhaseOffset).</summary>
+        public float PulsePhase;
+
         public float ReverseInterval;
         public float Turbulence;
 
-        /// <summary>How tightly the stream holds Icarus: pull toward the centerline
-        /// and how fast his velocity converges to the flow. 3 = default feel,
-        /// 6-10 = rails that survive sharp bends at high speed, 1 = loose river.</summary>
+        /// <summary>Centering pull toward the path axis. 3 = default, 6-10 = rails that
+        /// keep Icarus glued to the line through sharp bends, 1 = loose river that lets
+        /// him drift off the axis.</summary>
         public float Grip = 3f;
+
+        /// <summary>How fast Icarus's velocity converges to the flow speed/direction,
+        /// independent of the axis pull. Default 10 = near-instant snap (~0.15s to flow
+        /// speed). 0 = follow Grip (legacy). Lower = sluggish, momentum lingers.</summary>
+        public float CatchRate = 10f;
 
         /// <summary>Exit impulse multiplier: applied to the player's velocity the
         /// moment he folds his wings while carried by this stream. 1 = plain
@@ -113,6 +124,11 @@ namespace Ngj10.Gameplay
         /// cover the player at once, the one with the highest Z captures him. Ties break
         /// toward the deepest coverage. No effect on the Field model. Default 0.</summary>
         public float Z;
+
+        /// <summary>When on, reaching the far end of the path (e.g. a spiral's centre)
+        /// flips the flow direction and resets the player's speed to base Speed — so he
+        /// ping-pongs in/out, re-accelerating each pass. Open paths only.</summary>
+        public bool EndpointReverse;
 
         /// <summary>Stream colour is derived from Speed, not authored by hand.</summary>
         public Color VisualColor => SpeedToColor(Speed);

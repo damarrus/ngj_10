@@ -15,18 +15,32 @@ namespace Ngj10.Gameplay
         [SerializeField] private float _width = 3f;
         [SerializeField] private float _activeDuration;   // pulse: seconds on (0 = always on)
         [SerializeField] private float _inactiveDuration; // pulse: seconds off
+        [SerializeField] private float _pulsePhase;       // pulse: phase offset, sec (desync streams)
         [SerializeField] private float _reverseInterval;  // flips flow direction every N seconds (0 = never)
         [SerializeField] private float _turbulence;       // perpendicular wobble amplitude
-        [SerializeField] private float _grip = 3f;        // hold strength: centering pull + velocity convergence
+        [SerializeField] private float _grip = 3f;        // centering pull toward the path axis
+        [SerializeField] private float _catchRate;        // velocity-convergence speed (0 = follow grip)
         [SerializeField] private float _speedEnd;         // linear ramp target at the path end (0 = constant)
         [SerializeField] private float _exitBoost = 1f;   // velocity multiplier on wings-fold exit
         [SerializeField] private float _z;                // Legacy-model capture priority (higher wins)
+        [SerializeField] private bool _endpointReverse;   // flip flow when the player reaches the far end
+
+        // Runtime: toggled each time the player rides into the current exit end.
+        private bool _endpointFlipped;
+        private bool _atEndpoint; // hysteresis: flip once per arrival, not every frame
+
+        public bool EndpointReverse => _endpointReverse;
 
         public bool Loop => _loop;
         public float Speed => _speed;
         public float Width => _width;
         public float Turbulence => _turbulence;
         public float Grip => _grip;
+
+        /// <summary>How fast Icarus's velocity converges to the flow. 0 = use Grip
+        /// (legacy: the two were one dial), otherwise tuned independently of the axis pull.</summary>
+        public float CatchRate => _catchRate > 0f ? _catchRate : _grip;
+
         public float ExitBoost => _exitBoost;
         public float Z => _z;
         public float Length { get; private set; }
@@ -34,19 +48,47 @@ namespace Ngj10.Gameplay
         /// <summary>Pulsing streams turn off periodically and drop the player.</summary>
         public bool IsActive =>
             _inactiveDuration <= 0f ||
-            Time.time % (_activeDuration + _inactiveDuration) < _activeDuration;
+            (Time.time + _pulsePhase) % (_activeDuration + _inactiveDuration) < _activeDuration;
 
         public bool Reversed =>
-            _reverseInterval > 0f && Mathf.FloorToInt(Time.time / _reverseInterval) % 2 == 1;
+            (_reverseInterval > 0f && Mathf.FloorToInt(Time.time / _reverseInterval) % 2 == 1)
+            ^ _endpointFlipped;
 
         public float DirectionSign => Reversed ? -1f : 1f;
 
-        /// <summary>Flow speed at a distance along the path (linear start→end ramp).</summary>
+        /// <summary>Flow speed ramped along the CURRENT flow direction: base Speed at the
+        /// flow's entry, SpeedEnd at its exit. Reversing flips the ramp, so the speed
+        /// resets to Speed at a turnaround and builds up again toward the new exit.</summary>
         public float SpeedAt(float distance)
         {
             if (_speedEnd <= 0f || Length <= 0f)
                 return _speed;
-            return Mathf.Lerp(_speed, _speedEnd, Mathf.Clamp01(distance / Length));
+            float t = Mathf.Clamp01(distance / Length);
+            if (DirectionSign < 0f) t = 1f - t; // ramp follows the flow direction
+            return Mathf.Lerp(_speed, _speedEnd, t);
+        }
+
+        /// <summary>
+        /// EndpointReverse mechanic: while the player rides this stream, call this with his
+        /// distance along the path. When he reaches the current exit end, flip the flow and
+        /// return true (the caller resets his speed to base Speed). Open paths only.
+        /// </summary>
+        public bool TryEndpointReverse(float distanceAlong)
+        {
+            if (!_endpointReverse || _loop || Length <= 0f)
+                return false;
+
+            float exit = DirectionSign >= 0f ? Length : 0f;
+            bool atExit = Mathf.Abs(distanceAlong - exit) < Mathf.Min(0.5f, Length * 0.1f);
+            if (atExit && !_atEndpoint)
+            {
+                _atEndpoint = true;
+                _endpointFlipped = !_endpointFlipped;
+                return true;
+            }
+            if (!atExit)
+                _atEndpoint = false;
+            return false;
         }
 
         /// <summary>Flow velocity at a sampled path point: tangent flow + turbulence wobble.</summary>
@@ -155,18 +197,22 @@ namespace Ngj10.Gameplay
         /// <summary>Apply runtime parameters from level data (loop is set by the shape generator).</summary>
         public void Configure(float speed, float width, float activeDuration,
             float inactiveDuration, float reverseInterval, float turbulence, float grip = 3f,
-            float speedEnd = 0f, float exitBoost = 1f, float z = 0f)
+            float speedEnd = 0f, float exitBoost = 1f, float z = 0f, float catchRate = 0f,
+            bool endpointReverse = false, float pulsePhase = 0f)
         {
             _speed = speed;
             _width = width;
             _activeDuration = activeDuration;
             _inactiveDuration = inactiveDuration;
+            _pulsePhase = pulsePhase;
             _reverseInterval = reverseInterval;
             _turbulence = turbulence;
             _grip = grip;
             _speedEnd = speedEnd;
             _exitBoost = exitBoost;
             _z = z;
+            _catchRate = catchRate;
+            _endpointReverse = endpointReverse;
         }
 
         private void BuildCache()

@@ -77,6 +77,9 @@ namespace Ngj10.Gameplay
                 stream.name = "Stream" + i;
                 stream.transform.SetPositionAndRotation(
                     def.Position, Quaternion.Euler(0f, 0f, def.Rotation));
+                // Uniform scale of the whole trajectory (any type) — scales the waypoint
+                // children; Width stays as authored.
+                stream.transform.localScale = Vector3.one * (def.Scale <= 0f ? 1f : def.Scale);
 
                 if (def.IsCircle)
                     BuildCircleWaypoints(stream, def);
@@ -86,7 +89,7 @@ namespace Ngj10.Gameplay
                 {
                     var generator = stream.GetComponent<StreamShapeGenerator>();
                     generator.Configure(def.Shape, def.Size, def.Size2, def.Count,
-                        def.Turns, def.Seed, def.Reverse, def.Scale);
+                        def.Turns, def.Seed, def.Reverse);
                     generator.Generate();
                 }
 
@@ -96,7 +99,8 @@ namespace Ngj10.Gameplay
 
                 stream.Configure(def.Speed, def.Width, def.ActiveDuration,
                     def.InactiveDuration, def.ReverseInterval, def.Turbulence, def.Grip,
-                    def.SpeedEnd, def.ExitBoost, def.Z);
+                    def.SpeedEnd, def.ExitBoost, def.Z, def.CatchRate, def.EndpointReverse,
+                    def.PulsePhase);
 
                 var visual = stream.GetComponent<StreamFlowVisual>();
                 if (visual != null)

@@ -39,6 +39,19 @@ namespace Ngj10.Gameplay
 
         [Header("Stream field")]
         [SerializeField] private float _centeringMaxSpeed = 3.6f; // cap on the centering pull
+
+        [Header("Legacy model: wings-closed dive")]
+        [Tooltip("Length of the launch window after folding wings, seconds. Inside it the window-gravity is used so exit inertia coasts; after it, the after-gravity. 0 = no window (original old).")]
+        [SerializeField] private float _legacyLaunchGrace;             // 0 = off (original old)
+        [Tooltip("Gravity DURING the launch window. Low = the stream's exit inertia coasts (up, down or sideways).")]
+        [SerializeField] private float _legacyWindowGravity = 7.85f;   // 0.8*9.81 = original old
+        [Tooltip("Gravity AFTER the launch window. High = snappy plummet.")]
+        [SerializeField] private float _legacyAfterGravity = 7.85f;    // 0.8*9.81 = original old
+        [Tooltip("Seconds to ease gravity from window- to after-value once the window ends. 0 = instant switch (original old).")]
+        [SerializeField] private float _legacyFallBlend;               // 0 = hard switch
+        [Tooltip("Max fall speed, u/s. 0 = uncapped (original old behaviour).")]
+        [SerializeField] private float _legacyDiveTerminal;            // 0 = no cap
+
         [SerializeField] private SpriteRenderer _wingsVisual;
 
         [Header("Facing")]
@@ -72,10 +85,14 @@ namespace Ngj10.Gameplay
             {
                 Body = GetComponent<Rigidbody2D>();
                 Body.gravityScale = 0f; // gravity is integrated manually (prototype model)
+                // Fast flight + thin kill-walls = tunneling with Discrete detection;
+                // continuous sweeps the path so the player bumps instead of passing through.
+                Body.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
             }
         }
 
         private bool _waitingForInput;
+        private float _foldTime = float.NegativeInfinity; // when wings last folded (launch moment)
 
         // The START click/Space that launches the game is often still held when the level
         // goes live (one continuous gesture). Without this, that carried-over hold reads as
@@ -234,8 +251,13 @@ namespace Ngj10.Gameplay
                     var perp = new Vector2(-sample.Tangent.y, sample.Tangent.x);
                     desired += perp * (CurrentStream.Turbulence * Mathf.Sin(Time.time * 3.7f));
                 }
-                float blend = 1f - Mathf.Exp(-CurrentStream.Grip * 2f * dt);
+                float blend = 1f - Mathf.Exp(-CurrentStream.CatchRate * 2f * dt);
                 v = Vector2.Lerp(v, desired, blend);
+
+                // Reached the path end with the endpoint-reverse mechanic on: flip the flow
+                // and reset speed to base Speed in the new direction (then re-accelerate).
+                if (CurrentStream.TryEndpointReverse(sample.DistanceAlong))
+                    v = sample.Tangent * (CurrentStream.Speed * CurrentStream.DirectionSign);
             }
             else if (WingsOpen)
             {
@@ -245,8 +267,23 @@ namespace Ngj10.Gameplay
             }
             else
             {
-                // Ballistic dive, no drag, no terminal.
-                v.y -= 0.8f * 9.81f * dt;
+                // Ballistic dive: during the launch-grace window after folding, light
+                // gravity lets the stream's exit inertia coast in any direction (up,
+                // down or sideways); after it, heavier gravity makes the descent snappy.
+                // Flat low gravity through the window (clean inertia coast), then ease
+                // up to the after-gravity over the blend time (no acceleration jerk).
+                float since = Time.time - _foldTime;
+                float g;
+                if (since < _legacyLaunchGrace)
+                    g = _legacyWindowGravity;
+                else if (_legacyFallBlend > 0f)
+                    g = Mathf.SmoothStep(_legacyWindowGravity, _legacyAfterGravity,
+                        (since - _legacyLaunchGrace) / _legacyFallBlend);
+                else
+                    g = _legacyAfterGravity;
+                v.y -= g * dt;
+                if (_legacyDiveTerminal > 0f && v.y < -_legacyDiveTerminal)
+                    v.y = -_legacyDiveTerminal;
             }
 
             Body.linearVelocity = v;
@@ -384,12 +421,16 @@ namespace Ngj10.Gameplay
                     target += perp * (strongest.Turbulence * Mathf.Sin(Time.time * 3.7f));
                 }
 
-                // Grip 3 reproduces the prototype's catch rate of 10.
-                float catchRate = strongest.Grip * 3.33f;
+                // CatchRate 3 reproduces the prototype's catch rate of 10.
+                float catchRate = strongest.CatchRate * 3.33f;
                 float blend = 1f - Mathf.Exp(-catchRate * Mathf.Min(influence, 1f) * dt);
                 v = Vector2.Lerp(v, target, blend);
 
                 CurrentStream = influence > 0.08f ? strongest : null;
+
+                // Endpoint-reverse mechanic: flip at the path end, reset to base Speed.
+                if (strongest.TryEndpointReverse(strongestSample.DistanceAlong))
+                    v = strongestSample.Tangent * (strongest.Speed * strongest.DirectionSign);
             }
             else
             {
@@ -459,8 +500,12 @@ namespace Ngj10.Gameplay
         {
             // Folding wings while carried: the stream's exit boost multiplies the
             // launch velocity — per-stream catapult feel.
-            if (!open && WingsOpen && CurrentStream != null)
-                Body.linearVelocity *= CurrentStream.ExitBoost;
+            if (!open && WingsOpen)
+            {
+                if (CurrentStream != null)
+                    Body.linearVelocity *= CurrentStream.ExitBoost;
+                _foldTime = Time.time; // start the launch-grace window from the fold
+            }
 
             WingsOpen = open;
             ApplyWingsVisual();
