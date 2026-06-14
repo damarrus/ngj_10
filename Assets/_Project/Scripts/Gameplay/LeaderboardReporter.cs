@@ -1,3 +1,4 @@
+using System;
 using Ngj10.Core.Achievements;
 using Ngj10.Core.Leaderboard;
 using UnityEngine;
@@ -27,35 +28,30 @@ namespace Ngj10.Gameplay
         private const string BestTimeKey = "lb.best.time";
         private const string BestAchKey = "lb.best.ach";
 
-        [Tooltip("Raises RunFinished on death and on reaching the sun.")]
-        [SerializeField] private LevelController _level;
         [Tooltip("Source of the run's peak height and time-to-peak. Lives on the Icarus object.")]
         [SerializeField] private RunStats _stats;
 
         private void Awake()
         {
-            if (_level == null)
-                _level = FindAnyObjectByType<LevelController>();
             if (_stats == null)
                 _stats = FindAnyObjectByType<RunStats>();
         }
 
-        private void OnEnable()
-        {
-            if (_level != null)
-                _level.RunFinished += OnRunFinished;
-        }
-
-        private void OnDisable()
-        {
-            if (_level != null)
-                _level.RunFinished -= OnRunFinished;
-        }
-
-        private void OnRunFinished()
+        /// <summary>
+        /// Fold the just-ended run into the stored personal best and, if that produced a
+        /// new record, upsert it to the server. <paramref name="onSettled"/> fires once the
+        /// leaderboard state is settled and a fresh fetch would see this run: true when the
+        /// row is up to date (a successful submit, or no change needed), false when a submit
+        /// was required but failed. Called fire-and-forget on death (via the RunFinished
+        /// event) and with a callback on the win, where the rank lookup waits for it.
+        /// </summary>
+        public void SubmitRunIfRecord(Action<bool> onSettled = null)
         {
             if (_stats == null)
+            {
+                onSettled?.Invoke(false);
                 return;
+            }
 
             // Round height UP: most players reach the level top and tie there, which
             // is by design — the contest then moves to the climb time.
@@ -90,14 +86,19 @@ namespace Ngj10.Gameplay
             }
 
             if (!changed)
+            {
+                // No new record — the existing server row already reflects the best, so a
+                // rank fetch is valid right now.
+                onSettled?.Invoke(true);
                 return;
+            }
 
             PlayerPrefs.SetInt(BestHeightKey, bestHeight);
             PlayerPrefs.SetInt(BestTimeKey, bestTime);
             PlayerPrefs.SetInt(BestAchKey, bestAch);
             PlayerPrefs.Save();
 
-            LeaderboardClient.Instance.SubmitRun(bestHeight, bestTime, bestAch);
+            LeaderboardClient.Instance.SubmitRun(bestHeight, bestTime, bestAch, onSettled);
         }
     }
 }
