@@ -430,7 +430,7 @@ MonoBehaviour:
     Reverse: 0
     Scale: 0.7
     Speed: 7
-    SpeedEnd: 20
+    SpeedEnd: 14
     Width: 2
     ActiveDuration: 0
     InactiveDuration: 0
@@ -1536,7 +1536,7 @@ MonoBehaviour:
     ExitBoost: 1
     Z: 0
     EndpointReverse: 0
-  - Position: {x: 81.5573, y: 25.259119}
+  - Position: {x: 81.58641, y: 25.259119}
     Rotation: -22.240822
     CustomPoints:
     - {x: -0.9828438, y: -5.25819}
@@ -1553,7 +1553,7 @@ MonoBehaviour:
     Reverse: 0
     Scale: 0.7
     Speed: 7
-    SpeedEnd: 20
+    SpeedEnd: 17
     Width: 3
     ActiveDuration: 0
     InactiveDuration: 0
@@ -2150,7 +2150,7 @@ MonoBehaviour:
     Rotation: 39.97116
     CustomPoints:
     - {x: -1.0861944, y: -5.25819}
-    - {x: -0.40251923, y: -4.253326}
+    - {x: -0.39825326, y: -4.0669694}
     CustomLoop: 0
     IsCircle: 0
     CircleRadius: 4
