@@ -1708,7 +1708,7 @@ MonoBehaviour:
     ExitBoost: 1
     Z: 2
     EndpointReverse: 0
-  - Position: {x: 77.36145, y: 93.97864}
+  - Position: {x: 77.27542, y: 93.50548}
     Rotation: 39.97116
     CustomPoints:
     - {x: -1.0861944, y: -5.25819}
@@ -1726,7 +1726,7 @@ MonoBehaviour:
     Scale: 0.7
     Speed: 7
     SpeedEnd: 13
-    Width: 3
+    Width: 4
     ActiveDuration: 0
     InactiveDuration: 0
     PulsePhase: 0
