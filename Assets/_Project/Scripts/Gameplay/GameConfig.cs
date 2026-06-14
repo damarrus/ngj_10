@@ -1,3 +1,4 @@
+using Ngj10.Core;
 using UnityEngine;
 
 namespace Ngj10.Gameplay
@@ -16,8 +17,48 @@ namespace Ngj10.Gameplay
         [Range(0f, 1f)]
         [SerializeField] private float _initialVolume = 1f;
 
+        [Tooltip("Calm track on the title screen. Crossfades into the game track on start.")]
+        [SerializeField] private AudioClip _menuMusic;
+
+        [Tooltip("Energetic track during play. Crossfades back from the menu track when the level begins.")]
+        [SerializeField] private AudioClip _gameMusic;
+
+        [Header("Wing SFX")]
+        [Tooltip("Played when the wings spread open (hold).")]
+        [SerializeField] private AudioClip _wingSpreadClip;
+        [Tooltip("Played when the wings fold closed (release, or Zeus shock).")]
+        [SerializeField] private AudioClip _wingFoldClip;
+        [Tooltip("Volume of the spread one-shot. Fires often — keep it low.")]
+        [Range(0f, 1f)]
+        [SerializeField] private float _wingSpreadVolume = 0.5f;
+        [Tooltip("Volume of the fold one-shot. Fires often — keep it low.")]
+        [Range(0f, 1f)]
+        [SerializeField] private float _wingFoldVolume = 0.4f;
+
+        [Tooltip("Looping wind bed, audible only while the wings are open. Volume scales with speed.")]
+        [SerializeField] private AudioClip _windClip;
+        [Tooltip("Wind volume at (and above) full speed — the loudest the wind gets.")]
+        [Range(0f, 1f)]
+        [SerializeField] private float _windMaxVolume = 0.4f;
+        [Tooltip("Speed (u/s) at which the wind reaches max volume. Below it, volume scales down to silence.")]
+        [SerializeField] private float _windFullSpeed = 12f;
+        [Tooltip("Seconds to ease the wind volume up (toward its speed-scaled target).")]
+        [SerializeField] private float _windFadeInSeconds = 0.6f;
+        [Tooltip("Seconds to ease the wind volume down (toward silence after folding).")]
+        [SerializeField] private float _windFadeOutSeconds = 0.5f;
+
         [Header("Flow")]
         [SerializeField] private bool _showStartScreen = true;
+
+        [Header("Menu camera")]
+        [Tooltip("Camera zoom on the title screen (orthographic half-height). Smaller = Icarus bigger. Gameplay zoom is restored on START.")]
+        [SerializeField] private float _menuCameraSize = 2.6f;
+        [Tooltip("Horizontal camera offset off the spawn on the title screen. Positive pushes Icarus to the LEFT of frame.")]
+        [SerializeField] private float _menuOffsetX = 2.2f;
+        [Tooltip("Vertical camera offset off the spawn on the title screen. Positive pushes Icarus DOWN in frame.")]
+        [SerializeField] private float _menuOffsetY = 1.5f;
+        [Tooltip("Seconds for START to glide the camera from the menu framing back to gameplay (the menu UI fades out over the same time). The level stays frozen until it lands.")]
+        [SerializeField] private float _menuTransitionDuration = 1.5f;
 
         [Header("Burn (cone rays)")]
         [Tooltip("Seconds under a ray to go from cold to fully burnt (death).")]
@@ -59,6 +100,12 @@ namespace Ngj10.Gameplay
             if (shock != null)
                 shock.Configure(_wingBlockDuration, _shockColor);
 
+            var wingSfx = FindAnyObjectByType<WingSfx>();
+            if (wingSfx != null)
+                wingSfx.Configure(
+                    _wingSpreadClip, _wingFoldClip, _wingSpreadVolume, _wingFoldVolume,
+                    _windClip, _windMaxVolume, _windFullSpeed, _windFadeInSeconds, _windFadeOutSeconds);
+
             // Build the chosen level now, before anything starts it. GameConfig
             // runs at exec order -100, ahead of LevelBuilder's own Awake build —
             // so we set the data and build here, otherwise Begin() below (or the
@@ -70,8 +117,28 @@ namespace Ngj10.Gameplay
                 _builder.BuildNow();
             }
 
+            // The level swaps to the game track itself when it begins, so it owns
+            // the clip. The menu track plays here while the title screen is up.
+            if (_controller != null)
+                _controller.SetGameMusic(_gameMusic);
+
             if (_showStartScreen && _startScreen != null)
             {
+                // Park the hero at spawn (wings folded, idle, trail cleared) before
+                // the title is up — otherwise the open-winged Icarus streams a trail
+                // and toggles wing SFX behind the menu, reading as "the game already
+                // started". The level clock stays frozen until START.
+                if (_controller != null)
+                {
+                    _controller.Park();
+                    _controller.EnterMenuFraming(_menuCameraSize, _menuOffsetX, _menuOffsetY);
+                }
+
+                _startScreen.Configure(
+                    _wingSpreadClip, _wingFoldClip, _wingSpreadVolume, _wingFoldVolume,
+                    _windClip, _windMaxVolume, _windFadeInSeconds, _windFadeOutSeconds);
+                _startScreen.SetTransitionDuration(_menuTransitionDuration);
+                AudioManager.Instance.CrossfadeTo(_menuMusic);
                 _startScreen.Show();
             }
             else

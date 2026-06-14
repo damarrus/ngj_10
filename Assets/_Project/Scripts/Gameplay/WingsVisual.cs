@@ -3,113 +3,168 @@ using UnityEngine;
 namespace Ngj10.Gameplay
 {
     /// <summary>
-    /// Procedural Icarus look, styled after the web prototype: cream body and
-    /// head, a fan of feathers per wing that spreads when wings open and folds
-    /// when closed, body tilt with horizontal speed, soft halo inside a stream.
+    /// Modular Icarus built from the artist's atlas. A head sprite overlays a body
+    /// sprite, with a separate legs sprite added only for the wings-spread pose
+    /// (whose body is an arms-raised torso with no legs of its own). The two
+    /// wings-down bodies already contain the legs, so they need only a head.
+    ///
+    /// Three poses, read from the controller every frame:
+    ///   • Standing (parked at spawn): calm body, forward-looking head.
+    ///   • Flying   (wings open):      spread-wing torso, upward head, flying legs.
+    ///   • Diving   (wings folded):    tucked-wing body, upward head.
+    ///
+    /// Body banking/heading is owned by the controller (it rotates the rigidbody to
+    /// face velocity), so this component only assembles and swaps sprites — it never
+    /// rotates the root. Each body anchors its neck at a different height, so the
+    /// head (and legs) offset is per-pose, measured from each sprite's centre pivot.
     /// </summary>
     public class WingsVisual : MonoBehaviour
     {
-        [SerializeField] private Sprite _sprite;
-        [SerializeField] private int _feathersPerWing = 6;
-        [SerializeField] private float _spreadRate = 12f;
-        [SerializeField] private float _tiltPerSpeed = 2.8f; // degrees per unit of vx
+        [Header("Body sprites (headless)")]
+        [SerializeField] private Sprite _bodyIdle;    // full figure, wings relaxed — spawn idle
+        [SerializeField] private Sprite _bodySpread;  // arms-raised torso, no legs (flying)
+        [SerializeField] private Sprite _bodyTucked;  // full figure, wings pinned (diving)
 
-        private static readonly Color FeatherColor = new Color(0.957f, 0.914f, 0.824f, 0.95f);
-        private static readonly Color BodyColor = new Color(0.941f, 0.890f, 0.784f);
+        [Header("Head sprites")]
+        [SerializeField] private Sprite _headForward;  // looking ahead (standing)
+        [SerializeField] private Sprite _headUp;       // looking up (in flight)
+
+        [Header("Legs sprites")]
+        [Tooltip("Legs for the spread (flying) pose.")]
+        [SerializeField] private Sprite _legsFly;
+        [Tooltip("Legs for the standing pose (idle torso has no legs of its own).")]
+        [SerializeField] private Sprite _legsStand;
+
+        [Header("Per-pose head offset (local units from body centre)")]
+        [SerializeField] private float _headOffsetStanding = 3.78f;
+        [SerializeField] private float _headOffsetFlying = 0.73f;
+        [SerializeField] private float _headOffsetDiving = 3.35f;
+
+        [Tooltip("Legs offset below the spread-pose torso (flying only).")]
+        [SerializeField] private float _legsOffsetFlying = -4.16f;
+        [Tooltip("Legs offset below the standing torso.")]
+        [SerializeField] private float _legsOffsetStanding = -3f;
+
+        [Header("Halo")]
+        [SerializeField] private Sprite _haloSprite;
+        [SerializeField] private float _haloAlpha = 0.16f;
+
+        [Header("Rig")]
+        [Tooltip("Uniform scale so the atlas art fits the play field.")]
+        [SerializeField] private float _scale = 0.16f;
+
+        [Header("Sorting (back → front)")]
+        [SerializeField] private int _orderHalo = 6;
+        [SerializeField] private int _orderLegs = 8;
+        [SerializeField] private int _orderBody = 10;
+        [SerializeField] private int _orderHead = 12;
 
         private IcarusController _controller;
-        private Transform[] _feathers;
-        private float[] _sides;
-        private float[] _lengths;
+        private SpriteRenderer _body;
+        private SpriteRenderer _head;
+        private SpriteRenderer _legs;
         private SpriteRenderer _halo;
-        private float _spread;
-        private float _haloAlpha;
+        private float _haloT;
+
+        private enum Pose { Standing, Flying, Diving }
+
+        // While the title screen is up, force the standing pose (full idle figure on the
+        // island) regardless of the parked controller state. GameConfig sets it;
+        // LevelController clears it on start.
+        private bool _menuPose;
+
+        public void SetMenuPose(bool on)
+        {
+            _menuPose = on;
+            Apply(CurrentPose());
+        }
 
         private void Awake()
         {
             _controller = GetComponentInParent<IcarusController>();
-            Build();
+            transform.localScale = new Vector3(_scale, _scale, 1f);
+
+            _halo = NewLayer("Halo", _orderHalo);
+            _halo.sprite = _haloSprite;
+            _halo.color = new Color(1f, 1f, 1f, 0f);
+
+            _legs = NewLayer("Legs", _orderLegs);
+            _body = NewLayer("Body", _orderBody);
+            _head = NewLayer("Head", _orderHead);
+
+            Apply(CurrentPose());
         }
 
-        private void Build()
-        {
-            _halo = NewSprite("Halo", new Vector3(0f, 0f, 0f), new Vector3(1.4f, 1.4f, 1f),
-                new Color(1f, 1f, 1f, 0f), 7);
-
-            // Prototype proportions: slim drop body, small head above, two stick legs.
-            NewSprite("Body", Vector3.zero, new Vector3(0.20f, 0.36f, 1f), BodyColor, 10);
-            NewSprite("Head", new Vector3(0f, 0.245f, 0f), new Vector3(0.18f, 0.18f, 1f), BodyColor, 11);
-            var legColor = new Color(0.851f, 0.784f, 0.651f);
-            NewSprite("LegL", new Vector3(-0.05f, -0.26f, 0f), new Vector3(0.035f, 0.16f, 1f), legColor, 9);
-            NewSprite("LegR", new Vector3(0.05f, -0.26f, 0f), new Vector3(0.035f, 0.16f, 1f), legColor, 9);
-
-            int total = _feathersPerWing * 2;
-            _feathers = new Transform[total];
-            _sides = new float[total];
-            _lengths = new float[total];
-            int index = 0;
-            for (int s = -1; s <= 1; s += 2)
-            {
-                for (int d = 0; d < _feathersPerWing; d++)
-                {
-                    float length = 0.45f + d * 0.11f;
-                    var sr = NewSprite("Feather", Vector3.zero,
-                        new Vector3(length, 0.085f, 1f), FeatherColor, 9);
-                    _feathers[index] = sr.transform;
-                    _sides[index] = s;
-                    _lengths[index] = length;
-                    index++;
-                }
-            }
-        }
-
-        private SpriteRenderer NewSprite(string name, Vector3 localPos, Vector3 scale, Color color, int order)
+        private SpriteRenderer NewLayer(string name, int order)
         {
             var go = new GameObject(name);
             go.transform.SetParent(transform, false);
-            go.transform.localPosition = localPos;
-            go.transform.localScale = scale;
             var sr = go.AddComponent<SpriteRenderer>();
-            sr.sprite = _sprite;
-            sr.color = color;
             sr.sortingOrder = order;
             return sr;
         }
 
+        private Pose CurrentPose()
+        {
+            if (_menuPose)
+                return Pose.Standing;
+            if (_controller == null)
+                return Pose.Flying;
+            if (_controller.IsWaitingForInput)
+                return Pose.Standing;
+            return _controller.WingsOpen ? Pose.Flying : Pose.Diving;
+        }
+
+        private void Apply(Pose pose)
+        {
+            // Renderers are built in Awake. GameConfig (exec order -100) can call SetMenuPose
+            // before that runs, so guard: Awake re-applies the (persisted) pose once ready.
+            if (_body == null)
+                return;
+
+            switch (pose)
+            {
+                case Pose.Standing:
+                    _body.sprite = _bodyIdle;
+                    _head.sprite = _headUp;
+                    SetHead(_headOffsetStanding);
+                    _legs.sprite = _legsStand;
+                    _legs.transform.localPosition = new Vector3(0f, _legsOffsetStanding, 0f);
+                    break;
+                case Pose.Flying:
+                    _body.sprite = _bodySpread;
+                    _head.sprite = _headUp;
+                    SetHead(_headOffsetFlying);
+                    _legs.sprite = _legsFly;
+                    _legs.transform.localPosition = new Vector3(0f, _legsOffsetFlying, 0f);
+                    break;
+                case Pose.Diving:
+                    _body.sprite = _bodyTucked;
+                    _head.sprite = _headUp;
+                    SetHead(_headOffsetDiving);
+                    _legs.sprite = null;
+                    break;
+            }
+        }
+
+        private void SetHead(float y) =>
+            _head.transform.localPosition = new Vector3(0f, y, 0f);
+
         private void Update()
         {
-            bool open = _controller != null && _controller.WingsOpen;
-            _spread = Mathf.Lerp(_spread, open ? 1f : 0f, 1f - Mathf.Exp(-_spreadRate * Time.deltaTime));
+            Apply(CurrentPose());
 
-            float vx = _controller != null && _controller.Body != null
-                ? _controller.Body.linearVelocity.x : 0f;
-            float tilt = Mathf.Clamp(vx * -_tiltPerSpeed, -32f, 32f);
-            transform.localRotation = Quaternion.Euler(0f, 0f, tilt);
-
-            var shoulder = new Vector3(0f, 0.06f, 0f);
-            float lengthMul = 0.45f + 0.55f * _spread;
-            for (int i = 0; i < _feathers.Length; i++)
+            bool carried = _controller != null
+                && _controller.CurrentStream != null
+                && _controller.WingsOpen;
+            _haloT = Mathf.Lerp(_haloT, carried ? _haloAlpha : 0f,
+                1f - Mathf.Exp(-8f * Time.deltaTime));
+            if (_halo.sprite != null)
             {
-                int d = i % _feathersPerWing;
-                // Folded: feathers hang behind the body; open: fan from low to high.
-                float openAngle = 8f + d * 13f;
-                float foldAngle = -72f + d * 5f;
-                float angle = Mathf.Lerp(foldAngle, openAngle, _spread);
-                float worldAngle = _sides[i] > 0f ? angle : 180f - angle;
-
-                float half = _lengths[i] * lengthMul * 0.5f;
-                float rad = worldAngle * Mathf.Deg2Rad;
-                var dir = new Vector3(Mathf.Cos(rad), Mathf.Sin(rad), 0f);
-                _feathers[i].localPosition = shoulder + dir * (half + 0.05f);
-                _feathers[i].localRotation = Quaternion.Euler(0f, 0f, worldAngle);
-                _feathers[i].localScale = new Vector3(_lengths[i] * lengthMul, 0.085f, 1f);
+                var c = _halo.color;
+                c.a = _haloT;
+                _halo.color = c;
             }
-
-            bool carried = _controller != null && _controller.CurrentStream != null && _spread > 0.5f;
-            _haloAlpha = Mathf.Lerp(_haloAlpha, carried ? 0.14f : 0f, 1f - Mathf.Exp(-8f * Time.deltaTime));
-            var hc = _halo.color;
-            hc.a = _haloAlpha;
-            _halo.color = hc;
         }
     }
 }

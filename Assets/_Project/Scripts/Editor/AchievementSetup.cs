@@ -24,14 +24,41 @@ namespace Ngj10.EditorTools
         {
             Directory.CreateDirectory(Dir);
 
-            Create("PopFirst", "pop_first", "First Pop!",
-                "Pop your very first balloon.", AchievementType.Single, 1);
+            Create("WingsSpread", "wings_spread", "Расправить крылья",
+                "Соверши свой первый полёт.", AchievementType.Single, 1);
 
-            Create("PopHundred", "pop_total_100", "Balloon Veteran",
-                "Pop 100 balloons across all your games.", AchievementType.Counter, 100);
+            Create("FirstDeath", "first_death", "В первый раз?",
+                "Погибни в первый раз.", AchievementType.Single, 1);
 
-            Create("ScoreTen", "score_10", "Sharp Shooter",
-                "Score 10 points in a single game.", AchievementType.SingleGameMax, 10);
+            Create("Walk100", "walk_100", "Лёгкая прогулка",
+                "Пролети 100 метров за один полёт.", AchievementType.SingleGameMax, 100);
+
+            Create("Walk1000", "walk_1000", "Длинный путь",
+                "Пролети 1000 метров за один полёт.", AchievementType.SingleGameMax, 1000);
+
+            Create("Height100", "height_100", "Новая вершина",
+                "Достигни высоты 100 метров.", AchievementType.SingleGameMax, 100);
+
+            Create("Height200", "height_200", "Через тернии к звёздам",
+                "Достигни высоты 200 метров.", AchievementType.SingleGameMax, 200);
+
+            Create("Death10", "death_10", "Ты пытался",
+                "Погибни 10 раз.", AchievementType.Counter, 10);
+
+            Create("ReachSun", "reach_sun", "ИКАР",
+                "Достигни солнца.", AchievementType.Single, 1);
+
+            Create("RestartPress", "restart_press", "Давай по новой, Миша…",
+                "Нажми кнопку рестарта.", AchievementType.Single, 1);
+
+            Create("MaxSpeed", "max_speed", "Быстрее ветра",
+                "Достигни максимальной скорости.", AchievementType.Single, 1);
+
+            Create("Burn", "burn", "Сгорел на работе",
+                "Сгори от лучей солнца.", AchievementType.Single, 1);
+
+            Create("Shock", "shock", "Гром и молния",
+                "Попади под молнии Зевса.", AchievementType.Single, 1);
 
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
