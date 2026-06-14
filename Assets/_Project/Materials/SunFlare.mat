@@ -27,9 +27,9 @@ Material:
     m_Floats:
     - _AnimSpeed: 0
     - _Aspect: 1
-    - _CoreIntensity: 24.8
+    - _CoreIntensity: 11.2
     - _CoreSharpness: 1.16
-    - _CoreSize: 0.12
+    - _CoreSize: 0.28
     - _EdgeMask: 1.07
     - _Fade: 0.58
     - _Falloff: 1.6
@@ -38,16 +38,16 @@ Material:
     - _GhostScale: 0.57
     - _GhostShape: 0.54
     - _GhostSpread: 1.14
-    - _HaloChroma: 0.068
-    - _HaloIntensity: 0.77
-    - _HaloRadius: 0.2
-    - _HaloWidth: 3.8
-    - _Intensity: 3.62
+    - _HaloChroma: 0.102
+    - _HaloIntensity: 4
+    - _HaloRadius: 1.26
+    - _HaloWidth: 2.1
+    - _Intensity: 0.59
     - _NoiseScale: 0.12
-    - _RayFreqA: 5.5
-    - _RayFreqB: 4.2
-    - _RayFreqC: 3
-    - _RayIntensity: 1.73
+    - _RayFreqA: 24
+    - _RayFreqB: 16.9
+    - _RayFreqC: 1
+    - _RayIntensity: 0.17
     - _Speed: 1
     m_Colors:
     - _Center: {r: 0.12, g: 0.1, b: 0, a: 0}
