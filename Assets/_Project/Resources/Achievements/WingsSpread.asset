@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d03c45e0091440e43a71c38f936c97e4, type: 3}
   m_Name: WingsSpread
   m_EditorClassIdentifier: Ngj10::Ngj10.Core.Achievements.AchievementDefinition
+  _enabled: 0
   _id: wings_spread
   _title: "\u0420\u0430\u0441\u043F\u0440\u0430\u0432\u0438\u0442\u044C \u043A\u0440\u044B\u043B\u044C\u044F"
   _description: "\u0421\u043E\u0432\u0435\u0440\u0448\u0438 \u0441\u0432\u043E\u0439

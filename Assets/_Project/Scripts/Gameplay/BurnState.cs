@@ -78,7 +78,6 @@ namespace Ngj10.Gameplay
             if (_heat >= 1f && !_burning)
             {
                 _burning = true;
-                Core.Achievements.AchievementManager.Instance.Unlock("burn"); // Single
                 Hazard.Kill();
             }
         }

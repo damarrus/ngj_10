@@ -77,6 +77,11 @@ namespace Ngj10.Core.Achievements
         {
             foreach (var def in Resources.LoadAll<AchievementDefinition>(string.Empty))
             {
+                if (!def.Enabled)
+                {
+                    continue;
+                }
+
                 if (string.IsNullOrEmpty(def.Id))
                 {
                     Debug.LogError($"[Achievements] Definition '{def.name}' has empty Id; skipped.", def);

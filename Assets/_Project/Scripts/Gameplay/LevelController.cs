@@ -257,7 +257,7 @@ namespace Ngj10.Gameplay
 
             // ESC returns to the menu (scene reload — GameConfig shows the start
             // screen again) from anywhere in the level.
-            if (inGame && Input.GetKeyDown(KeyCode.Escape))
+            if (inGame && Input.GetKeyDown(KeyCode.Q))
             {
                 ReturnToMenu();
                 return;

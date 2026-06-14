@@ -16,6 +16,10 @@ namespace Ngj10.Core.Achievements
         order = 0)]
     public class AchievementDefinition : ScriptableObject
     {
+        [Tooltip("Uncheck to retire this achievement: the manager ignores it on load " +
+                 "(never tracked, never shown, never unlockable) without deleting the asset.")]
+        [SerializeField] private bool _enabled = true;
+
         [Tooltip("Stable unique key used by code and save data. Don't rename after release.")]
         [SerializeField] private string _id;
 
@@ -29,6 +33,7 @@ namespace Ngj10.Core.Achievements
         [Tooltip("Threshold for Counter / SingleGameMax. Ignored for Single.")]
         [SerializeField] private int _target = 1;
 
+        public bool Enabled => _enabled;
         public string Id => _id;
         public string Title => _title;
         public string Description => _description;
