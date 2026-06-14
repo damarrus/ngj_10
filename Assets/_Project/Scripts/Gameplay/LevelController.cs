@@ -67,11 +67,9 @@ namespace Ngj10.Gameplay
             if (_camera != null)
                 _camera.orthographicSize = data.CameraSize;
             if (_cameraFollow != null)
-            {
-                // Keep the bottom edge at or above the kill line: center >= killY + halfHeight.
-                float minCenterY = data.KillY + data.CameraSize;
-                _cameraFollow.SetMode(_mode, minCenterY, data.Start);
-            }
+                // No bottom clamp: the camera follows Icarus all the way down so the kill
+                // line below stays off-screen, not pinned above it.
+                _cameraFollow.SetMode(_mode, float.MinValue, data.Start);
             if (_mode == LevelMode.UpOnly)
                 BuildSideWalls(data);
         }
@@ -111,16 +109,66 @@ namespace Ngj10.Gameplay
         /// </summary>
         public void Park() => Respawn();
 
+        /// <summary>Reframe the camera for the title screen (zoom + offset, Icarus posed
+        /// for the art) while the menu is up. Called by GameConfig alongside Park() with
+        /// the menu-camera tuning. Begin() leaves it.</summary>
+        public void EnterMenuFraming(float orthoSize, float offsetX, float offsetY)
+        {
+            if (_cameraFollow != null)
+                _cameraFollow.EnterMenu(_spawnPoint, orthoSize, offsetX, offsetY);
+            SetMenuPose(true);
+        }
+
+        private void SetMenuPose(bool on)
+        {
+            if (_player != null)
+            {
+                var wings = _player.GetComponentInChildren<WingsVisual>(true);
+                if (wings != null)
+                    wings.SetMenuPose(on);
+            }
+        }
+
+        /// <summary>Start the level immediately — snap out of the menu framing and go live.
+        /// Used when no start screen drives the start (auto-start), or as the tail of the
+        /// animated <see cref="BeginWithTransition"/>.</summary>
         public void Begin()
         {
+            if (_cameraFollow != null)
+                _cameraFollow.ExitMenu();
+            GoLive();
+        }
+
+        /// <summary>Animated start from the title screen: glide the camera from the menu
+        /// framing back to gameplay over <paramref name="cameraDuration"/> seconds (the
+        /// level stays frozen meanwhile), then go live and hand control back. The music
+        /// crossfade starts up front so it eases in under the glide.</summary>
+        public IEnumerator BeginWithTransition(float cameraDuration)
+        {
+            // Start the menu→game music crossfade now so it rides the whole glide.
+            AudioManager.Instance.CrossfadeTo(_gameMusic);
+
+            if (_cameraFollow != null)
+                yield return _cameraFollow.AnimateExitMenu(cameraDuration);
+
+            GoLive();
+        }
+
+        // The level goes live: gameplay pose, normal time, player at spawn waiting for
+        // the first hold, and the in-game hints fading in. Shared by the instant and the
+        // animated start. The music crossfade is idempotent — a no-op if already playing.
+        private void GoLive()
+        {
+            SetMenuPose(false);
             Time.timeScale = _timeScale;
-            // Slow crossfade from the menu track to the energetic game track. A
-            // no-op if it's already playing (e.g. restart after a win), so the
-            // beat keeps going instead of restarting.
             AudioManager.Instance.CrossfadeTo(_gameMusic);
             Respawn();
-            // Reveal the control hint as the screen lifts out of black; it auto-hides
-            // once the player takes the first hold (see GameplayControlsHint).
+            // Don't let the START click/Space (still held as we go live) count as the first
+            // flap — Icarus would launch on his own. Flight waits for a fresh press.
+            if (_player != null)
+                _player.IgnoreCurrentHold();
+            // Reveal the control hint as the level goes live; it auto-hides once the
+            // player takes the first hold (see GameplayControlsHint).
             if (_controlsHint != null)
                 _controlsHint.Reveal();
             // ESC/R key hints belong to the game, not the start screen — reveal them

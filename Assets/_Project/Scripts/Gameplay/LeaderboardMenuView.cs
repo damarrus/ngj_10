@@ -167,13 +167,12 @@ namespace Ngj10.Gameplay
             Color main = isSelf ? TextDark : TextLight;
             Color dim = isSelf ? new Color(0.20f, 0.16f, 0.08f) : TextDim;
 
-            // Columns: rank | name | height | time | achievements.
+            // Columns: rank | name | height | time.
             MakeCol(row.transform, $"{rank}", 22, TextAlignmentOptions.Center, isSelf ? TextDark : Gold,
                 0.00f, 0.10f);
-            MakeCol(row.transform, e.name, 22, TextAlignmentOptions.Left, main, 0.11f, 0.52f);
-            MakeCol(row.transform, $"{e.max_height} м", 22, TextAlignmentOptions.Right, main, 0.52f, 0.72f);
-            MakeCol(row.transform, FormatTime(e.time_to_max), 20, TextAlignmentOptions.Right, dim, 0.72f, 0.90f);
-            MakeCol(row.transform, $"★{e.achievements}", 20, TextAlignmentOptions.Right, dim, 0.90f, 1.00f);
+            MakeCol(row.transform, e.name, 22, TextAlignmentOptions.Left, main, 0.11f, 0.58f);
+            MakeCol(row.transform, $"{e.max_height} м", 22, TextAlignmentOptions.Right, main, 0.58f, 0.80f);
+            MakeCol(row.transform, FormatTime(e.time_to_max), 20, TextAlignmentOptions.Right, dim, 0.80f, 1.00f);
         }
 
         // mm:ss.mmm-ish, compact: seconds with one decimal under a minute, m:ss above.

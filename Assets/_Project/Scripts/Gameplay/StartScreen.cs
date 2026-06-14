@@ -27,14 +27,16 @@ namespace Ngj10.Gameplay
 
         [SerializeField] private GameObject _panel;
         [SerializeField] private CanvasGroup _panelGroup;
-        [Tooltip("Full-screen menu backdrop (gradient). Hidden together with the panel on start.")]
-        [SerializeField] private GameObject _background;
         [SerializeField] private Button _startButton;
         [SerializeField] private Slider _volumeSlider;
         [SerializeField] private LevelController _controller;
-        [Tooltip("Full-screen black wipe used for the 1s fade into the level.")]
-        [SerializeField] private ScreenFader _screenFader;
-        [SerializeField] private float _fadeDuration = 1f;
+
+        // Start transition: the menu UI fades out while the camera glides from the menu
+        // framing back to gameplay (the level stays frozen until the camera lands). Set
+        // by GameConfig, which owns the menu-camera tuning.
+        private float _transitionDuration = 1.5f;
+
+        public void SetTransitionDuration(float seconds) => _transitionDuration = seconds;
 
         private AudioClip _spreadClip;
         private AudioClip _foldClip;
@@ -100,8 +102,6 @@ namespace Ngj10.Gameplay
                 _panelGroup.alpha = 1f;
             if (_panel != null)
                 _panel.SetActive(true);
-            if (_background != null)
-                _background.SetActive(true);
             _starting = false;
         }
 
@@ -110,8 +110,6 @@ namespace Ngj10.Gameplay
         {
             if (_panel != null)
                 _panel.SetActive(false);
-            if (_background != null)
-                _background.SetActive(false);
         }
 
         private void OnEnable()
@@ -252,9 +250,10 @@ namespace Ngj10.Gameplay
             StartCoroutine(FadeOutAndBegin());
         }
 
-        // Fade the whole screen to black over _fadeDuration (1s), hand off to the
-        // level under cover of black, then fade back in. The panel is dropped at the
-        // top of the fade so the title doesn't sit over the black wipe.
+        // Start transition (no black wipe): the menu panel fades out while the camera
+        // glides from the menu framing back to gameplay, both over _transitionDuration.
+        // The level stays frozen until the camera lands; BeginWithTransition then goes
+        // live and hands control back. Runs on unscaled time (the menu freezes the level).
         private IEnumerator FadeOutAndBegin()
         {
             if (_panelGroup != null)
@@ -263,21 +262,23 @@ namespace Ngj10.Gameplay
                 _panelGroup.blocksRaycasts = false;
             }
 
-            if (_screenFader != null)
-                yield return _screenFader.FadeOut(_fadeDuration);
+            // Drive the camera glide + go-live as a parallel coroutine; fade the panel
+            // alpha here over the same duration so the menu dissolves as the camera moves.
+            if (_controller != null)
+                _controller.StartCoroutine(_controller.BeginWithTransition(_transitionDuration));
+
+            float start = _panelGroup != null ? _panelGroup.alpha : 0f;
+            for (float t = 0f; t < _transitionDuration; t += Time.unscaledDeltaTime)
+            {
+                if (_panelGroup != null)
+                    _panelGroup.alpha = Mathf.Lerp(start, 0f, t / _transitionDuration);
+                yield return null;
+            }
 
             if (_panelGroup != null)
                 _panelGroup.alpha = 0f;
             if (_panel != null)
                 _panel.SetActive(false);
-            if (_background != null)
-                _background.SetActive(false);
-
-            if (_controller != null)
-                _controller.Begin();
-
-            if (_screenFader != null)
-                yield return _screenFader.FadeIn(_fadeDuration);
         }
     }
 }

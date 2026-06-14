@@ -77,8 +77,24 @@ namespace Ngj10.Gameplay
 
         private bool _waitingForInput;
 
+        // The START click/Space that launches the game is often still held when the level
+        // goes live (one continuous gesture). Without this, that carried-over hold reads as
+        // the first flap and Icarus flies off on his own. Set when going live with a button
+        // already down: flight waits for a fresh press (release, then press) rather than
+        // consuming the menu's hold. Edge detection, not a frame guard.
+        private bool _ignoreHeldUntilRelease;
+
         /// <summary>Parked at spawn until the first hold — the level skips kill checks.</summary>
         public bool IsWaitingForInput => _waitingForInput;
+
+        /// <summary>Called when the level goes live (e.g. after the title transition): if a
+        /// button is still held from the START gesture, don't treat it as the first flap —
+        /// wait for the player to release and press again.</summary>
+        public void IgnoreCurrentHold()
+        {
+            if (Input.GetKey(KeyCode.Space) || Input.GetMouseButton(0))
+                _ignoreHeldUntilRelease = true;
+        }
 
         // Wings forced folded and unresponsive to input while > 0 (Zeus shock).
         private float _wingBlock;
@@ -122,10 +138,25 @@ namespace Ngj10.Gameplay
             }
 
             bool held = Input.GetKey(KeyCode.Space) || Input.GetMouseButton(0);
+
+            // Swallow the START gesture still held as the level goes live: stay folded
+            // until the player lets go, then resume normal hold handling on the next press.
+            if (_ignoreHeldUntilRelease)
+            {
+                if (held)
+                    return;
+                _ignoreHeldUntilRelease = false;
+            }
+
             if (_waitingForInput)
             {
                 if (!held) return;
                 _waitingForInput = false;
+                // Leaving the parked state = flight begins: resume the trail that ClearTrail
+                // switched off while parked.
+                ResolveTrail();
+                if (_trail != null)
+                    _trail.emitting = true;
             }
             if (held != WingsOpen)
                 SetWings(held);
@@ -381,6 +412,10 @@ namespace Ngj10.Gameplay
             EnsureBody();
             Body.position = position;
             Body.linearVelocity = Vector2.zero;
+            // Upright at spawn: FaceVelocity banks the body to its heading during flight,
+            // so after a death fall it can land inverted. Reset rotation on respawn.
+            Body.rotation = 0f;
+            Body.angularVelocity = 0f;
             CurrentStream = null;
             _waitingForInput = true;
             _wingBlock = 0f;
@@ -401,13 +436,23 @@ namespace Ngj10.Gameplay
 
         private void ClearTrail()
         {
-            if (!_trailResolved)
-            {
-                _trail = GetComponentInChildren<TrailRenderer>(true);
-                _trailResolved = true;
-            }
+            ResolveTrail();
             if (_trail != null)
+            {
+                // Stop emitting while parked: a stationary Icarus left emitting draws a
+                // stale streak/blob at the spawn (visible on the title screen). Flight
+                // re-enables it (see Update, where waiting-for-input ends).
+                _trail.emitting = false;
                 _trail.Clear();
+            }
+        }
+
+        private void ResolveTrail()
+        {
+            if (_trailResolved)
+                return;
+            _trail = GetComponentInChildren<TrailRenderer>(true);
+            _trailResolved = true;
         }
 
         private void SetWings(bool open, bool silent = false)

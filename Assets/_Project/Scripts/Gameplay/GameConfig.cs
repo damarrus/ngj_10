@@ -50,6 +50,16 @@ namespace Ngj10.Gameplay
         [Header("Flow")]
         [SerializeField] private bool _showStartScreen = true;
 
+        [Header("Menu camera")]
+        [Tooltip("Camera zoom on the title screen (orthographic half-height). Smaller = Icarus bigger. Gameplay zoom is restored on START.")]
+        [SerializeField] private float _menuCameraSize = 2.6f;
+        [Tooltip("Horizontal camera offset off the spawn on the title screen. Positive pushes Icarus to the LEFT of frame.")]
+        [SerializeField] private float _menuOffsetX = 2.2f;
+        [Tooltip("Vertical camera offset off the spawn on the title screen. Positive pushes Icarus DOWN in frame.")]
+        [SerializeField] private float _menuOffsetY = 1.5f;
+        [Tooltip("Seconds for START to glide the camera from the menu framing back to gameplay (the menu UI fades out over the same time). The level stays frozen until it lands.")]
+        [SerializeField] private float _menuTransitionDuration = 1.5f;
+
         [Header("Burn (cone rays)")]
         [Tooltip("Seconds under a ray to go from cold to fully burnt (death).")]
         [SerializeField] private float _burnHeatUpTime = 1f;
@@ -119,11 +129,15 @@ namespace Ngj10.Gameplay
                 // and toggles wing SFX behind the menu, reading as "the game already
                 // started". The level clock stays frozen until START.
                 if (_controller != null)
+                {
                     _controller.Park();
+                    _controller.EnterMenuFraming(_menuCameraSize, _menuOffsetX, _menuOffsetY);
+                }
 
                 _startScreen.Configure(
                     _wingSpreadClip, _wingFoldClip, _wingSpreadVolume, _wingFoldVolume,
                     _windClip, _windMaxVolume, _windFadeInSeconds, _windFadeOutSeconds);
+                _startScreen.SetTransitionDuration(_menuTransitionDuration);
                 AudioManager.Instance.CrossfadeTo(_menuMusic);
                 _startScreen.Show();
             }
