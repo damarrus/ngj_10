@@ -206,11 +206,11 @@ namespace Ngj10.Gameplay
     }
 
     /// <summary>
-    /// Zeus' lightning node: an anchor that fires bolts into one or more target
-    /// areas. Each area runs on its own timer; on a tick a bolt travels from the
-    /// anchor to the area over its flight time, and on arrival Icarus standing
-    /// inside the area's ellipse has his wings shocked (folded and blocked
-    /// briefly). Place the node in the editor and add/tune areas individually.
+    /// Zeus' lightning node: an anchor that strikes one or more target areas. Each
+    /// area runs on its own timer; on a tick a lightning bolt flashes instantly
+    /// from the anchor down to the area (no travel, no warning) and Icarus standing
+    /// inside the area's ellipse that frame has his wings shocked (folded and
+    /// blocked briefly). Place the node in the editor and add/tune areas individually.
     /// </summary>
     [Serializable]
     public class ZeusDef
@@ -223,8 +223,8 @@ namespace Ngj10.Gameplay
 
     /// <summary>
     /// One strike area for a Zeus node: an ellipse the bolt lands in, plus its
-    /// own firing timer. The bolt hits exactly on arrival — Icarus only gets
-    /// shocked if he is inside the ellipse the frame the bolt lands.
+    /// own firing timer. The bolt flashes instantly — Icarus only gets shocked if
+    /// he is inside the ellipse the frame it strikes.
     /// </summary>
     [Serializable]
     public class ZeusAreaDef
@@ -243,7 +243,8 @@ namespace Ngj10.Gameplay
         /// <summary>Seconds to wait before the very first strike of this area.</summary>
         public float StartDelay;
 
-        /// <summary>Seconds a bolt takes to travel from the anchor to the area.</summary>
+        /// <summary>Unused — the bolt no longer travels (kept so existing level
+        /// .assets deserialize without loss).</summary>
         public float FlightTime = 0.6f;
     }
 }

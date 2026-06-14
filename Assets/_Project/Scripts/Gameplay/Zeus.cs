@@ -3,72 +3,62 @@ using UnityEngine;
 namespace Ngj10.Gameplay
 {
     /// <summary>
-    /// Runtime Zeus node: an anchor that fires bolts into one or more target
-    /// areas. Each <see cref="ZeusAreaDef"/> runs on its own clock — a first-strike
-    /// delay, then a fixed period between strikes. On a strike a jagged bolt grows
-    /// from the anchor toward the area over the area's flight time; the frame it
-    /// lands the area's ring flashes, and Icarus standing inside the ellipse has
-    /// his wings shocked via <see cref="ShockState"/> while a forked bolt arcs to
-    /// him for the flash window. Purely code-driven (no prefab art) — built by
-    /// LevelBuilder from a <see cref="ZeusDef"/>, like the Burner.
+    /// Runtime Zeus node: an anchor that strikes one or more target areas. Each
+    /// <see cref="ZeusAreaDef"/> runs on its own clock — a first-strike delay, then
+    /// a fixed period between strikes. A strike does not travel: on the frame it
+    /// fires a lightning bolt sprite flashes instantly from the anchor down to the
+    /// area (no projectile, no warning), small spark sprites scatter inside the
+    /// ellipse, and Icarus standing in the ellipse that frame has his wings shocked
+    /// via <see cref="ShockState"/>. The flash lingers a moment then fades out.
+    /// Purely code-driven (no prefab) — built by LevelBuilder from a
+    /// <see cref="ZeusDef"/>, which also hands in the bolt/spark sprite art.
     /// </summary>
     public class Zeus : MonoBehaviour
     {
-        [SerializeField] private Color _boltColor = new Color(1f, 0.95f, 0.35f, 0.9f);
-        [SerializeField] private float _boltWidth = 0.12f;
-        [SerializeField] private int _pointsPerUnit = 2;   // bolt jaggedness density
-        [SerializeField] private float _jitter = 0.25f;    // bolt zigzag amplitude
-        [SerializeField] private float _reseedInterval = 0.06f; // how often the bolt redraws
-
-        // The struck bolt lingers on screen briefly after it lands so the hit reads.
+        // The struck flash lingers briefly after it fires so the hit reads, then
+        // fades out over its own (longer) tail.
         [SerializeField] private float _flashDuration = 0.12f;
+        [SerializeField] private float _fadeDuration = 0.35f;
 
-        [Header("Area ring (lights up where the bolt lands)")]
-        [SerializeField] private Color _ringColor = new Color(1f, 0.85f, 0.2f, 0.9f);
-        [SerializeField] private float _ringWidth = 0.08f;
-        [SerializeField] private int _ringSegments = 32;
+        [Header("Bolt sprite (anchor -> area)")]
+        [Tooltip("World width of the struck bolt sprite (it is stretched vertically to span anchor->area).")]
+        [SerializeField] private float _boltWidth = 1.2f;
+        [SerializeField] private Color _boltColor = Color.white;
+        [SerializeField] private int _sortingOrder = 3; // above cones, below the player
 
-        // Ring fades out over its own (longer) window so the landing lingers and
-        // reads smoothly, independent of the short bolt/fork flash.
-        [SerializeField] private float _ringFadeDuration = 0.45f;
+        [Header("Sparks (scatter inside the ellipse on impact)")]
+        [SerializeField] private int _sparkCount = 5;
+        [SerializeField] private float _sparkScale = 0.6f;
 
-        [Header("Burst (bolts spraying out from the centre on impact)")]
-        [SerializeField] private int _burstCount = 6;       // bolts per strike
-        [SerializeField] private float _burstWidth = 0.06f;
+        private Sprite[] _boltSprites;  // tall vertical bolts; one picked per strike
+        private Sprite[] _sparkSprites; // small fragments scattered in the ellipse
 
-        // One live timer + visual per area.
+        // One live timer + visual set per area.
         private struct Area
         {
             public Vector2 Center;
             public float RadiusX, RadiusY;
             public float Period;
-            public float FlightTime;
-            public float NextStrikeTime; // local-clock time the current bolt lands
-            public float LaunchTime;      // local-clock time the current bolt launched
-            public LineRenderer Bolt;
-            public LineRenderer Ring;     // ellipse outline, flashes on strike
-            public LineRenderer Fork;     // extra bolt arcing to Icarus when he's hit
-            public LineRenderer[] Bursts; // bolts spraying from centre to the edge
-            public Vector2[] BurstEnds;   // frozen edge endpoints, reseeded per strike
-            public bool HitThisStrike;    // Icarus was inside on arrival — fork + hold it
-            public Vector2 HitPoint;      // where the fork ends (Icarus at arrival)
+            public float NextStrikeTime; // local-clock time the next bolt fires
+            public SpriteRenderer Bolt;
+            public SpriteRenderer[] Sparks;
+            public float StruckAt;        // local-clock time the current flash fired (<0 = idle)
         }
 
         private Area[] _areas;
         private ShockState _shock;
         private float _time; // local clock so timers survive a paused start
 
-        private static Material _boltMaterial;
-
-        public void Configure(ZeusDef def)
+        public void Configure(ZeusDef def, Sprite[] boltSprites, Sprite[] sparkSprites)
         {
+            _boltSprites = boltSprites;
+            _sparkSprites = sparkSprites;
             BuildAreas(def);
             _shock = FindAnyObjectByType<ShockState>();
         }
 
         private void BuildAreas(ZeusDef def)
         {
-            EnsureMaterial();
             ZeusAreaDef[] defs = def.Areas ?? System.Array.Empty<ZeusAreaDef>();
             _areas = new Area[defs.Length];
             Vector2 anchor = transform.position;
@@ -76,57 +66,31 @@ namespace Ngj10.Gameplay
             for (int i = 0; i < defs.Length; i++)
             {
                 ZeusAreaDef d = defs[i];
-                float flight = Mathf.Max(0f, d.FlightTime);
                 _areas[i] = new Area
                 {
                     Center = anchor + d.Offset,
                     RadiusX = Mathf.Max(0.01f, d.RadiusX),
                     RadiusY = Mathf.Max(0.01f, d.RadiusY),
                     Period = Mathf.Max(0.05f, d.Period),
-                    FlightTime = flight,
-                    // First bolt lands StartDelay (+ flight) after start; launch is flight before.
-                    NextStrikeTime = Mathf.Max(0f, d.StartDelay) + flight,
-                    LaunchTime = Mathf.Max(0f, d.StartDelay),
-                    Bolt = NewLine("Bolt" + i, _boltWidth, _boltColor),
-                    Fork = NewLine("Fork" + i, _boltWidth, _boltColor),
-                    Ring = NewLine("Ring" + i, _ringWidth, _ringColor, loop: true),
-                    Bursts = new LineRenderer[Mathf.Max(0, _burstCount)],
-                    BurstEnds = new Vector2[Mathf.Max(0, _burstCount)],
+                    NextStrikeTime = Mathf.Max(0f, d.StartDelay),
+                    Bolt = NewSprite("Bolt" + i),
+                    Sparks = new SpriteRenderer[Mathf.Max(0, _sparkCount)],
+                    StruckAt = -1f,
                 };
-                for (int b = 0; b < _areas[i].Bursts.Length; b++)
-                    _areas[i].Bursts[b] = NewLine($"Burst{i}_{b}", _burstWidth, _boltColor);
-                BuildRing(ref _areas[i]);
+                for (int s = 0; s < _areas[i].Sparks.Length; s++)
+                    _areas[i].Sparks[s] = NewSprite($"Spark{i}_{s}");
             }
         }
 
-        // Bake the ellipse outline into the ring renderer once — it only toggles
-        // visibility/colour at runtime, never its shape.
-        private void BuildRing(ref Area a)
-        {
-            a.Ring.positionCount = _ringSegments;
-            for (int i = 0; i < _ringSegments; i++)
-            {
-                float ang = i / (float)_ringSegments * Mathf.PI * 2f;
-                a.Ring.SetPosition(i, a.Center
-                    + new Vector2(Mathf.Cos(ang) * a.RadiusX, Mathf.Sin(ang) * a.RadiusY));
-            }
-        }
-
-        private LineRenderer NewLine(string name, float width, Color color, bool loop = false)
+        private SpriteRenderer NewSprite(string name)
         {
             var go = new GameObject(name);
             go.transform.SetParent(transform, false);
-            var lr = go.AddComponent<LineRenderer>();
-            lr.useWorldSpace = true;
-            lr.loop = loop;
-            lr.material = _boltMaterial;
-            lr.startColor = lr.endColor = color;
-            lr.numCapVertices = 2;
-            lr.sortingOrder = 3; // above cones, below the player
-            lr.widthMultiplier = width;
-            lr.positionCount = 0;
-            lr.enabled = false;
-            return lr;
+            var sr = go.AddComponent<SpriteRenderer>();
+            sr.color = _boltColor;
+            sr.sortingOrder = _sortingOrder;
+            sr.enabled = false;
+            return sr;
         }
 
         private void Update()
@@ -139,109 +103,134 @@ namespace Ngj10.Gameplay
                 TickArea(ref _areas[i], anchor, icarus);
         }
 
-        // One area's lifecycle: grow the bolt during flight, resolve the hit on
-        // arrival, hold the flash, then schedule the next strike.
+        // One area's lifecycle: idle until its strike time, then flash instantly,
+        // hold, fade, and arm the next strike. No travel, no telegraph.
         private void TickArea(ref Area a, Vector2 anchor, Vector2? icarus)
         {
-            float landed = _time - a.NextStrikeTime; // >=0 once the bolt has arrived
+            // The visual children are plain GameObjects under this Zeus. During a scene
+            // reload (e.g. Q→menu) Unity tears them down, but this Zeus can still get one
+            // more Update tick that frame — the SpriteRenderers are then Unity-null. Bail
+            // instead of dereferencing them, which otherwise NREs every frame.
+            if (a.Bolt == null)
+                return;
 
-            if (landed < 0f)
+            // Fire exactly on the frame the strike time passes.
+            if (a.StruckAt < 0f && _time >= a.NextStrikeTime)
             {
-                // In flight: draw the bolt growing from the anchor toward the area.
-                float t = a.FlightTime > 0f
-                    ? Mathf.Clamp01((_time - a.LaunchTime) / a.FlightTime)
-                    : 1f;
-                Vector2 tip = Vector2.Lerp(anchor, a.Center, t);
-                a.Bolt.enabled = true;
-                DrawBolt(a.Bolt, anchor, tip);
-                a.Ring.enabled = false;
-                a.Fork.enabled = false;
-                SetBurstEnabled(ref a, false);
+                Strike(ref a, anchor, icarus);
+                a.NextStrikeTime += a.Period;
+            }
+
+            if (a.StruckAt < 0f)
+                return;
+
+            float since = _time - a.StruckAt;
+            float total = _flashDuration + _fadeDuration;
+            if (since >= total)
+            {
+                HideVisuals(ref a);
+                a.StruckAt = -1f;
                 return;
             }
 
-            // Resolve the strike exactly on the frame it lands.
-            if (_time - Time.deltaTime < a.NextStrikeTime)
+            // Full bright for the flash window, then a quadratic ease-out fade.
+            float alpha;
+            if (since < _flashDuration)
+                alpha = 1f;
+            else
             {
-                a.HitThisStrike = icarus.HasValue && _shock != null && InEllipse(a, icarus.Value);
-                if (a.HitThisStrike)
-                {
-                    a.HitPoint = icarus.Value;
-                    _shock.Shock();
-                }
-                SeedBurst(ref a); // freeze a fresh random spray for this strike
+                float k = 1f - Mathf.Clamp01((since - _flashDuration) / _fadeDuration);
+                alpha = k * k;
             }
-
-            // Short flash: full bolt to the centre, plus the fork to a struck Icarus.
-            bool inFlash = landed < _flashDuration;
-            a.Bolt.enabled = inFlash;
-            a.Fork.enabled = inFlash && a.HitThisStrike;
-            if (inFlash)
-            {
-                DrawBolt(a.Bolt, anchor, a.Center);
-                if (a.HitThisStrike)
-                    DrawBolt(a.Fork, a.Center, a.HitPoint);
-            }
-
-            // Ring + burst linger on the longer window with an ease-out fade.
-            if (landed < _ringFadeDuration)
-            {
-                float k = 1f - Mathf.Clamp01(landed / _ringFadeDuration);
-                float fade = k * k; // quadratic ease-out tail
-                a.Ring.enabled = true;
-                SetAlpha(a.Ring, _ringColor.a * fade);
-
-                // Bolts spraying from the centre to their frozen endpoints, redrawn
-                // each frame so they keep flickering as they fade.
-                if (a.Bursts != null)
-                {
-                    for (int b = 0; b < a.Bursts.Length; b++)
-                    {
-                        a.Bursts[b].enabled = true;
-                        DrawBolt(a.Bursts[b], a.Center, a.BurstEnds[b]);
-                        SetAlpha(a.Bursts[b], _boltColor.a * fade);
-                    }
-                }
-                return;
-            }
-
-            // Both windows over: hide everything and arm the next strike.
-            a.Bolt.enabled = false;
-            a.Ring.enabled = false;
-            a.Fork.enabled = false;
-            SetBurstEnabled(ref a, false);
-            a.HitThisStrike = false;
-            a.LaunchTime = a.NextStrikeTime + a.Period - a.FlightTime;
-            a.NextStrikeTime += a.Period;
+            SetAlpha(ref a, alpha);
         }
 
-        // Random spray: each burst bolt ends at a random angle, somewhere between
-        // half-radius and the ellipse edge, frozen for this strike's lifetime.
-        private void SeedBurst(ref Area a)
+        // Resolve the hit, pick a bolt sprite, stretch it anchor->centre, and
+        // scatter the sparks. Everything is frozen for this strike's lifetime.
+        private void Strike(ref Area a, Vector2 anchor, Vector2? icarus)
         {
-            if (a.Bursts == null) return;
-            for (int b = 0; b < a.Bursts.Length; b++)
+            a.StruckAt = _time;
+
+            if (icarus.HasValue && _shock != null && InEllipse(a, icarus.Value))
+                _shock.Shock();
+
+            PlaceBolt(ref a, anchor);
+            ScatterSparks(ref a);
+        }
+
+        // Stretch the chosen tall-vertical bolt sprite to span from the anchor down
+        // to the area centre. Sprite pivot is bottom-left, so we anchor at the
+        // centre (bottom) and scale Y so its top reaches the anchor.
+        private void PlaceBolt(ref Area a, Vector2 anchor)
+        {
+            if (_boltSprites == null || _boltSprites.Length == 0)
             {
+                a.Bolt.enabled = false;
+                return;
+            }
+
+            Sprite sprite = _boltSprites[Random.Range(0, _boltSprites.Length)];
+            a.Bolt.sprite = sprite;
+
+            Vector2 delta = anchor - a.Center;
+            float span = delta.magnitude;
+            Vector2 size = sprite.bounds.size; // local units before scale
+
+            var t = a.Bolt.transform;
+            t.position = a.Center;
+            // Sprite's local +Y points along the bolt; rotate so +Y aims at the anchor.
+            float angle = Mathf.Atan2(delta.y, delta.x) * Mathf.Rad2Deg - 90f;
+            t.rotation = Quaternion.Euler(0f, 0f, angle);
+            float scaleY = size.y > 0.0001f ? span / size.y : 1f;
+            float scaleX = size.x > 0.0001f ? _boltWidth / size.x : 1f;
+            t.localScale = new Vector3(scaleX, scaleY, 1f);
+
+            a.Bolt.color = _boltColor;
+            a.Bolt.enabled = true;
+        }
+
+        // Each spark lands at a random spot inside the ellipse with a random sprite.
+        private void ScatterSparks(ref Area a)
+        {
+            if (a.Sparks == null) return;
+            bool hasArt = _sparkSprites != null && _sparkSprites.Length > 0;
+            for (int s = 0; s < a.Sparks.Length; s++)
+            {
+                if (!hasArt) { a.Sparks[s].enabled = false; continue; }
+
                 float ang = Random.value * Mathf.PI * 2f;
-                float reach = Random.Range(0.5f, 1f);
-                a.BurstEnds[b] = a.Center + new Vector2(
+                float reach = Mathf.Sqrt(Random.value); // uniform over the disc
+                Vector2 p = a.Center + new Vector2(
                     Mathf.Cos(ang) * a.RadiusX * reach,
                     Mathf.Sin(ang) * a.RadiusY * reach);
+
+                var sr = a.Sparks[s];
+                sr.sprite = _sparkSprites[Random.Range(0, _sparkSprites.Length)];
+                sr.transform.position = p;
+                sr.transform.rotation = Quaternion.Euler(0f, 0f, Random.value * 360f);
+                sr.transform.localScale = Vector3.one * _sparkScale;
+                sr.color = _boltColor;
+                sr.enabled = true;
             }
         }
 
-        private static void SetBurstEnabled(ref Area a, bool on)
+        private void HideVisuals(ref Area a)
         {
-            if (a.Bursts == null) return;
-            for (int b = 0; b < a.Bursts.Length; b++)
-                a.Bursts[b].enabled = on;
+            a.Bolt.enabled = false;
+            if (a.Sparks == null) return;
+            for (int s = 0; s < a.Sparks.Length; s++)
+                a.Sparks[s].enabled = false;
         }
 
-        private static void SetAlpha(LineRenderer lr, float alpha)
+        private void SetAlpha(ref Area a, float alpha)
         {
-            Color c = lr.startColor;
-            c.a = alpha;
-            lr.startColor = lr.endColor = c;
+            alpha = Mathf.Clamp01(alpha);
+            Color c = _boltColor;
+            c.a = _boltColor.a * alpha;
+            if (a.Bolt.enabled) a.Bolt.color = c;
+            if (a.Sparks == null) return;
+            for (int s = 0; s < a.Sparks.Length; s++)
+                if (a.Sparks[s].enabled) a.Sparks[s].color = c;
         }
 
         private static bool InEllipse(in Area a, Vector2 p)
@@ -251,44 +240,5 @@ namespace Ngj10.Gameplay
             float ny = d.y / a.RadiusY;
             return nx * nx + ny * ny <= 1f;
         }
-
-        // A jagged two-point bolt from the anchor to the struck point.
-        private void DrawBolt(LineRenderer lr, Vector2 from, Vector2 to)
-        {
-            Vector2 dir = to - from;
-            float len = dir.magnitude;
-            int count = Mathf.Max(2, Mathf.RoundToInt(len * _pointsPerUnit));
-            Vector2 perp = len > 0.0001f ? new Vector2(-dir.y, dir.x) / len : Vector2.up;
-
-            lr.positionCount = count;
-            for (int i = 0; i < count; i++)
-            {
-                float t = i / (float)(count - 1);
-                Vector2 p = from + dir * t;
-                if (i != 0 && i != count - 1)
-                    p += perp * (RandomJitter(i) * _jitter);
-                lr.SetPosition(i, p);
-            }
-        }
-
-        // Deterministic-per-frame zigzag: reseeds on the local clock so the bolt
-        // flickers without per-frame allocation or Random state churn.
-        private float RandomJitter(int i)
-        {
-            float seed = Mathf.Floor(_time / _reseedInterval);
-            float n = Mathf.Sin((i * 12.9898f + seed * 78.233f)) * 43758.5453f;
-            return (n - Mathf.Floor(n)) * 2f - 1f; // [-1, 1]
-        }
-
-        private static void EnsureMaterial()
-        {
-            if (_boltMaterial != null) return;
-            // Unlit additive-ish sprite shader keeps the bolt bright and merge-safe.
-            _boltMaterial = new Material(Shader.Find("Sprites/Default"));
-        }
-
-        // Domain-reload-off safety: drop the cached material between play sessions.
-        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-        private static void ResetStatics() => _boltMaterial = null;
     }
 }

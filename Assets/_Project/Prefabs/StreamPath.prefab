@@ -51,8 +51,15 @@ MonoBehaviour:
   _width: 3
   _activeDuration: 0
   _inactiveDuration: 0
+  _pulsePhase: 0
   _reverseInterval: 0
   _turbulence: 0
+  _grip: 3
+  _catchRate: 0
+  _speedEnd: 0
+  _exitBoost: 1
+  _z: 0
+  _endpointReverse: 0
 --- !u!114 &4189726079899476169
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -65,11 +72,23 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a3d3bea904188bb4f97119295bc3357a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Ngj10::Ngj10.Gameplay.StreamFlowVisual
-  _wispSprite: {fileID: 619916606650120430, guid: 34672cba23ab59745a23c6200149fa3a, type: 3}
+  _wispSprites:
+  - {fileID: -7609486996209228562, guid: 93baae31d6808e040bc35f1117b88cbe, type: 3}
+  - {fileID: -576354014268724891, guid: 93baae31d6808e040bc35f1117b88cbe, type: 3}
+  - {fileID: 5597564248131343736, guid: 93baae31d6808e040bc35f1117b88cbe, type: 3}
+  - {fileID: -449137561210389587, guid: 93baae31d6808e040bc35f1117b88cbe, type: 3}
+  - {fileID: -2924870240721974060, guid: 93baae31d6808e040bc35f1117b88cbe, type: 3}
+  - {fileID: 4816342424261837737, guid: 93baae31d6808e040bc35f1117b88cbe, type: 3}
+  - {fileID: 6193290335882477365, guid: 93baae31d6808e040bc35f1117b88cbe, type: 3}
+  - {fileID: -7872684065047532718, guid: 93baae31d6808e040bc35f1117b88cbe, type: 3}
+  - {fileID: -1874999468665147253, guid: 93baae31d6808e040bc35f1117b88cbe, type: 3}
+  - {fileID: -5004791727209759167, guid: 93baae31d6808e040bc35f1117b88cbe, type: 3}
   _arrowSprite: {fileID: -4346244404228752641, guid: 87e2fe3ca9528eb4ab2e2c34f298c7d8, type: 3}
   _color: {r: 1, g: 1, b: 1, a: 1}
-  _wispsPerUnit: 0.6
   _arrowSpacing: 2.5
+  _wispAngleOffset: 100
+  _turbulenceFrequency: 3.7
+  _turbulencePhasePerWisp: 1.7
 --- !u!114 &6860546883570351284
 MonoBehaviour:
   m_ObjectHideFlags: 0

@@ -61,6 +61,13 @@ namespace Ngj10.Gameplay
 
         [Header("Flow")]
         [SerializeField] private bool _showStartScreen = true;
+        [Tooltip("Show the stream flow visuals (arrows + wisps + wavy lines). Off hides every flow for the whole run.")]
+        [SerializeField] private bool _showFlows = true;
+        [Tooltip("Hide the flows behind the title screen and fade them in on START. Off keeps them visible under the menu.")]
+        [SerializeField] private bool _hideFlowsInMenu = true;
+
+        [Tooltip("Per-element flow tuning: arrow/line toggles, particle size, colour, spread and density. Applies to every stream.")]
+        [SerializeField] private FlowVisualSettings _flowVisuals = FlowVisualSettings.Default;
 
         [Header("Menu camera")]
         [Tooltip("Camera zoom on the title screen (orthographic half-height). Smaller = Icarus bigger. Gameplay zoom is restored on START.")]
@@ -127,13 +134,18 @@ namespace Ngj10.Gameplay
             {
                 if (_startLevel != null)
                     _builder.SetData(_startLevel);
+                _builder.SetFlowVisuals(_flowVisuals);
                 _builder.BuildNow();
             }
 
             // The level swaps to the game track itself when it begins, so it owns
             // the clip. The menu track plays here while the title screen is up.
             if (_controller != null)
+            {
                 _controller.SetGameMusic(_gameMusic);
+                _controller.SetStreamsEnabled(_showFlows);
+                _controller.SetHideStreamsInMenu(_hideFlowsInMenu);
+            }
 
             if (_showStartScreen && _startScreen != null)
             {

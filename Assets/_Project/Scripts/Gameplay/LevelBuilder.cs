@@ -16,7 +16,17 @@ namespace Ngj10.Gameplay
         [SerializeField] private LevelController _controller;
         [SerializeField] private Transform _goalMarker;
 
+        [Header("Zeus lightning art")]
+        [Tooltip("Tall vertical bolt sprites — one is picked at random per strike, stretched anchor->area.")]
+        [SerializeField] private Sprite[] _zeusBoltSprites;
+        [Tooltip("Small fragment sprites scattered inside the strike ellipse on impact.")]
+        [SerializeField] private Sprite[] _zeusSparkSprites;
+
         public LevelData Data => _data;
+
+        // Flow-visual tuning authored on GameConfig, pushed in before BuildNow().
+        private FlowVisualSettings _flowVisuals = FlowVisualSettings.Default;
+        public void SetFlowVisuals(FlowVisualSettings settings) => _flowVisuals = settings;
 
         private bool _built;
 
@@ -104,7 +114,7 @@ namespace Ngj10.Gameplay
 
                 var visual = stream.GetComponent<StreamFlowVisual>();
                 if (visual != null)
-                    visual.Configure(def.VisualColor);
+                    visual.Configure(def.VisualColor, _flowVisuals);
 
                 result[i] = stream;
             }
@@ -176,7 +186,7 @@ namespace Ngj10.Gameplay
                 var go = new GameObject("Zeus" + i);
                 go.transform.SetParent(transform, false);
                 go.transform.position = def.Position;
-                go.AddComponent<Zeus>().Configure(def);
+                go.AddComponent<Zeus>().Configure(def, _zeusBoltSprites, _zeusSparkSprites);
             }
         }
 

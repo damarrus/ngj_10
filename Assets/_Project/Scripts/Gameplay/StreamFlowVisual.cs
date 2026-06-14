@@ -1,7 +1,41 @@
+using System;
 using UnityEngine;
 
 namespace Ngj10.Gameplay
 {
+    /// <summary>
+    /// Tuning for every stream's flow visuals, authored once on GameConfig and
+    /// pushed onto each StreamFlowVisual before it builds. Defaults reproduce the
+    /// historical look so an unconfigured visual behaves as before.
+    /// </summary>
+    [Serializable]
+    public struct FlowVisualSettings
+    {
+        public bool ShowArrows;
+        public bool ShowLines;
+
+        [Tooltip("Particle size, same for every stream regardless of its width.")]
+        public float WispScale;
+        [Tooltip("Override the per-stream particle colour with WispColor below.")]
+        public bool OverrideWispColor;
+        public Color WispColor;
+        [Tooltip("Lateral band the particles spread across (world units). Independent of stream width — set it wider than the stream for a broad spray.")]
+        public float WispSpread;
+        [Tooltip("Particle density: how many particles per unit of path length. Higher = more, denser.")]
+        public float WispsPerUnit;
+
+        public static FlowVisualSettings Default => new FlowVisualSettings
+        {
+            ShowArrows = true,
+            ShowLines = true,
+            WispScale = 1f,
+            OverrideWispColor = false,
+            WispColor = Color.white,
+            WispSpread = 0f,
+            WispsPerUnit = 0.6f,
+        };
+    }
+
     /// <summary>
     /// Visualizes a StreamPath: static arrowheads show direction, moving wisps
     /// show flow and speed. Spawned at runtime, no per-frame allocations.
@@ -9,13 +43,17 @@ namespace Ngj10.Gameplay
     [RequireComponent(typeof(StreamPath))]
     public class StreamFlowVisual : MonoBehaviour
     {
-        [SerializeField] private Sprite _wispSprite;
+        [Tooltip("Particle sprites. One is picked per wisp (deterministic random from its index). Leave one for a single look, add several to vary.")]
+        [SerializeField] private Sprite[] _wispSprites;
         [SerializeField] private Sprite _arrowSprite;
         [SerializeField] private Color _color = Color.white;
-        [SerializeField] private float _wispsPerUnit = 0.6f;
         [SerializeField] private float _arrowSpacing = 2.5f;
+        [Tooltip("Degrees added to a wisp's facing so its art lines up with the flow direction. 0 if the sprite points along +X; set to 90/-90 if it points up/down, etc.")]
+        [SerializeField] private float _wispAngleOffset = 0f;
         [SerializeField] private float _turbulenceFrequency = 3.7f;
         [SerializeField] private float _turbulencePhasePerWisp = 1.7f;
+
+        private FlowVisualSettings _settings = FlowVisualSettings.Default;
 
         private static Shader _spriteShader;
 
@@ -24,6 +62,7 @@ namespace Ngj10.Gameplay
         private SpriteRenderer[] _renderers;
         private SpriteRenderer[] _arrows;
         private float[] _offsets;
+        private float[] _lateralOffsets;
         private float _travelled;
         private bool _lastReversed;
         private Color _accent;
@@ -33,6 +72,14 @@ namespace Ngj10.Gameplay
         // so the streams appear out of the fade with the rest of the level.
         private float _visibility = 1f;
         public void SetVisibility(float v) => _visibility = Mathf.Clamp01(v);
+
+        // When the title screen freezes the level (timeScale 0) but the flows are kept
+        // visible, drive the animation on unscaled time so they still flow. Reset to
+        // scaled time on GoLive so they freeze with the level (win / future pause).
+        private bool _useUnscaledTime;
+        public void SetUseUnscaledTime(bool on) => _useUnscaledTime = on;
+        private float DeltaTime => _useUnscaledTime ? Time.unscaledDeltaTime : Time.deltaTime;
+        private float TimeNow => _useUnscaledTime ? Time.unscaledTime : Time.time;
 
         // Three wavy longitudinal lines (lanes across the width), animated per frame.
         private static readonly float[] WavyLanes = { -0.45f, 0f, 0.45f };
@@ -44,14 +91,20 @@ namespace Ngj10.Gameplay
             _path = GetComponent<StreamPath>();
         }
 
-        /// <summary>Set the accent color before Start() builds the visuals.</summary>
-        public void Configure(Color color) => _color = color;
+        /// <summary>Set the accent color and flow tuning before Start() builds the visuals.</summary>
+        public void Configure(Color color, FlowVisualSettings settings)
+        {
+            _color = color;
+            _settings = settings;
+        }
 
         private void Start()
         {
             _accent = Color.Lerp(_color, Color.white, 0.5f);
-            BuildRibbon();
-            SpawnArrows();
+            if (_settings.ShowLines)
+                BuildRibbon();
+            if (_settings.ShowArrows)
+                SpawnArrows();
             SpawnWisps();
         }
 
@@ -111,50 +164,57 @@ namespace Ngj10.Gameplay
             // so the menu hide / transition fade scales every element together.
             bool active = _path.IsActive;
             float activeMul = (active ? 1f : 0.15f) * _visibility;
-            for (int i = 0; i < _wavyLines.Length; i++)
-                SetLineAlpha(_wavyLines[i], (WavyLanes[i] == 0f ? 0.18f : 0.11f) * activeMul);
-
-            AnimateWavyLines();
+            if (_wavyLines != null)
+            {
+                for (int i = 0; i < _wavyLines.Length; i++)
+                    SetLineAlpha(_wavyLines[i], (WavyLanes[i] == 0f ? 0.18f : 0.11f) * activeMul);
+                AnimateWavyLines();
+            }
 
             // Accumulate so reversible streams animate backward without jumps.
-            _travelled += _path.Speed * _path.DirectionSign * Time.deltaTime;
+            _travelled += _path.Speed * _path.DirectionSign * DeltaTime;
 
             bool reversed = _path.Reversed;
             if (reversed != _lastReversed)
             {
                 _lastReversed = reversed;
-                foreach (var arrow in _arrows)
-                    arrow.transform.Rotate(0f, 0f, 180f);
+                if (_arrows != null)
+                    foreach (var arrow in _arrows)
+                        arrow.transform.Rotate(0f, 0f, 180f);
             }
 
+            Color wispBase = _settings.OverrideWispColor ? _settings.WispColor : _accent;
             for (int i = 0; i < _wisps.Length; i++)
             {
                 float distance = Mathf.Repeat(_offsets[i] + _travelled, _path.Length);
                 float cycle = distance / _path.Length;
                 var sample = _path.SampleAtDistance(distance);
+                var perp = new Vector2(-sample.Tangent.y, sample.Tangent.x);
 
-                Vector3 pos = sample.Point;
+                // Spread the stream across a fixed band (settings, not stream width),
+                // plus the usual turbulence wobble on top.
+                float lateral = _lateralOffsets[i];
                 if (_path.Turbulence > 0f)
-                {
-                    var perp = new Vector2(-sample.Tangent.y, sample.Tangent.x);
-                    pos += (Vector3)(perp * (Mathf.Sin(Time.time * _turbulenceFrequency + i * _turbulencePhasePerWisp) * _path.Turbulence * 0.2f));
-                }
-                _wisps[i].position = pos;
-                _wisps[i].rotation = TangentRotation(sample.Tangent * _path.DirectionSign);
+                    lateral += Mathf.Sin(TimeNow * _turbulenceFrequency + i * _turbulencePhasePerWisp) * _path.Turbulence * 0.2f;
+
+                _wisps[i].position = (Vector3)(sample.Point + perp * lateral);
+                _wisps[i].rotation = TangentRotation(sample.Tangent * _path.DirectionSign)
+                    * Quaternion.Euler(0f, 0f, _wispAngleOffset);
 
                 // Open paths fade wisps at both ends; loops flow seamlessly.
                 float alpha = _path.Loop ? 0.55f : 0.55f * Mathf.Clamp01(Mathf.Min(cycle, 1f - cycle) / 0.15f);
-                var c = _accent;
+                var c = wispBase;
                 c.a = alpha * activeMul;
                 _renderers[i].color = c;
             }
 
-            for (int i = 0; i < _arrows.Length; i++)
-            {
-                var c = _accent;
-                c.a = 0.3f * activeMul;
-                _arrows[i].color = c;
-            }
+            if (_arrows != null)
+                for (int i = 0; i < _arrows.Length; i++)
+                {
+                    var c = _accent;
+                    c.a = 0.3f * activeMul;
+                    _arrows[i].color = c;
+                }
         }
 
         private void AnimateWavyLines()
@@ -169,7 +229,7 @@ namespace Ngj10.Gameplay
                     var sample = _path.SampleAtDistance(d);
                     var perp = new Vector2(-sample.Tangent.y, sample.Tangent.x);
                     float offset = lane * _path.Width * 0.36f
-                        + Mathf.Sin(d * 0.55f + Time.time * 2f + lane * 5f) * _path.Width * 0.1f;
+                        + Mathf.Sin(d * 0.55f + TimeNow * 2f + lane * 5f) * _path.Width * 0.1f;
                     line.SetPosition(k, sample.Point + perp * offset);
                 }
             }
@@ -205,17 +265,25 @@ namespace Ngj10.Gameplay
 
         private void SpawnWisps()
         {
-            int count = Mathf.Max(3, Mathf.RoundToInt(_path.Length * _wispsPerUnit));
+            int count = Mathf.Max(3, Mathf.RoundToInt(_path.Length * _settings.WispsPerUnit));
             _wisps = new Transform[count];
             _renderers = new SpriteRenderer[count];
             _offsets = new float[count];
+            _lateralOffsets = new float[count];
 
+            // The stream transform carries a per-stream Scale (def.Scale) that would
+            // otherwise leak into the parented wisps, making them bigger on scaled-up
+            // streams. Divide it out so every wisp ends up the same world size.
+            Vector3 parentScale = transform.lossyScale;
+            float size = _settings.WispScale; // multiplies the sprite's native size, same for every stream
+            float sx = size / Mathf.Max(0.0001f, parentScale.x);
+            float sy = size / Mathf.Max(0.0001f, parentScale.y);
             for (int i = 0; i < count; i++)
             {
                 var go = new GameObject("Wisp");
                 go.transform.SetParent(transform, false);
                 var sr = go.AddComponent<SpriteRenderer>();
-                sr.sprite = _wispSprite;
+                sr.sprite = PickWispSprite(i, count);
                 sr.sortingOrder = 4;
                 _wisps[i] = go.transform;
                 _renderers[i] = sr;
@@ -223,9 +291,19 @@ namespace Ngj10.Gameplay
                 // Deterministic spread from the index.
                 float t = (i + 0.5f) / count;
                 _offsets[i] = Frac(t * 7.13f + 0.37f) * _path.Length;
-                float size = Mathf.Lerp(0.7f, 1.1f, Frac(t * 11.9f));
-                go.transform.localScale = new Vector3(size, size * 0.12f, 1f); // comet streak along flow
+                // Lateral position across a fixed band [-spread/2, +spread/2], from settings.
+                _lateralOffsets[i] = (Frac(t * 5.27f + 0.11f) - 0.5f) * _settings.WispSpread;
+                go.transform.localScale = new Vector3(sx, sy, 1f); // comet streak along flow
             }
+        }
+
+        // Deterministic per-wisp sprite pick — varies the look without per-frame randomness.
+        private Sprite PickWispSprite(int index, int count)
+        {
+            if (_wispSprites == null || _wispSprites.Length == 0)
+                return null;
+            int pick = Mathf.FloorToInt(Frac((index + 0.5f) / count * 13.37f + 0.21f) * _wispSprites.Length);
+            return _wispSprites[Mathf.Clamp(pick, 0, _wispSprites.Length - 1)];
         }
 
         private static Quaternion TangentRotation(Vector2 tangent) =>

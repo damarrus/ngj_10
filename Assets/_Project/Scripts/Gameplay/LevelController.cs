@@ -151,7 +151,11 @@ namespace Ngj10.Gameplay
             if (_cameraFollow != null)
                 _cameraFollow.EnterMenu(_spawnPoint, orthoSize, offsetX, offsetY);
             SetMenuPose(true);
-            SetStreamsVisibility(0f); // streams stay hidden behind the title; fade in on Begin
+            // Hidden behind the title (fade in on Begin) unless GameConfig keeps them visible.
+            SetStreamsVisibility(_hideStreamsInMenu ? 0f : 1f);
+            // Kept visible under the menu → animate on unscaled time so they flow while
+            // the level is frozen (timeScale 0).
+            SetStreamsUnscaled(!_hideStreamsInMenu);
         }
 
         // The flow visuals are spawned by the LevelBuilder (no direct ref). Grab them
@@ -159,12 +163,46 @@ namespace Ngj10.Gameplay
         // start transition can fade them in with the rest of the level.
         private StreamFlowVisual[] _streamVisuals;
 
+        // Global "show flows" switch from GameConfig. When off, the streams stay
+        // invisible regardless of the menu/transition fade — every visibility write
+        // is forced to 0.
+        private bool _streamsEnabled = true;
+
+        // GameConfig "Hide Flows In Menu". When true (default) the streams are hidden
+        // behind the title and fade in on START; when false they stay visible under
+        // the menu and the start transition skips the fade.
+        private bool _hideStreamsInMenu = true;
+
+        /// <summary>Toggle the flow visuals globally (GameConfig "Show Flows"). Off forces
+        /// the streams hidden for the whole run, ignoring the menu/transition fade.</summary>
+        public void SetStreamsEnabled(bool enabled)
+        {
+            _streamsEnabled = enabled;
+            SetStreamsVisibility(enabled ? 1f : 0f);
+        }
+
+        /// <summary>Whether the flow visuals hide behind the title screen (GameConfig).
+        /// Off keeps them visible under the menu.</summary>
+        public void SetHideStreamsInMenu(bool hide) => _hideStreamsInMenu = hide;
+
         private void SetStreamsVisibility(float v)
         {
+            if (!_streamsEnabled)
+                v = 0f;
             _streamVisuals ??= FindObjectsByType<StreamFlowVisual>(FindObjectsSortMode.None);
             for (int i = 0; i < _streamVisuals.Length; i++)
                 if (_streamVisuals[i] != null)
                     _streamVisuals[i].SetVisibility(v);
+        }
+
+        // Drive the flow animation on unscaled time so it keeps moving while the title
+        // screen freezes the level (timeScale 0); back to scaled time once live.
+        private void SetStreamsUnscaled(bool on)
+        {
+            _streamVisuals ??= FindObjectsByType<StreamFlowVisual>(FindObjectsSortMode.None);
+            for (int i = 0; i < _streamVisuals.Length; i++)
+                if (_streamVisuals[i] != null)
+                    _streamVisuals[i].SetUseUnscaledTime(on);
         }
 
         private void SetMenuPose(bool on)
@@ -196,8 +234,10 @@ namespace Ngj10.Gameplay
             // Start the menu→game music crossfade now so it rides the whole glide.
             AudioManager.Instance.CrossfadeTo(_gameMusic);
 
-            // Streams appear out of the fade alongside the camera glide.
-            StartCoroutine(FadeInStreams(cameraDuration));
+            // Streams appear out of the fade alongside the camera glide — only when they
+            // were hidden in the menu; otherwise they're already visible, no fade needed.
+            if (_hideStreamsInMenu)
+                StartCoroutine(FadeInStreams(cameraDuration));
 
             if (_cameraFollow != null)
                 yield return _cameraFollow.AnimateExitMenu(cameraDuration);
@@ -223,6 +263,7 @@ namespace Ngj10.Gameplay
         private void GoLive()
         {
             SetMenuPose(false);
+            SetStreamsUnscaled(false); // back to scaled time — flows freeze with the level now
             Time.timeScale = _timeScale;
             AudioManager.Instance.CrossfadeTo(_gameMusic);
             Respawn();
