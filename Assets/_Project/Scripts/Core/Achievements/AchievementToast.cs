@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using Ngj10.Gameplay;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -23,16 +24,34 @@ namespace Ngj10.Core.Achievements
         [SerializeField] private Vector2 _cardSize = new Vector2(360f, 90f);
         [SerializeField] private float _margin = 16f;
 
+        [Header("Audio")]
+        // Loaded from Resources in Awake — the toast is usually spawned via
+        // AddComponent (see AchievementManager) so there's no Inspector to wire it.
+        [SerializeField] private AudioClip _unlockSfx;
+
+        // Volume is authored on GameConfig (one place for top-level audio tuning);
+        // this is the fallback when no GameConfig is present in the scene.
+        private const float DefaultSfxVolume = 0.8f;
+        private const string UnlockSfxResource = "Audio/achievement";
+
         private RectTransform _card;
         private TextMeshProUGUI _titleText;
         private TextMeshProUGUI _descText;
         private CanvasGroup _group;
+        private AudioSource _audio;
 
         private readonly Queue<AchievementDefinition> _pending = new Queue<AchievementDefinition>();
         private bool _showing;
 
         private void Awake()
         {
+            _audio = gameObject.AddComponent<AudioSource>();
+            _audio.playOnAwake = false;
+            _audio.ignoreListenerPause = true; // play during the win freeze (timeScale 0)
+            if (_unlockSfx == null)
+            {
+                _unlockSfx = Resources.Load<AudioClip>(UnlockSfxResource);
+            }
             BuildUi();
         }
 
@@ -81,16 +100,24 @@ namespace Ngj10.Core.Achievements
 
         private IEnumerator Present(AchievementDefinition def)
         {
-            _titleText.text = $"Achievement unlocked!\n{def.Title}";
+            _titleText.text = def.Title;
             _descText.text = def.Description;
             _group.alpha = 1f;
+
+            if (_unlockSfx != null)
+            {
+                var config = FindAnyObjectByType<GameConfig>();
+                float volume = config != null ? config.AchievementVolume : DefaultSfxVolume;
+                _audio.PlayOneShot(_unlockSfx, volume);
+            }
 
             // Slide up from just below the bottom-right resting spot.
             Vector2 rest = new Vector2(-_margin, _margin);
             Vector2 off = rest + new Vector2(0f, -(_cardSize.y + _margin));
 
             yield return Slide(off, rest, _slideIn);
-            yield return new WaitForSeconds(_hold);
+            // Realtime so the hold keeps counting during the win freeze (timeScale 0).
+            yield return new WaitForSecondsRealtime(_hold);
             yield return Slide(rest, off, _slideOut);
 
             _group.alpha = 0f;

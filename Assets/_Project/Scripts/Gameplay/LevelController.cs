@@ -23,6 +23,23 @@ namespace Ngj10.Gameplay
         [SerializeField] private float _killY = -2.5f;
         [SerializeField] private float _timeScale = 1.4f; // global game speed for this level
         [SerializeField] private GameObject _winPanel;
+        [Tooltip("CanvasGroup on the win panel, faded 0->1 so the panel eases out of the black.")]
+        [SerializeField] private CanvasGroup _winPanelGroup;
+        [Tooltip("Completion-time label on the win panel — \"Ваше время: mm:ss:mmm\".")]
+        [SerializeField] private TMPro.TextMeshProUGUI _winTimeText;
+        [Tooltip("Leaderboard-rank label on the win panel — \"Вы заняли N место в лидерборде\".")]
+        [SerializeField] private TMPro.TextMeshProUGUI _winRankText;
+        [Tooltip("Run timer/stats source. Auto-found if left empty.")]
+        [SerializeField] private RunStats _stats;
+        [Tooltip("Leaderboard bridge — submits the run on finish. Auto-found if left empty.")]
+        [SerializeField] private LeaderboardReporter _leaderboard;
+        [Tooltip("Victory flash: the screen fills with this colour (a sun-flash) over the duration below.")]
+        [SerializeField] private Color _winFlashColor = new Color(1f, 0.92f, 0.35f, 1f);
+        [SerializeField] private float _winFlashDuration = 3f;
+        [Tooltip("After the flash, the screen eases from the flash colour to black over this time.")]
+        [SerializeField] private float _winToBlackDuration = 1.5f;
+        [Tooltip("The win panel then fades in out of the black over this time.")]
+        [SerializeField] private float _winPanelFadeDuration = 1f;
         [SerializeField] private bool _autoStart = true; // off when a StartScreen drives the start
 
         [Header("Camera / bounds")]
@@ -33,6 +50,10 @@ namespace Ngj10.Gameplay
         [SerializeField] private float _edgeMargin = 0.3f;
 
         public float TimeScale => _timeScale;
+
+        /// <summary>True once the level has gone live (past the start screen). The in-game
+        /// HUD (e.g. the run timer) uses this to stay hidden on the menu.</summary>
+        public bool IsLive => _menuKeys == null || _menuKeys.activeSelf;
 
         /// <summary>Raised when a run ends — on death (out of bounds / R restart) and
         /// on reaching the sun. The leaderboard reporter listens to snapshot the run's
@@ -45,6 +66,14 @@ namespace Ngj10.Gameplay
 
         /// <summary>Set the track played while the level runs. Called by GameConfig at startup.</summary>
         public void SetGameMusic(AudioClip clip) => _gameMusic = clip;
+
+        private void Awake()
+        {
+            if (_stats == null)
+                _stats = FindAnyObjectByType<RunStats>();
+            if (_leaderboard == null)
+                _leaderboard = FindAnyObjectByType<LeaderboardReporter>();
+        }
 
         private void OnEnable() => Hazard.PlayerHit += Die;
 
@@ -216,7 +245,8 @@ namespace Ngj10.Gameplay
             Time.timeScale = 1f;
         }
 
-        private bool _won;
+        private bool _won;     // win panel up, any key restarts
+        private bool _winning; // victory flash playing — kills off, no restart yet
         private bool _dying;
 
         private void Update()
@@ -235,8 +265,9 @@ namespace Ngj10.Gameplay
 
             if (_won)
             {
+                // Any key / click on the win screen returns to the main menu (scene reload).
                 if (Input.anyKeyDown)
-                    Restart();
+                    ReturnToMenu();
                 return;
             }
 
@@ -248,10 +279,20 @@ namespace Ngj10.Gameplay
                 return;
             }
 
+#if UNITY_EDITOR
+            // H force-triggers the win for testing (as if the sun was reached).
+            // Editor-only — not exposed in builds.
+            if (inGame && Input.GetKeyDown(KeyCode.H))
+            {
+                Win();
+                return;
+            }
+#endif
+
             // No kill checks while dying (the fade/respawn routine owns the
-            // player) or while parked at spawn — a Start placed in a bad spot
-            // must not melt into an endless respawn loop.
-            if (_dying || _player.IsWaitingForInput)
+            // player), while the victory flash plays, or while parked at spawn —
+            // a Start placed in a bad spot must not melt into an endless respawn loop.
+            if (_dying || _winning || _player.IsWaitingForInput)
                 return;
 
             Vector2 pos = _player.transform.position;
@@ -264,9 +305,14 @@ namespace Ngj10.Gameplay
                 Win();
         }
 
-        /// <summary>Return to the start screen (scene reload). Driven by the ESC key
-        /// and the ESC button — one path for both.</summary>
-        public void ReturnToMenu() => Core.SceneLoader.ReloadCurrent();
+        /// <summary>Return to the start screen (scene reload). Driven by the ESC key, the
+        /// ESC button, and "Продолжить" on the win screen. Restores the time scale first —
+        /// the win freezes it to 0, and a reload alone wouldn't unfreeze the new scene.</summary>
+        public void ReturnToMenu()
+        {
+            Time.timeScale = 1f;
+            Core.SceneLoader.ReloadCurrent();
+        }
 
         /// <summary>Restart the run via the death path (shrink + fade + respawn).
         /// Driven by the R key and the R button. No-op while already dying.</summary>
@@ -280,21 +326,109 @@ namespace Ngj10.Gameplay
 
         private void Win()
         {
-            _won = true;
+            if (_winning || _won)
+                return;
+            _winning = true;
+            // Stop the run timer the instant the sun is touched — before the flash and
+            // before timeScale 0 — so the panel shows the exact completion time.
+            if (_stats != null)
+                _stats.Stop();
+            // Freeze the hero where he is (hangs in the air) — timeScale 0 stops
+            // physics; the flash fade runs on unscaled time below.
             Time.timeScale = 0f;
             Core.Achievements.AchievementManager.Instance.Unlock("reach_sun");
             RunFinished?.Invoke();
-            if (_winPanel != null)
-                _winPanel.SetActive(true);
+            StartCoroutine(WinRoutine());
         }
 
-        private void Restart()
+        /// <summary>Sun-touch victory: the hero hangs frozen while the screen fills with a
+        /// yellow flash (the burst on contact with the sun), eases from that flash to black,
+        /// then the win panel fades up out of the black.</summary>
+        private IEnumerator WinRoutine()
         {
-            _won = false;
-            Time.timeScale = _timeScale;
+            // Fade the music out alongside the flash so the win screen is silent.
+            AudioManager.Instance.CrossfadeTo(null, _winFlashDuration);
+
+            // Show the completion time on the panel (frozen above at the sun-touch).
+            if (_winTimeText != null && _stats != null)
+                _winTimeText.text = $"Ваше время: {RunStats.FormatMs(_stats.RunMs)}";
+
+            // Submit this run, THEN fetch the fresh board for the rank — both run through
+            // the flash so the panel has the result by the time it fades in. Submitting
+            // first means the board reflects this very run when we read the placement.
+            SubmitThenShowRank();
+
+            if (_screenFader != null)
+            {
+                yield return _screenFader.FadeToColor(_winFlashColor, _winFlashDuration);
+                yield return _screenFader.FadeToColor(Color.black, _winToBlackDuration);
+            }
+
+            // Panel starts hidden (alpha 0); enable it on the black, then ease it in.
+            if (_winPanelGroup != null)
+                _winPanelGroup.alpha = 0f;
             if (_winPanel != null)
-                _winPanel.SetActive(false);
-            Respawn();
+                _winPanel.SetActive(true);
+            if (_winPanelGroup != null)
+                yield return FadeCanvasGroup(_winPanelGroup, 0f, 1f, _winPanelFadeDuration);
+
+            _winning = false;
+            _won = true;
+        }
+
+        // How deep to fetch when working out the player's leaderboard placement.
+        private const int RankFetchLimit = 1000;
+
+        /// <summary>Submit this run (if it's a new record), then fetch the fresh board and
+        /// show the player's placement. Offline / submit failure / not on the board / no
+        /// reporter → the rank line is hidden (no leaderboard, no claim about a place).</summary>
+        private void SubmitThenShowRank()
+        {
+            if (_winRankText == null)
+                return;
+
+            // No board configured at all → no rank line.
+            if (!Core.Leaderboard.LeaderboardClient.Instance.IsAvailable || _leaderboard == null)
+            {
+                _winRankText.gameObject.SetActive(false);
+                return;
+            }
+
+            // Submit first; only once the row is up to date do we read the placement.
+            _leaderboard.SubmitRunIfRecord(submitOk =>
+            {
+                if (!submitOk)
+                {
+                    _winRankText.gameObject.SetActive(false);
+                    return;
+                }
+                FetchAndShowRank();
+            });
+        }
+
+        private void FetchAndShowRank()
+        {
+            string uid = Core.Leaderboard.PlayerIdentity.Uid;
+            Core.Leaderboard.LeaderboardClient.Instance.FetchTop(RankFetchLimit,
+                entries =>
+                {
+                    int rank = entries.FindIndex(e => e.uid == uid) + 1; // 0 -> not found
+                    if (rank <= 0)
+                        _winRankText.gameObject.SetActive(false);
+                    else
+                        _winRankText.text = $"Вы заняли {rank} место в лидерборде";
+                },
+                () => _winRankText.gameObject.SetActive(false));
+        }
+
+        private static IEnumerator FadeCanvasGroup(CanvasGroup cg, float from, float to, float duration)
+        {
+            for (float t = 0f; t < duration; t += Time.unscaledDeltaTime)
+            {
+                cg.alpha = Mathf.Lerp(from, to, t / duration);
+                yield return null;
+            }
+            cg.alpha = to;
         }
 
         /// <summary>
@@ -333,8 +467,16 @@ namespace Ngj10.Gameplay
             ach.Report("first_death"); // Single: first death of any kind
             ach.Report("death_10");    // Counter: total deaths across runs
             // Snapshot the run for the leaderboard before the respawn routine zeroes
-            // RunStats — listeners read height/time/achievements off the just-ended run.
+            // RunStats — read height/time/achievements off the just-ended run. Fire-and-
+            // forget on death (unlike the win, nothing waits on the result here).
+            if (_leaderboard != null)
+                _leaderboard.SubmitRunIfRecord();
             RunFinished?.Invoke();
+            // Zero the run timer now so the HUD reads 00:00:000 through the death fade
+            // instead of ticking on while the player drifts out (height/time already read
+            // above for the submit).
+            if (_stats != null)
+                _stats.ResetTimer();
             StartCoroutine(DieRoutine());
         }
 

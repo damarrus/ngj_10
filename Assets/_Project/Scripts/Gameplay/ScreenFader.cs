@@ -42,6 +42,26 @@ namespace Ngj10.Gameplay
             SetAlpha(target);
         }
 
+        /// <summary>Fill the whole screen with <paramref name="color"/> (including its
+        /// alpha), easing both RGB and alpha from the current state over the duration.
+        /// Used for the victory flash (fade to opaque yellow on touching the sun).</summary>
+        public IEnumerator FadeToColor(Color color, float duration)
+        {
+            Color start = _image.color;
+            for (float t = 0f; t < duration; t += Time.unscaledDeltaTime)
+            {
+                SetColor(Color.Lerp(start, color, t / duration));
+                yield return null;
+            }
+            SetColor(color);
+        }
+
+        private void SetColor(Color c)
+        {
+            _image.color = c;
+            _image.raycastTarget = c.a > 0.001f;
+        }
+
         private void SetAlpha(float a)
         {
             Color c = _image.color;

@@ -21,6 +21,13 @@ A Short Hike / Zelda BotW (читаемость апдрафтов).
 После респавна Икар висит на точке старта со сложенными крыльями и ждёт первого
 зажатия (`_waitingForInput` в `IcarusController`) — нет петли «упал-респавн» без инпута.
 
+## Дебаг-команды (УБРАТЬ перед релизным билдом)
+
+Тестовые хоткеи только для отладки. **Перед сборкой релизного билда убрать.**
+
+- **H** — форс-победа (как будто долетел до солнца). `Win()` в `LevelController` (gameplay-блок `Update`). Под `#if UNITY_EDITOR` — в билд не идёт, но убрать для чистоты.
+- **T** — переключение flight-model (Field ↔ Legacy). `IcarusController`, уже под `#if UNITY_EDITOR` — в билд не идёт, но убрать для чистоты.
+
 ## Петля геймплея
 
 1. Стартуешь в **круговом потоке** — крутишься с открытыми крыльями.
@@ -143,6 +150,23 @@ A Short Hike / Zelda BotW (читаемость апдрафтов).
   слайдер заработает на любой звук, добавленный позже. WebGL-safe.
 - UI старт-экрана (`StartPanel` под `UICanvas`): TMP-заголовок "Icarus", слайдер громкости,
   кнопка Start. `CanvasGroup` на панели — для фейда.
+
+## Ачивки
+
+Система: `Scripts/Core/Achievements/` — `AchievementManager` (движок + lazy-singleton,
+спавнит `AchievementToast`), `AchievementToast` (Steam-style popup, звук
+`Resources/Audio/achievement.mp3`, громкость из `GameConfig._achievementVolume`),
+`AchievementsMenuView` (грид в меню), `AchievementReporter` (репорт прогресса в игре).
+
+### НЕ ЗАБЫТЬ перед релизом
+
+- **Включить сохранение ачивок в локальное хранилище.** Сейчас в
+  `AchievementManager._persist = false` (TEMP для визуального теста) — прогресс и
+  анлоки живут только в памяти, **сбрасываются каждый рестарт/перезапуск**. Код
+  персиста (PlayerPrefs, ключи `ach.progress.` / `ach.unlocked.`) уже написан —
+  достаточно поставить `_persist = true`. PlayerPrefs мапится в IndexedDB на WebGL,
+  переживёт перезапуск браузера. Проверить, что после рестарта открытые ачивки
+  остаются открытыми.
 
 ## Скоуп-каты (пока не делаем)
 
